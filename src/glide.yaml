@@ -1,0 +1,14 @@
+package: .
+import:
+- package: github.com/Comcast/webpa-common
+  subpackages:
+  - concurrent
+  - handler
+  - health
+  - logging
+  - secure
+  - server
+- package: github.com/gorilla/mux
+- package: github.com/justinas/alice
+- package: github.com/spf13/pflag
+- package: github.com/spf13/viper

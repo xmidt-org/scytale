@@ -43,7 +43,7 @@ mv scytale-$new_release.tar.gz /root/rpmbuild/SOURCES
 rm -rf scytale-$release
 popd
 
-rpmbuild -ba --define "_ver $release" --define "_releaseno ${BUILD_NUMBER}alpha" --define "_fullver $new_release" scytale.spec
+rpmbuild -ba --define "_ver $release" --define "_releaseno ${BUILD_NUMBER}" --define "_fullver $new_release" scytale.spec
 
 pushd ..
 echo "$new_release" > versionno.txt

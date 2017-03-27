@@ -1,0 +1,61 @@
+#!bin/bash
+#
+# scytale Application Startup Script
+#
+# chkconfig: 345 90 14
+# description: Application Startup Script
+# config: /etc/scytale/supervisord.conf
+# pidfile: /var/run/scytale/scytale.pid
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+RETVAL=0
+DAEMON_COREFILE_LIMIT=unlimited
+
+# Set limits here in addition to limits.conf
+ulimit -n 65535
+
+start() {
+	echo -n $"Starting scytale: "
+	daemon supervisord -c /etc/scytale/supervisord.conf
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && touch /var/lock/subsys/scytale
+}
+
+stop() {
+	echo -n $"Stopping scytale: "
+	killproc supervisord
+	echo
+	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/scytale
+}
+
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop) 
+	stop
+	;;
+  restart|force-reload|reload)
+	restart
+	;;
+  condrestart)
+	[ -f /var/lock/subsys/scytale ] && restart
+	;;
+  status)
+	status supervisord
+	RETVAL=$?
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart}"
+	exit 1
+esac
+
+exit $RETVAL

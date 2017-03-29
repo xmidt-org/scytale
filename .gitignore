@@ -6,12 +6,22 @@ src/vendor
 *.out
 *.a
 *.so
++src/scytale/scytale
++src/scytale/debug
++src/scytale/output
+ 
+ # config
+-src/scytale/scytale.json
++src/scytale/scytale.json
++keys/*.private
+
 src/scytale/scytale
 src/scytale/debug
 src/scytale/output
 
 # config
 src/scytale/scytale.json
+keys/*.private
 
 # Vim
 *.swp

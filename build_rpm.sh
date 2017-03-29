@@ -1,5 +1,7 @@
 #!/bin/bash
 
+NAME=scytale
+
 echo "Adjusting build number..."
 
 OIFS=$IFS
@@ -34,16 +36,25 @@ release=`echo "$release" | awk -F'v' '{print $2}'`
 echo "Issuing release $new_release..."
 echo "New base version: $release..."
 
-echo "Building the scytale rpm..."
+echo "Building the ${NAME} rpm..."
 
 pushd ..
-cp -r scytale scytale-$release
-tar -czvf scytale-$new_release.tar.gz scytale-$release
-mv scytale-$new_release.tar.gz /root/rpmbuild/SOURCES
-rm -rf scytale-$release
+cp -r ${NAME} ${NAME}-$release
+tar -czvf ${NAME}-$new_release.tar.gz ${NAME}-$release
+mv ${NAME}-$new_release.tar.gz /root/rpmbuild/SOURCES
+rm -rf ${NAME}-$release
 popd
 
-rpmbuild -ba --define "_ver $release" --define "_releaseno ${BUILD_NUMBER}" --define "_fullver $new_release" scytale.spec
+# Merge the changelog into the spec file so we're consistent
+cat ChangeLog >> ${NAME}.spec
+
+yes "" | rpmbuild -ba --sign \
+    --define "_signature gpg" \
+    --define "_gpg_name Comcast Webpa Team <CHQSV-Webpa-Gpg@comcast.com>" \
+    --define "_ver $release" \
+    --define "_releaseno ${BUILD_NUMBER}" \
+    --define "_fullver $new_release" \
+    ${NAME}.spec
 
 pushd ..
 echo "$new_release" > versionno.txt

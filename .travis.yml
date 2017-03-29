@@ -15,6 +15,10 @@ before_install:
     - docker exec build glide -v
     - docker exec build git clone https://github.com/Comcast/scytale.git
     - docker exec build git clone https://github.com/Comcast/scytale.git codecovio_build
+
+    - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then openssl aes-256-cbc -K $encrypted_97eef8a255f1_key -iv $encrypted_97eef8a255f1_iv -in keys/RPM-GPG-KEY-comcast-webpa.private.enc -out keys/RPM-GPG-KEY-comcast-webpa.private -d; fi'
+    - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker cp keys/RPM-GPG-KEY-comcast-webpa.private build:/RPM-GPG-KEY-comcast-webpa.private; fi'
+    - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker exec build bash -c "gpg --allow-secret-key-import --import /RPM-GPG-KEY-comcast-webpa.private"; fi'
     - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then docker exec build bash -c "pushd scytale; git fetch origin +refs/pull/${TRAVIS_PULL_REQUEST}/merge && git checkout -qf FETCH_HEAD; popd"; fi'
     - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then docker exec build bash -c "pushd codecovio_build; git fetch origin +refs/pull/${TRAVIS_PULL_REQUEST}/merge && git checkout -qf FETCH_HEAD; popd"; fi'
 
@@ -23,7 +27,7 @@ script:
     - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker exec build bash -c "pushd scytale; ./build_rpm.sh; popd"; fi'
 
 after_success:
-    - docker exec build bash -c "pushd codecovio_build ; bash <(curl -s https://codecov.io/bash) -t 367ce3b3-857c-42f8-87f9-1140a83f3ab4; popd"
+    - docker exec build bash -c "pushd codecovio_build ; bash <(curl -s https://codecov.io/bash) -t 46d50cde-f1cb-4a44-9024-9d558a0da63d; popd"
     - docker cp build:/root/rpmbuild/RPMS/x86_64 .
     - docker cp build:/versionno.txt .
     - BINARY_NAME=`ls x86_64/`
@@ -32,8 +36,10 @@ after_success:
 deploy:
   provider: releases
   prerelease: true
-  api_key: $AUTH_TOKEN_BUILD
-  file: x86_64/$BINARY_NAME
+  api_key: "$AUTH_TOKEN_BUILD"
+  file:
+    - x86_64/$BINARY_NAME
+    - keys/RPM-GPG-KEY-comcast-webpa
   skip_cleanup: true
   on:
     condition: "$TRAVIS_PULL_REQUEST = false"

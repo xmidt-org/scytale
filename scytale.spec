@@ -14,7 +14,8 @@ BuildRequires:  golang >= 1.7
 Requires:       supervisor
 
 %description
-Webpa notifications delivery server.
+The Webpa api interface server written in Go.
+
 
 %prep
 %setup -q

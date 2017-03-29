@@ -7,7 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/Comcast/scytale)](https://goreportcard.com/report/github.com/Comcast/scytale)
 [![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/Comcast/scytale/blob/master/LICENSE)
 
-The Webpa server for delivering events written in Go.
+The Webpa api interface server written in Go.
 
 # How to Install
 

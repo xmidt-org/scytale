@@ -41,12 +41,14 @@ popd
 
 # Install Configuration
 %{__install} -d %{buildroot}%{_sysconfdir}/%{name}
-%{__install} -p etc/%{name}/%{name}.cfg %{buildroot}%{_sysconfdir}/%{name}/%{name}.cfg
+%{__install} -p etc/%{name}/%{name}.json %{buildroot}%{_sysconfdir}/%{name}/%{name}.json
 %{__install} -p etc/%{name}/supervisord.conf %{buildroot}%{_sysconfdir}/%{name}/supervisord.conf
 
 # Create Logging Location
 %{__install} -d %{buildroot}%{_localstatedir}/%{name}
 
+# Create Runtime Details Location
+%{__install} -d %{buildroot}%{_localstatedir}/run/%{name}
 
 %files
 %defattr(644, scytale, scytale, 755)
@@ -60,11 +62,14 @@ popd
 
 # Configuration
 %dir %{_sysconfdir}/%{name}
-%config %attr(644, scytale, scytale) %{_sysconfdir}/%{name}/%{name}.cfg
+%config %attr(644, scytale, scytale) %{_sysconfdir}/%{name}/%{name}.json
 %config %attr(644, scytale, scytale) %{_sysconfdir}/%{name}/supervisord.conf
 
 # Logging Location
-%dir %{_localstatedir}/%{name}
+%dir %{_localstatedir}/log/%{name}
+
+# Runtime Details Location
+%dir %{_localstatedir}/run/%{name}
 
 %pre
 # If app user does not exist, create
@@ -103,4 +108,3 @@ if [ $1 = 0 ]; then
 fi
 
 %changelog
-

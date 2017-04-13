@@ -146,6 +146,7 @@ func TestServeHandler(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("POST", "localhost:8080", strings.NewReader("Test payload."))
+	badReq := httptest.NewRequest("GET", "localhost:8080", strings.NewReader("Test payload."))
 
 	t.Run("TestServeHTTPHappyPath", func(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
@@ -155,6 +156,18 @@ func TestServeHandler(t *testing.T) {
 		resp := w.Result()
 
 		assert.Equal(202, resp.StatusCode)
+		fakeHandler.AssertExpectations(t)
+		fakeHealth.AssertExpectations(t)
+	})
+
+	t.Run("TestServeHTTPBadMethod", func(t *testing.T) {
+		badReq.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		serverWrapper.ServeHTTP(w, badReq)
+		resp := w.Result()
+
+		assert.Equal(400, resp.StatusCode)
 		fakeHandler.AssertExpectations(t)
 		fakeHealth.AssertExpectations(t)
 	})

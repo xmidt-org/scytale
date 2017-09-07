@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/Comcast/webpa-common/logging"
 	"io/ioutil"
 	"net/http"
@@ -26,11 +27,16 @@ func (sh *ServerHandler) ServeHTTP(response http.ResponseWriter, request *http.R
 		TimeReceived: time.Now(),
 	}
 
+	if request.Method != "POST" {
+		response.WriteHeader(http.StatusBadRequest)
+		response.Write([]byte(fmt.Sprintf("Unsupported method \"%s\"... Caduceus only supports \"POST\" method.\n", request.Method)))
+		return
+	}
+
 	myPayload, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		statusMsg := "Unable to retrieve the request body: " + err.Error() + ".\n"
 		response.WriteHeader(http.StatusBadRequest)
-		response.Write([]byte(statusMsg))
+		response.Write([]byte(fmt.Sprintf("Unable to retrieve the request body: %s.\n", err.Error())))
 		return
 	}
 

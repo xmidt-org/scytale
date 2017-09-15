@@ -1,6 +1,70 @@
-hash: 677f27278f2fe1b8085158af1f83fa1dc04a231496e4bc0cf5f708d42375b942
-updated: 2017-09-11T18:37:54.926151289-07:00
+hash: 9c0fe634bdecf0f076ad6f59ebd88e7a4e34d020cd4c990f72dfec8502055ff4
+updated: 2017-09-14T17:24:08.107786547-07:00
 imports:
+- name: github.com/c9s/goprocinfo
+  version: 19cb9f127a9c8d2034cf59ccb683cdb94b9deb6c
+  subpackages:
+  - linux
 - name: github.com/Comcast/webpa-common
-  version: c8eb5e6e5c63fbc553d131d222b074272da99688
+  version: f8988717fe534eadce19b6e1e9461ac15502b89d
+  subpackages:
+  - concurrent
+  - health
+  - logging
+  - server
+- name: github.com/fsnotify/fsnotify
+  version: 4da3e2cfbabc9f751898f250b49f2439785783a1
+- name: github.com/go-kit/kit
+  version: a9ca6725cbbea455e61c6bc8a1ed28e81eb3493b
+  subpackages:
+  - log
+  - log/level
+- name: github.com/go-logfmt/logfmt
+  version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
+- name: github.com/go-stack/stack
+  version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
+- name: github.com/hashicorp/hcl
+  version: 8f6b1344a92ff8877cf24a5de9177bf7d0a2a187
+  subpackages:
+  - hcl/ast
+  - hcl/parser
+  - hcl/scanner
+  - hcl/strconv
+  - hcl/token
+  - json/parser
+  - json/scanner
+  - json/token
+- name: github.com/kr/logfmt
+  version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+- name: github.com/magiconair/properties
+  version: 8d7837e64d3c1ee4e54a880c5a920ab4316fc90a
+- name: github.com/mitchellh/mapstructure
+  version: d0303fe809921458f417bcf828397a65db30a7e4
+- name: github.com/pelletier/go-toml
+  version: 9c1b4e331f1e3d98e72600677699fbe212cd6d16
+- name: github.com/spf13/afero
+  version: ee1bd8ee15a1306d1f9201acc41ef39cd9f99a1b
+  subpackages:
+  - mem
+- name: github.com/spf13/cast
+  version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
+- name: github.com/spf13/jwalterweatherman
+  version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
+- name: github.com/spf13/pflag
+  version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
+- name: github.com/spf13/viper
+  version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
+- name: golang.org/x/sys
+  version: 7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce
+  subpackages:
+  - unix
+- name: golang.org/x/text
+  version: bd91bbf73e9a4a801adbfb97133c992678533126
+  subpackages:
+  - transform
+  - unicode/norm
+- name: gopkg.in/natefinch/lumberjack.v2
+  version: a96e63847dc3c67d17befa69c303767e2f84e54f
+- name: gopkg.in/yaml.v2
+  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
 testImports: []

@@ -8,6 +8,7 @@ import (
 	"github.com/Comcast/webpa-common/concurrent"
 	"github.com/Comcast/webpa-common/logging"
 	"github.com/Comcast/webpa-common/server"
+	"github.com/go-kit/kit/log/level"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -36,10 +37,16 @@ func scytale(arguments []string) int {
 		return 1
 	}
 
-	logging.Info(logger).Log("configurationFile", v.ConfigFileUsed())
+	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
+
+	primaryHandler, err := NewPrimaryHandler(logger, v)
+	if err != nil {
+		logger.Log(level.Key(), level.ErrorValue(), logging.ErrorKey(), err, logging.MessageKey(), "unable to create primary handler")
+		return 2
+	}
 
 	var (
-		_, runnable = webPA.Prepare(logger, nil, nil)
+		_, runnable = webPA.Prepare(logger, nil, primaryHandler)
 		signals     = make(chan os.Signal, 1)
 	)
 

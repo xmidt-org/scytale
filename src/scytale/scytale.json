@@ -10,6 +10,11 @@
 	"pprof": {
 		"address": ":6002"
 	},
+
+	"fanout": {
+		"method": "POST",
+		"endpoints": ["http://localhost:7000/api/v2/device"]
+	},
 	
 	
 	"log" : {

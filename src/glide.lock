@@ -1,20 +1,24 @@
-hash: 2099bdad133356b9b12f2d3253863361705b54a421ef8b98f49efafe2fcdadc3
-updated: 2017-09-18T10:44:31.254747439-07:00
+hash: 195116f8a1a9144f387c4ce5a6c723747feb0d680edf805029cf8bc52f12cd5d
+updated: 2017-09-18T15:31:40.263684908-07:00
 imports:
 - name: github.com/c9s/goprocinfo
   version: 19cb9f127a9c8d2034cf59ccb683cdb94b9deb6c
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 2089a5fb65d77f46f3d82b0ead6dd2f93b2fe391
+  version: 05094818a42ba3682b43c60c29a237d8e6995341
   subpackages:
   - concurrent
   - health
+  - httperror
   - logging
+  - middleware
   - server
   - tracing
+  - tracing/tracinghttp
   - wrp
   - wrp/wrpendpoint
+  - wrp/wrphttp
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/go-kit/kit
@@ -23,10 +27,15 @@ imports:
   - endpoint
   - log
   - log/level
+  - transport/http
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-stack/stack
   version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
+- name: github.com/gorilla/context
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/gorilla/mux
+  version: 392c28fe23e1c45ddba891b0320b3b5df220beea
 - name: github.com/hashicorp/hcl
   version: 8f6b1344a92ff8877cf24a5de9177bf7d0a2a187
   subpackages:

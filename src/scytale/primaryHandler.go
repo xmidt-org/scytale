@@ -31,7 +31,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (http.Handler, error) 
 
 	var (
 		router     = mux.NewRouter()
-		subrouter  = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Subrouter()
+		subrouter  = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
 		timeLayout = ""
 	)
 

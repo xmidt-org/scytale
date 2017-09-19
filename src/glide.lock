@@ -1,12 +1,12 @@
-hash: 195116f8a1a9144f387c4ce5a6c723747feb0d680edf805029cf8bc52f12cd5d
-updated: 2017-09-18T15:31:40.263684908-07:00
+hash: 2521ab57cc408b2f87fd8dd676dc33e277d3324d7ccce40a9545ec37194a047d
+updated: 2017-09-18T17:52:53.904930233-07:00
 imports:
 - name: github.com/c9s/goprocinfo
   version: 19cb9f127a9c8d2034cf59ccb683cdb94b9deb6c
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 05094818a42ba3682b43c60c29a237d8e6995341
+  version: 6ce85d028b04a00b34a34cdf65d162afb4e11cae
   subpackages:
   - concurrent
   - health
@@ -84,17 +84,4 @@ imports:
   version: a96e63847dc3c67d17befa69c303767e2f84e54f
 - name: gopkg.in/yaml.v2
   version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
-testImports:
-- name: github.com/davecgh/go-spew
-  version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
-  subpackages:
-  - spew
-- name: github.com/pmezard/go-difflib
-  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
-  subpackages:
-  - difflib
-- name: github.com/stretchr/testify
-  version: 890a5c3458b43e6104ff5da8dfa139d013d77544
-  subpackages:
-  - assert
-  - require
+testImports: []

@@ -46,7 +46,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (http.Handler, error) 
 		),
 	)
 
-	subrouter.Headers("Content-Type", "application/json").Handler(
+	subrouter.Headers("Content-Type", wrp.JSON.ContentType()).Handler(
 		gokithttp.NewServer(
 			fanoutEndpoint,
 			wrphttp.ServerDecodeRequestBody(logger, fanoutOptions.NewDecoderPool(wrp.JSON)),
@@ -57,7 +57,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (http.Handler, error) 
 		),
 	)
 
-	subrouter.Headers("Content-Type", "application/msgpack").Handler(
+	subrouter.Headers("Content-Type", wrp.Msgpack.ContentType()).Handler(
 		gokithttp.NewServer(
 			fanoutEndpoint,
 			wrphttp.ServerDecodeRequestBody(logger, fanoutOptions.NewDecoderPool(wrp.Msgpack)),

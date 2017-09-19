@@ -2,25 +2,29 @@ package main
 
 import (
 	"fmt"
+	_ "net/http/pprof"
+	"os"
+
 	"github.com/Comcast/webpa-common/concurrent"
-	"github.com/Comcast/webpa-common/handler"
-	"github.com/Comcast/webpa-common/secure"
+	"github.com/Comcast/webpa-common/logging"
 	"github.com/Comcast/webpa-common/server"
-	"github.com/gorilla/mux"
-	"github.com/justinas/alice"
+	"github.com/go-kit/kit/log/level"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"os"
-	"os/signal"
 )
 
 const (
 	applicationName = "scytale"
+	release         = "Developer"
 )
 
 // scytale is the driver function for Scytale.  It performs everything main() would do,
 // except for obtaining the command-line arguments (which are passed to it).
 func scytale(arguments []string) int {
+	//
+	// Initialize the server environment: command-line flags, Viper, logging, and the WebPA instance
+	//
+
 	var (
 		f = pflag.NewFlagSet(applicationName, pflag.ContinueOnError)
 		v = viper.New()
@@ -33,70 +37,27 @@ func scytale(arguments []string) int {
 		return 1
 	}
 
-	logger.Info("Using configuration file: %s", v.ConfigFileUsed())
+	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
 
-	scytaleConfig := new(ScytaleConfig)
-	err = v.Unmarshal(scytaleConfig)
+	primaryHandler, err := NewPrimaryHandler(logger, v)
 	if err != nil {
-		return 1
+		logger.Log(level.Key(), level.ErrorValue(), logging.ErrorKey(), err, logging.MessageKey(), "unable to create primary handler")
+		return 2
 	}
-
-	workerPool := WorkerPoolFactory{
-		NumWorkers: scytaleConfig.NumWorkerThreads,
-		QueueSize:  scytaleConfig.JobQueueSize,
-	}.New()
-
-	serverWrapper := &ServerHandler{
-		Logger: logger,
-		scytaleHandler: &ScytaleHandler{
-			Logger: logger,
-		},
-		doJob: workerPool.Send,
-	}
-
-	profileWrapper := &ProfileHandler{
-		Logger: logger,
-	}
-
-	validator := secure.Validators{
-		secure.ExactMatchValidator(scytaleConfig.AuthHeader),
-	}
-
-	authHandler := handler.AuthorizationHandler{
-		HeaderName:          "Authorization",
-		ForbiddenStatusCode: 403,
-		Validator:           validator,
-		Logger:              logger,
-	}
-
-	scytaleHandler := alice.New(authHandler.Decorate)
-
-	mux := mux.NewRouter()
-	mux.Handle("/api/v1/run", scytaleHandler.Then(serverWrapper))
-	mux.Handle("/api/v1/profile", scytaleHandler.Then(profileWrapper))
-
-	scytaleHealth := &ScytaleHealth{}
-	var runnable concurrent.Runnable
-
-	scytaleHealth.Monitor, runnable = webPA.Prepare(logger, mux)
-	serverWrapper.scytaleHealth = scytaleHealth
-
-	waitGroup, shutdown, err := concurrent.Execute(runnable)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to start device manager: %s\n", err)
-		return 1
-	}
-
-	logger.Info("Scytale is up and running!")
 
 	var (
-		signals = make(chan os.Signal, 1)
+		_, runnable = webPA.Prepare(logger, nil, primaryHandler)
+		signals     = make(chan os.Signal, 1)
 	)
 
-	signal.Notify(signals)
-	<-signals
-	close(shutdown)
-	waitGroup.Wait()
+	//
+	// Execute the runnable, which runs all the servers, and wait for a signal
+	//
+
+	if err := concurrent.Await(runnable, signals); err != nil {
+		fmt.Fprintf(os.Stderr, "Error when starting %s: %s", applicationName, err)
+		return 4
+	}
 
 	return 0
 }

@@ -1,12 +1,12 @@
-hash: 302d74e40218eeca34e1791591fb34900658f91ba37a48363b7cc1942d39ed1b
-updated: 2017-09-19T11:13:34.171891292-07:00
+hash: d4147bd376b1107304ad4811cf61784f4c9d20a83308604b835ba7df30f43b6c
+updated: 2017-09-19T19:26:23.825564479-07:00
 imports:
 - name: github.com/c9s/goprocinfo
   version: 19cb9f127a9c8d2034cf59ccb683cdb94b9deb6c
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 5ec9cf570e11eb4bef1162c269f3d301040e7be9
+  version: 3a0383439795ddc491f87a831be9fced51e2afa0
   subpackages:
   - concurrent
   - health

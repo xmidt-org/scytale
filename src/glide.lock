@@ -1,5 +1,5 @@
 hash: f01b7c90378bbdf0fbcb720ee6c27485eb14df1df1dbbce110258a5807110d2c
-updated: 2017-10-16T13:39:30.12260079-07:00
+updated: 2017-10-16T18:14:23.857155383-07:00
 imports:
 - name: github.com/c9s/goprocinfo
   version: 19cb9f127a9c8d2034cf59ccb683cdb94b9deb6c
@@ -71,8 +71,10 @@ imports:
   version: d23841a297e5489e787e72fceffabf9d2994b52a
   subpackages:
   - codec
-- name: golang.org/x/sys/unix
-  version: bb24a47a89eac6c1227fbcb2ae37a8b9ed323366
+- name: golang.org/x/sys
+  version: 7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce
+  subpackages:
+  - unix
 - name: golang.org/x/text
   version: bd91bbf73e9a4a801adbfb97133c992678533126
   subpackages:

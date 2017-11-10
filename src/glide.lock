@@ -1,12 +1,12 @@
-hash: ed530a27a7bad84fdbca62cb7569c927952f599d76a96dec6a33319f2ce8a9a2
-updated: 2017-10-24T18:28:41.972580461-07:00
+hash: 0e13170e19f241f583659c1ae517037a098aded42c39859bccf8dffad0b22c41
+updated: 2017-11-09T18:50:04.713311276-08:00
 imports:
 - name: github.com/c9s/goprocinfo
   version: 19cb9f127a9c8d2034cf59ccb683cdb94b9deb6c
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 312031c04577e73353e9529a8955ad194fe1e62c
+  version: 6e6cf6cd083fa28853130f0363b77335038d5ffa
   subpackages:
   - concurrent
   - health
@@ -68,7 +68,7 @@ imports:
 - name: github.com/spf13/viper
   version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
 - name: github.com/ugorji/go
-  version: d23841a297e5489e787e72fceffabf9d2994b52a
+  version: 00a57e09e383d445aeef6c6cd642969dc4360231
   subpackages:
   - codec
 - name: golang.org/x/sys

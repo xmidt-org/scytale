@@ -60,6 +60,9 @@ start() {
 stop() {
 	echo -n $"Stopping scytale: "
 	killproc supervisord
+	kill $(cat /var/run/scytale.pid)
+	RETVAL=$?
+	rm -f /var/run/scytale.pid
 	echo
 	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/scytale
 }

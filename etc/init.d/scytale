@@ -83,7 +83,7 @@ case "$1" in
 	[ -f /var/lock/subsys/scytale ] && restart
 	;;
   status)
-	status supervisord
+	status scytale
 	RETVAL=$?
 	;;
   *)

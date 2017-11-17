@@ -1,21 +1,23 @@
-hash: 0e13170e19f241f583659c1ae517037a098aded42c39859bccf8dffad0b22c41
-updated: 2017-11-09T18:50:04.713311276-08:00
+hash: 433dc5e2b65daf389bc145915041670ab2f6e2d9fb2ed5999941fc443e5d9600
+updated: 2017-11-17T10:01:35.651742936-08:00
 imports:
 - name: github.com/c9s/goprocinfo
   version: 19cb9f127a9c8d2034cf59ccb683cdb94b9deb6c
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 6e6cf6cd083fa28853130f0363b77335038d5ffa
+  version: baedb156aef23a18c112787efb7af287ba6a2e2d
   subpackages:
   - concurrent
   - health
   - httperror
   - logging
   - middleware
+  - middleware/fanout
   - server
   - tracing
   - tracing/tracinghttp
+  - transport/transporthttp
   - wrp
   - wrp/wrpendpoint
   - wrp/wrphttp

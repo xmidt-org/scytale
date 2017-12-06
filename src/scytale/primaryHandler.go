@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Comcast/webpa-common/middleware/fanout/fanouthttp"
 	"github.com/Comcast/webpa-common/wrp"
 	"github.com/Comcast/webpa-common/wrp/wrphttp"
 	"github.com/go-kit/kit/log"
@@ -33,21 +34,21 @@ const (
 	version = "v2"
 )
 
-func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (http.Handler, error) {
+// addDeviceSendRoutes is the legacy function that adds the fanout route for device/send
+func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
 	fanoutOptions := new(wrphttp.FanoutOptions)
 	if err := v.UnmarshalKey("fanout", fanoutOptions); err != nil {
-		return nil, err
+		return err
 	}
 
 	fanoutOptions.Logger = logger
 	fanoutEndpoint, err := wrphttp.NewFanoutEndpoint(fanoutOptions)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var (
-		router     = mux.NewRouter()
-		subrouter  = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
+		subrouter  = r.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
 		timeLayout = ""
 	)
 
@@ -57,7 +58,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (http.Handler, error) 
 			wrphttp.ServerDecodeRequestHeaders(logger),
 			wrphttp.ServerEncodeResponseHeaders(timeLayout),
 			gokithttp.ServerErrorEncoder(
-				wrphttp.ServerErrorEncoder(timeLayout),
+				fanouthttp.ServerErrorEncoder(timeLayout),
 			),
 		),
 	)
@@ -68,7 +69,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (http.Handler, error) 
 			wrphttp.ServerDecodeRequestBody(logger, fanoutOptions.NewDecoderPool(wrp.JSON)),
 			wrphttp.ServerEncodeResponseBody(timeLayout, fanoutOptions.NewEncoderPool(wrp.JSON)),
 			gokithttp.ServerErrorEncoder(
-				wrphttp.ServerErrorEncoder(timeLayout),
+				fanouthttp.ServerErrorEncoder(timeLayout),
 			),
 		),
 	)
@@ -79,10 +80,25 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (http.Handler, error) 
 			wrphttp.ServerDecodeRequestBody(logger, fanoutOptions.NewDecoderPool(wrp.Msgpack)),
 			wrphttp.ServerEncodeResponseBody(timeLayout, fanoutOptions.NewEncoderPool(wrp.Msgpack)),
 			gokithttp.ServerErrorEncoder(
-				wrphttp.ServerErrorEncoder(timeLayout),
+				fanouthttp.ServerErrorEncoder(timeLayout),
 			),
 		),
 	)
 
-	return router, nil
+	return nil
+}
+
+// addFanoutRoutes uses the new generic fanout and adds appropriate routes.  Right now, this is only /device/xxx/stat
+func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
+	return nil
+}
+
+func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (http.Handler, error) {
+	router := mux.NewRouter()
+	err := addDeviceSendRoutes(logger, router, v)
+	if err == nil {
+		err = addFanoutRoutes(logger, router, v)
+	}
+
+	return router, err
 }

@@ -55,7 +55,7 @@ func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error
 	subrouter.Headers(wrphttp.MessageTypeHeader, "").Handler(
 		gokithttp.NewServer(
 			fanoutEndpoint,
-			wrphttp.ServerDecodeRequestHeaders(logger),
+			wrphttp.ServerDecodeRequestHeaders(fanoutOptions.Logger),
 			wrphttp.ServerEncodeResponseHeaders(timeLayout),
 			gokithttp.ServerErrorEncoder(
 				fanouthttp.ServerErrorEncoder(timeLayout),
@@ -66,7 +66,7 @@ func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error
 	subrouter.Headers("Content-Type", wrp.JSON.ContentType()).Handler(
 		gokithttp.NewServer(
 			fanoutEndpoint,
-			wrphttp.ServerDecodeRequestBody(logger, fanoutOptions.NewDecoderPool(wrp.JSON)),
+			wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.JSON)),
 			wrphttp.ServerEncodeResponseBody(timeLayout, fanoutOptions.NewEncoderPool(wrp.JSON)),
 			gokithttp.ServerErrorEncoder(
 				fanouthttp.ServerErrorEncoder(timeLayout),
@@ -77,7 +77,7 @@ func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error
 	subrouter.Headers("Content-Type", wrp.Msgpack.ContentType()).Handler(
 		gokithttp.NewServer(
 			fanoutEndpoint,
-			wrphttp.ServerDecodeRequestBody(logger, fanoutOptions.NewDecoderPool(wrp.Msgpack)),
+			wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.Msgpack)),
 			wrphttp.ServerEncodeResponseBody(timeLayout, fanoutOptions.NewEncoderPool(wrp.Msgpack)),
 			gokithttp.ServerErrorEncoder(
 				fanouthttp.ServerErrorEncoder(timeLayout),
@@ -90,6 +90,12 @@ func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error
 
 // addFanoutRoutes uses the new generic fanout and adds appropriate routes.  Right now, this is only /device/xxx/stat
 func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
+	options := new(fanouthttp.Options)
+	if err := v.UnmarshalKey("fanout", options); err != nil {
+		return err
+	}
+
+	options.Logger = logger
 	return nil
 }
 

@@ -19,8 +19,11 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
+	"github.com/Comcast/webpa-common/middleware/fanout"
 	"github.com/Comcast/webpa-common/middleware/fanout/fanouthttp"
+	"github.com/Comcast/webpa-common/tracing"
 	"github.com/Comcast/webpa-common/wrp"
 	"github.com/Comcast/webpa-common/wrp/wrphttp"
 	"github.com/go-kit/kit/log"
@@ -47,18 +50,15 @@ func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error
 		return err
 	}
 
-	var (
-		subrouter  = r.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
-		timeLayout = ""
-	)
+	subrouter := r.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
 
 	subrouter.Headers(wrphttp.MessageTypeHeader, "").Handler(
 		gokithttp.NewServer(
 			fanoutEndpoint,
 			wrphttp.ServerDecodeRequestHeaders(fanoutOptions.Logger),
-			wrphttp.ServerEncodeResponseHeaders(timeLayout),
+			wrphttp.ServerEncodeResponseHeaders(""),
 			gokithttp.ServerErrorEncoder(
-				fanouthttp.ServerErrorEncoder(timeLayout),
+				fanouthttp.ServerErrorEncoder(""),
 			),
 		),
 	)
@@ -67,9 +67,9 @@ func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error
 		gokithttp.NewServer(
 			fanoutEndpoint,
 			wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.JSON)),
-			wrphttp.ServerEncodeResponseBody(timeLayout, fanoutOptions.NewEncoderPool(wrp.JSON)),
+			wrphttp.ServerEncodeResponseBody("", fanoutOptions.NewEncoderPool(wrp.JSON)),
 			gokithttp.ServerErrorEncoder(
-				fanouthttp.ServerErrorEncoder(timeLayout),
+				fanouthttp.ServerErrorEncoder(""),
 			),
 		),
 	)
@@ -78,9 +78,9 @@ func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error
 		gokithttp.NewServer(
 			fanoutEndpoint,
 			wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.Msgpack)),
-			wrphttp.ServerEncodeResponseBody(timeLayout, fanoutOptions.NewEncoderPool(wrp.Msgpack)),
+			wrphttp.ServerEncodeResponseBody("", fanoutOptions.NewEncoderPool(wrp.Msgpack)),
 			gokithttp.ServerErrorEncoder(
-				fanouthttp.ServerErrorEncoder(timeLayout),
+				fanouthttp.ServerErrorEncoder(""),
 			),
 		),
 	)
@@ -95,7 +95,55 @@ func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
 		return err
 	}
 
+	// HACK! we need to preprocess the endpoints in order to strip path information
+	urls := make([]string, len(options.Endpoints))
+	for i := 0; i < len(options.Endpoints); i++ {
+		parsed, err := url.Parse(options.Endpoints[i])
+		if err != nil {
+			return err
+		}
+
+		parsed.Path = ""
+		parsed.RawPath = ""
+		parsed.ForceQuery = false
+		parsed.RawQuery = ""
+		parsed.Fragment = ""
+
+		urls[i] = parsed.String()
+	}
+
 	options.Logger = logger
+	components, err := fanouthttp.NewComponents(
+		urls,
+		fanouthttp.EncodePassThroughRequest,
+		fanouthttp.DecodePassThroughResponse,
+		gokithttp.SetClient(options.NewClient()),
+		gokithttp.ClientBefore(
+			fanouthttp.VariablesToHeaders("deviceID", "X-Webpa-Device-Name"),
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	// this fanoutHandler is generic, as opposed to the legacy wrphttp fanout (above)
+	fanoutHandler := fanouthttp.NewHandler(
+		options.FanoutMiddleware()(
+			fanout.New(tracing.NewSpanner(), components),
+		),
+		fanouthttp.DecodePassThroughRequest,
+		fanouthttp.EncodePassThroughResponse,
+		gokithttp.ServerErrorEncoder(
+			fanouthttp.ServerErrorEncoder(""),
+		),
+	)
+
+	r.Handle(
+		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),
+		fanoutHandler,
+	).Methods("GET")
+
 	return nil
 }
 

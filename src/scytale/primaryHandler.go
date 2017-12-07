@@ -113,14 +113,24 @@ func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
 	}
 
 	options.Logger = logger
+	requestFuncs := []gokithttp.RequestFunc{
+		fanouthttp.VariablesToHeaders("deviceID", "X-Webpa-Device-Name"),
+	}
+
+	// TODO: This should probably be handled generically by some infrastructure
+	if len(options.Authorization) > 0 {
+		requestFuncs = append(
+			requestFuncs,
+			gokithttp.SetRequestHeader("Authorization", "Basic "+options.Authorization),
+		)
+	}
+
 	components, err := fanouthttp.NewComponents(
 		urls,
 		fanouthttp.EncodePassThroughRequest,
 		fanouthttp.DecodePassThroughResponse,
 		gokithttp.SetClient(options.NewClient()),
-		gokithttp.ClientBefore(
-			fanouthttp.VariablesToHeaders("deviceID", "X-Webpa-Device-Name"),
-		),
+		gokithttp.ClientBefore(requestFuncs...),
 	)
 
 	if err != nil {

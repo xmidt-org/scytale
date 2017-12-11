@@ -45,7 +45,7 @@ func scytale(arguments []string) int {
 		f = pflag.NewFlagSet(applicationName, pflag.ContinueOnError)
 		v = viper.New()
 
-		logger, webPA, err = server.Initialize(applicationName, arguments, f, v)
+		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v)
 	)
 
 	if err != nil {
@@ -62,7 +62,7 @@ func scytale(arguments []string) int {
 	}
 
 	var (
-		_, runnable = webPA.Prepare(logger, nil, primaryHandler)
+		_, runnable = webPA.Prepare(logger, nil, metricsRegistry, primaryHandler)
 		signals     = make(chan os.Signal, 1)
 	)
 

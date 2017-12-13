@@ -2,3 +2,5 @@ package: .
 import:
 - package: github.com/Comcast/webpa-common
   version: e630982de53ef5a555610825c4dbca78c097549d
+- package: github.com/justinas/alice
+  version: 1.0.0

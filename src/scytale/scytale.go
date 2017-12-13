@@ -30,6 +30,9 @@ import (
 )
 
 const (
+	//DefaultKeyID is used to build JWT validators
+	DefaultKeyID = "current"
+
 	applicationName = "scytale"
 	release         = "Developer"
 )
@@ -55,7 +58,7 @@ func scytale(arguments []string) int {
 
 	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
 
-	primaryHandler, err := NewPrimaryHandler(logger, v)
+	primaryHandler, webhookFactory, err := NewPrimaryHandler(logger, v)
 	if err != nil {
 		logger.Log(level.Key(), level.ErrorValue(), logging.ErrorKey(), err, logging.MessageKey(), "unable to create primary handler")
 		return 2
@@ -69,6 +72,8 @@ func scytale(arguments []string) int {
 	//
 	// Execute the runnable, which runs all the servers, and wait for a signal
 	//
+
+	go webhookFactory.PrepareAndStart()
 
 	if err := concurrent.Await(runnable, signals); err != nil {
 		fmt.Fprintf(os.Stderr, "Error when starting %s: %s", applicationName, err)

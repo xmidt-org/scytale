@@ -23,12 +23,18 @@ import (
 
 	"github.com/Comcast/webpa-common/middleware/fanout"
 	"github.com/Comcast/webpa-common/middleware/fanout/fanouthttp"
+	"github.com/Comcast/webpa-common/secure"
+	"github.com/Comcast/webpa-common/secure/handler"
+	"github.com/Comcast/webpa-common/secure/key"
 	"github.com/Comcast/webpa-common/tracing"
+	"github.com/Comcast/webpa-common/webhook"
 	"github.com/Comcast/webpa-common/wrp"
 	"github.com/Comcast/webpa-common/wrp/wrphttp"
+	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/log"
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 	"github.com/spf13/viper"
 )
 
@@ -157,12 +163,111 @@ func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
 	return nil
 }
 
-func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (http.Handler, error) {
-	router := mux.NewRouter()
-	err := addDeviceSendRoutes(logger, router, v)
-	if err == nil {
-		err = addFanoutRoutes(logger, router, v)
+//ConfigureWebHooks sets route paths, initializes and synchronizes hook registries for this tr1d1um instance
+//baseRouter is pre-configured with the api/v2 prefix path
+//root is the original router used by webHookFactory.Initialize()
+func addWebhooks(r *mux.Router, preHandler *alice.Chain, v *viper.Viper, logger log.Logger) (*webhook.Factory, error) {
+	webHookFactory, err := webhook.NewFactory(v)
+
+	if err != nil {
+		return nil, err
 	}
 
-	return router, err
+	baseRouter := r.PathPrefix(fmt.Sprintf("%s/%s", baseURI, version)).Subrouter()
+
+	webHookRegistry, webHookHandler := webHookFactory.NewRegistryAndHandler()
+
+	// register webHook end points for api
+	baseRouter.Handle("/hook", preHandler.ThenFunc(webHookRegistry.UpdateRegistry))
+	baseRouter.Handle("/hooks", preHandler.ThenFunc(webHookRegistry.GetRegistry))
+
+	selfURL := &url.URL{
+		Scheme: "https",
+		Host:   v.GetString("fqdn") + v.GetString("primary.address"),
+	}
+
+	webHookFactory.Initialize(r, selfURL, webHookHandler, logger, nil)
+	return webHookFactory, nil
+}
+
+//getPreHandler configures the authorization requirements for requests trying to reach subsequent handler
+func getPreHandler(v *viper.Viper, logger log.Logger) (preHandler *alice.Chain, err error) {
+	validator, err := getValidator(v)
+
+	if err != nil {
+		return
+	}
+
+	authHandler := handler.AuthorizationHandler{
+		HeaderName:          "Authorization",
+		ForbiddenStatusCode: 403,
+		Validator:           validator,
+		Logger:              logger,
+	}
+
+	newPreHandler := alice.New(authHandler.Decorate)
+	preHandler = &newPreHandler
+	return
+}
+
+//getValidator returns a validator for JWT/Basic tokens
+//It reads in tokens from a config file. Zero or more tokens
+//can be read.
+func getValidator(v *viper.Viper) (validator secure.Validator, err error) {
+	var jwtVals []JWTValidator
+
+	err = v.UnmarshalKey("jwtValidators", &jwtVals)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// if a JWTKeys section was supplied, configure a JWS validator
+	// and append it to the chain of validators
+	validators := make(secure.Validators, 0, len(jwtVals))
+
+	for _, validatorDescriptor := range jwtVals {
+		var keyResolver key.Resolver
+		keyResolver, err = validatorDescriptor.Keys.NewResolver()
+		if err != nil {
+			validator = validators
+			return
+		}
+
+		validators = append(
+			validators,
+			secure.JWSValidator{
+				DefaultKeyId:  DefaultKeyID,
+				Resolver:      keyResolver,
+				JWTValidators: []*jwt.Validator{validatorDescriptor.Custom.New()},
+			},
+		)
+	}
+
+	basicAuth := v.GetStringSlice("authHeader")
+
+	// if basic auth tokens are provided, add them to the validators list as well
+	for _, authValue := range basicAuth {
+		validators = append(
+			validators,
+			secure.ExactMatchValidator(authValue),
+		)
+	}
+
+	validator = validators
+
+	return
+}
+
+func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (handler http.Handler, factory *webhook.Factory, err error) {
+	router := mux.NewRouter()
+	var preHandler *alice.Chain
+
+	if err = addDeviceSendRoutes(logger, router, v); err == nil {
+		if preHandler, err = getPreHandler(v, logger); err == nil {
+			factory, err = addWebhooks(router, preHandler, v, logger)
+		}
+	}
+
+	return router, factory, err
 }

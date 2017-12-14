@@ -6,6 +6,7 @@ src/vendor
 *.out
 *.a
 *.so
+*.bak
 +src/scytale/scytale
 +src/scytale/debug
 +src/scytale/output

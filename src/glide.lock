@@ -1,5 +1,5 @@
-hash: a2f40e8e7c9435c77a67aa137860c60e5b8b06a700be4339197cbb4c03a15f31
-updated: 2017-12-13T11:23:26.770362-08:00
+hash: a8979b9a658f267fee2a5c8e46397a7127ae9aa000c3fbec7cd5617831410e5b
+updated: 2017-12-14T12:31:06.308862661-08:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 7be45195c3af1b54a609812f90c05a7e492e2491
@@ -38,7 +38,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: e630982de53ef5a555610825c4dbca78c097549d
+  version: d57f1d86dd88e6af5051c5928f6988f252ed6ac0
   subpackages:
   - concurrent
   - health
@@ -69,7 +69,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/go-ini/ini
-  version: f384f410798cbe7cdce40eec40b79ed32bb4f1ad
+  version: 3d73f4b845efdf9989fffd4b4e562727744a34ba
 - name: github.com/go-kit/kit
   version: a9ca6725cbbea455e61c6bc8a1ed28e81eb3493b
   subpackages:

@@ -264,8 +264,10 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (handler http.Handler,
 	var preHandler *alice.Chain
 
 	if err = addDeviceSendRoutes(logger, router, v); err == nil {
-		if preHandler, err = getPreHandler(v, logger); err == nil {
-			factory, err = addWebhooks(router, preHandler, v, logger)
+		if err = addFanoutRoutes(logger, router, v); err == nil {
+			if preHandler, err = getPreHandler(v, logger); err == nil {
+				factory, err = addWebhooks(router, preHandler, v, logger)
+			}
 		}
 	}
 

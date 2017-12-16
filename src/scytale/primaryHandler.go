@@ -125,9 +125,7 @@ func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
 	}
 
 	// TODO: This should probably be handled generically by some infrastructure
-	fmt.Printf("options: %+v\n", options)
 	if len(options.Authorization) > 0 {
-		fmt.Printf("We're going to add Basic Auth!\n")
 		requestFuncs = append(
 			requestFuncs,
 			gokithttp.SetRequestHeader("Authorization", "Basic "+options.Authorization),

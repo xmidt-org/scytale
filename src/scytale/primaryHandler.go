@@ -17,6 +17,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -124,18 +125,39 @@ func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
 	}
 
 	// TODO: This should probably be handled generically by some infrastructure
+	fmt.Printf("options: %+v\n", options)
 	if len(options.Authorization) > 0 {
+		fmt.Printf("We're going to add Basic Auth!\n")
 		requestFuncs = append(
 			requestFuncs,
 			gokithttp.SetRequestHeader("Authorization", "Basic "+options.Authorization),
 		)
 	}
 
+	client := options.NewClient()
+
+	// Copy the headers when our requests are redirected because go 1.9.2
+	// and before will NOT copy over the Authorization headers for us.
+	client.CheckRedirect = func(r *http.Request, via []*http.Request) error {
+		redirects := len(via)
+		if 10 <= redirects {
+			return errors.New("Too many redirects.")
+		}
+
+		for k, vals := range via[0].Header {
+			for _, v := range vals {
+				r.Header.Add(k, v)
+			}
+		}
+
+		return nil
+	}
+
 	components, err := fanouthttp.NewComponents(
 		urls,
 		fanouthttp.EncodePassThroughRequest,
 		fanouthttp.DecodePassThroughResponse,
-		gokithttp.SetClient(options.NewClient()),
+		gokithttp.SetClient(client),
 		gokithttp.ClientBefore(requestFuncs...),
 	)
 

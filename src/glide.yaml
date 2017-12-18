@@ -1,6 +1,6 @@
 package: .
 import:
 - package: github.com/Comcast/webpa-common
-  version: d57f1d86dd88e6af5051c5928f6988f252ed6ac0
+  version: 1c7649af38a0618a95015f49324a067632f4a43c
 - package: github.com/justinas/alice
   version: 1.0.0

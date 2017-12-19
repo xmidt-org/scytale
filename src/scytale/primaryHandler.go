@@ -44,7 +44,7 @@ const (
 )
 
 // addDeviceSendRoutes is the legacy function that adds the fanout route for device/send
-func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
+func addDeviceSendRoutes(logger log.Logger, authHandler *alice.Chain, r *mux.Router, v *viper.Viper) error {
 	fanoutOptions := new(wrphttp.FanoutOptions)
 	if err := v.UnmarshalKey("fanout", fanoutOptions); err != nil {
 		return err
@@ -59,34 +59,40 @@ func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error
 	subrouter := r.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
 
 	subrouter.Headers(wrphttp.MessageTypeHeader, "").Handler(
-		gokithttp.NewServer(
-			fanoutEndpoint,
-			wrphttp.ServerDecodeRequestHeaders(fanoutOptions.Logger),
-			wrphttp.ServerEncodeResponseHeaders(""),
-			gokithttp.ServerErrorEncoder(
-				fanouthttp.ServerErrorEncoder(""),
+		authHandler.Then(
+			gokithttp.NewServer(
+				fanoutEndpoint,
+				wrphttp.ServerDecodeRequestHeaders(fanoutOptions.Logger),
+				wrphttp.ServerEncodeResponseHeaders(""),
+				gokithttp.ServerErrorEncoder(
+					fanouthttp.ServerErrorEncoder(""),
+				),
 			),
 		),
 	)
 
 	subrouter.Headers("Content-Type", wrp.JSON.ContentType()).Handler(
-		gokithttp.NewServer(
-			fanoutEndpoint,
-			wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.JSON)),
-			wrphttp.ServerEncodeResponseBody("", fanoutOptions.NewEncoderPool(wrp.JSON)),
-			gokithttp.ServerErrorEncoder(
-				fanouthttp.ServerErrorEncoder(""),
+		authHandler.Then(
+			gokithttp.NewServer(
+				fanoutEndpoint,
+				wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.JSON)),
+				wrphttp.ServerEncodeResponseBody("", fanoutOptions.NewEncoderPool(wrp.JSON)),
+				gokithttp.ServerErrorEncoder(
+					fanouthttp.ServerErrorEncoder(""),
+				),
 			),
 		),
 	)
 
 	subrouter.Headers("Content-Type", wrp.Msgpack.ContentType()).Handler(
-		gokithttp.NewServer(
-			fanoutEndpoint,
-			wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.Msgpack)),
-			wrphttp.ServerEncodeResponseBody("", fanoutOptions.NewEncoderPool(wrp.Msgpack)),
-			gokithttp.ServerErrorEncoder(
-				fanouthttp.ServerErrorEncoder(""),
+		authHandler.Then(
+			gokithttp.NewServer(
+				fanoutEndpoint,
+				wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.Msgpack)),
+				wrphttp.ServerEncodeResponseBody("", fanoutOptions.NewEncoderPool(wrp.Msgpack)),
+				gokithttp.ServerErrorEncoder(
+					fanouthttp.ServerErrorEncoder(""),
+				),
 			),
 		),
 	)
@@ -95,7 +101,7 @@ func addDeviceSendRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error
 }
 
 // addFanoutRoutes uses the new generic fanout and adds appropriate routes.  Right now, this is only /device/xxx/stat
-func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
+func addFanoutRoutes(logger log.Logger, authHandler *alice.Chain, r *mux.Router, v *viper.Viper) error {
 	options := new(fanouthttp.Options)
 	if err := v.UnmarshalKey("fanout", options); err != nil {
 		return err
@@ -157,7 +163,7 @@ func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
 
 	r.Handle(
 		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),
-		fanoutHandler,
+		authHandler.Then(fanoutHandler),
 	).Methods("GET")
 
 	return nil
@@ -166,7 +172,7 @@ func addFanoutRoutes(logger log.Logger, r *mux.Router, v *viper.Viper) error {
 //ConfigureWebHooks sets route paths, initializes and synchronizes hook registries for this tr1d1um instance
 //baseRouter is pre-configured with the api/v2 prefix path
 //root is the original router used by webHookFactory.Initialize()
-func addWebhooks(r *mux.Router, preHandler *alice.Chain, v *viper.Viper, logger log.Logger) (*webhook.Factory, error) {
+func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger log.Logger) (*webhook.Factory, error) {
 	webHookFactory, err := webhook.NewFactory(v)
 
 	if err != nil {
@@ -178,8 +184,8 @@ func addWebhooks(r *mux.Router, preHandler *alice.Chain, v *viper.Viper, logger 
 	webHookRegistry, webHookHandler := webHookFactory.NewRegistryAndHandler()
 
 	// register webHook end points for api
-	baseRouter.Handle("/hook", preHandler.ThenFunc(webHookRegistry.UpdateRegistry))
-	baseRouter.Handle("/hooks", preHandler.ThenFunc(webHookRegistry.GetRegistry))
+	baseRouter.Handle("/hook", authHandler.ThenFunc(webHookRegistry.UpdateRegistry))
+	baseRouter.Handle("/hooks", authHandler.ThenFunc(webHookRegistry.GetRegistry))
 
 	selfURL := &url.URL{
 		Scheme: "https",
@@ -190,23 +196,23 @@ func addWebhooks(r *mux.Router, preHandler *alice.Chain, v *viper.Viper, logger 
 	return webHookFactory, nil
 }
 
-//getPreHandler configures the authorization requirements for requests trying to reach subsequent handler
-func getPreHandler(v *viper.Viper, logger log.Logger) (preHandler *alice.Chain, err error) {
+//getAuthHandler configures the authorization requirements for requests trying to reach subsequent handler
+func getAuthHandler(v *viper.Viper, logger log.Logger) (authHandler *alice.Chain, err error) {
 	validator, err := getValidator(v)
 
 	if err != nil {
 		return
 	}
 
-	authHandler := handler.AuthorizationHandler{
+	handler := handler.AuthorizationHandler{
 		HeaderName:          "Authorization",
 		ForbiddenStatusCode: 403,
 		Validator:           validator,
 		Logger:              logger,
 	}
 
-	newPreHandler := alice.New(authHandler.Decorate)
-	preHandler = &newPreHandler
+	newPreHandler := alice.New(handler.Decorate)
+	authHandler = &newPreHandler
 	return
 }
 
@@ -261,12 +267,12 @@ func getValidator(v *viper.Viper) (validator secure.Validator, err error) {
 
 func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (handler http.Handler, factory *webhook.Factory, err error) {
 	router := mux.NewRouter()
-	var preHandler *alice.Chain
+	var authHandler *alice.Chain
 
-	if err = addDeviceSendRoutes(logger, router, v); err == nil {
-		if err = addFanoutRoutes(logger, router, v); err == nil {
-			if preHandler, err = getPreHandler(v, logger); err == nil {
-				factory, err = addWebhooks(router, preHandler, v, logger)
+	if authHandler, err = getAuthHandler(v, logger); err == nil {
+		if err = addDeviceSendRoutes(logger, authHandler, router, v); err == nil {
+			if err = addFanoutRoutes(logger, authHandler, router, v); err == nil {
+				factory, err = addWebhooks(router, authHandler, v, logger)
 			}
 		}
 	}

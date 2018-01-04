@@ -59,10 +59,8 @@ start() {
 
 stop() {
 	echo -n $"Stopping scytale: "
-	killproc supervisord
-	kill $(cat /var/run/scytale.pid)
+	supervisorctl -c /etc/scytale/supervisord.conf shutdown > /dev/null
 	RETVAL=$?
-	rm -f /var/run/scytale.pid
 	echo
 	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/scytale
 }
@@ -86,7 +84,7 @@ case "$1" in
 	[ -f /var/lock/subsys/scytale ] && restart
 	;;
   status)
-	status scytale
+	supervisorctl -c /etc/scytale/supervisord.conf status
 	RETVAL=$?
 	;;
   *)

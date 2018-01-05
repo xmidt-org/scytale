@@ -20,6 +20,7 @@ import (
 	"fmt"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 
 	"github.com/Comcast/webpa-common/concurrent"
 	"github.com/Comcast/webpa-common/logging"
@@ -65,8 +66,8 @@ func scytale(arguments []string) int {
 	}
 
 	var (
-		_, runnable = webPA.Prepare(logger, nil, metricsRegistry, primaryHandler)
-		signals     = make(chan os.Signal, 1)
+		_, caduceusServer = webPA.Prepare(logger, nil, metricsRegistry, primaryHandler)
+		signals           = make(chan os.Signal, 10)
 	)
 
 	//
@@ -75,10 +76,17 @@ func scytale(arguments []string) int {
 
 	go webhookFactory.PrepareAndStart()
 
-	if err := concurrent.Await(runnable, signals); err != nil {
+	waitGroup, shutdown, err := concurrent.Execute(caduceusServer)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when starting %s: %s", applicationName, err)
 		return 4
 	}
+
+	signal.Notify(signals)
+	s := server.SignalWait(logging.Info(logger), signals, os.Kill, os.Interrupt)
+	logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "exiting due to signal", "signal", s)
+	close(shutdown)
+	waitGroup.Wait()
 
 	return 0
 }

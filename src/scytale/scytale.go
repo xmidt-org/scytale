@@ -73,6 +73,7 @@ func scytale(arguments []string) int {
 	//
 	// Execute the runnable, which runs all the servers, and wait for a signal
 	//
+	signal.Notify(signals, os.Interrupt, os.Kill)
 
 	go webhookFactory.PrepareAndStart()
 

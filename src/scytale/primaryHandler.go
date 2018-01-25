@@ -244,15 +244,15 @@ func getValidator(v *viper.Viper, measures *secure.JWTValidationMeasures) (valid
 			validator = validators
 			return
 		}
+		validator := secure.JWSValidator{
+			DefaultKeyId:  DefaultKeyID,
+			Resolver:      keyResolver,
+			JWTValidators: []*jwt.Validator{validatorDescriptor.Custom.New()},
+		}
 
-		validators = append(
-			validators,
-			secure.JWSValidator{
-				DefaultKeyId:  DefaultKeyID,
-				Resolver:      keyResolver,
-				JWTValidators: []*jwt.Validator{validatorDescriptor.Custom.New()},
-			},
-		)
+		validator.DefineMeasures(measures)
+
+		validators = append(validators, validator)
 	}
 
 	basicAuth := v.GetStringSlice("authHeader")

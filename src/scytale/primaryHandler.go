@@ -174,7 +174,7 @@ func addFanoutRoutes(logger log.Logger, authHandler *alice.Chain, r *mux.Router,
 //baseRouter is pre-configured with the api/v2 prefix path
 //root is the original router used by webHookFactory.Initialize()
 func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (*webhook.Factory, error) {
-	webHookFactory, err := webhook.NewFactory(v, &registry)
+	webHookFactory, err := webhook.NewFactory(v)
 
 	if err != nil {
 		return nil, err

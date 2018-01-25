@@ -30,6 +30,7 @@ import (
 	"github.com/Comcast/webpa-common/webhook"
 	"github.com/Comcast/webpa-common/wrp"
 	"github.com/Comcast/webpa-common/wrp/wrphttp"
+	"github.com/Comcast/webpa-common/xmetrics"
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/log"
 	gokithttp "github.com/go-kit/kit/transport/http"
@@ -75,8 +76,8 @@ func addDeviceSendRoutes(logger log.Logger, authHandler *alice.Chain, r *mux.Rou
 		authHandler.Then(
 			gokithttp.NewServer(
 				fanoutEndpoint,
-				wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.JSON)),
-				wrphttp.ServerEncodeResponseBody("", fanoutOptions.NewEncoderPool(wrp.JSON)),
+				wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, wrp.JSON),
+				wrphttp.ServerEncodeResponseBody("", wrp.JSON),
 				gokithttp.ServerErrorEncoder(
 					fanouthttp.ServerErrorEncoder(""),
 				),
@@ -88,8 +89,8 @@ func addDeviceSendRoutes(logger log.Logger, authHandler *alice.Chain, r *mux.Rou
 		authHandler.Then(
 			gokithttp.NewServer(
 				fanoutEndpoint,
-				wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, fanoutOptions.NewDecoderPool(wrp.Msgpack)),
-				wrphttp.ServerEncodeResponseBody("", fanoutOptions.NewEncoderPool(wrp.Msgpack)),
+				wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, wrp.Msgpack),
+				wrphttp.ServerEncodeResponseBody("", wrp.Msgpack),
 				gokithttp.ServerErrorEncoder(
 					fanouthttp.ServerErrorEncoder(""),
 				),
@@ -172,8 +173,8 @@ func addFanoutRoutes(logger log.Logger, authHandler *alice.Chain, r *mux.Router,
 //ConfigureWebHooks sets route paths, initializes and synchronizes hook registries for this tr1d1um instance
 //baseRouter is pre-configured with the api/v2 prefix path
 //root is the original router used by webHookFactory.Initialize()
-func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger log.Logger) (*webhook.Factory, error) {
-	webHookFactory, err := webhook.NewFactory(v)
+func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (*webhook.Factory, error) {
+	webHookFactory, err := webhook.NewFactory(v, &registry)
 
 	if err != nil {
 		return nil, err
@@ -181,7 +182,7 @@ func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger
 
 	baseRouter := r.PathPrefix(fmt.Sprintf("%s/%s", baseURI, version)).Subrouter()
 
-	webHookRegistry, webHookHandler := webHookFactory.NewRegistryAndHandler()
+	webHookRegistry, webHookHandler := webHookFactory.NewRegistryAndHandler(registry)
 
 	// register webHook end points for api
 	baseRouter.Handle("/hook", authHandler.ThenFunc(webHookRegistry.UpdateRegistry))
@@ -192,13 +193,13 @@ func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger
 		Host:   v.GetString("fqdn") + v.GetString("primary.address"),
 	}
 
-	webHookFactory.Initialize(r, selfURL, webHookHandler, logger, nil)
+	webHookFactory.Initialize(r, selfURL, webHookHandler, logger, registry, nil)
 	return webHookFactory, nil
 }
 
 //getAuthHandler configures the authorization requirements for requests trying to reach subsequent handler
-func getAuthHandler(v *viper.Viper, logger log.Logger) (authHandler *alice.Chain, err error) {
-	validator, err := getValidator(v)
+func getAuthHandler(v *viper.Viper, logger log.Logger, measures *secure.JWTValidationMeasures) (authHandler *alice.Chain, err error) {
+	validator, err := getValidator(v, measures)
 
 	if err != nil {
 		return
@@ -211,6 +212,8 @@ func getAuthHandler(v *viper.Viper, logger log.Logger) (authHandler *alice.Chain
 		Logger:              logger,
 	}
 
+	handler.DefineMeasures(measures)
+
 	newPreHandler := alice.New(handler.Decorate)
 	authHandler = &newPreHandler
 	return
@@ -219,7 +222,7 @@ func getAuthHandler(v *viper.Viper, logger log.Logger) (authHandler *alice.Chain
 //getValidator returns a validator for JWT/Basic tokens
 //It reads in tokens from a config file. Zero or more tokens
 //can be read.
-func getValidator(v *viper.Viper) (validator secure.Validator, err error) {
+func getValidator(v *viper.Viper, measures *secure.JWTValidationMeasures) (validator secure.Validator, err error) {
 	var jwtVals []JWTValidator
 
 	err = v.UnmarshalKey("jwtValidators", &jwtVals)
@@ -233,6 +236,8 @@ func getValidator(v *viper.Viper) (validator secure.Validator, err error) {
 	validators := make(secure.Validators, 0, len(jwtVals))
 
 	for _, validatorDescriptor := range jwtVals {
+		validatorDescriptor.Custom.DefineMeasures(measures) // insert metrics tool
+
 		var keyResolver key.Resolver
 		keyResolver, err = validatorDescriptor.Keys.NewResolver()
 		if err != nil {
@@ -265,14 +270,15 @@ func getValidator(v *viper.Viper) (validator secure.Validator, err error) {
 	return
 }
 
-func NewPrimaryHandler(logger log.Logger, v *viper.Viper) (handler http.Handler, factory *webhook.Factory, err error) {
+func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry) (handler http.Handler, factory *webhook.Factory, err error) {
 	router := mux.NewRouter()
 	var authHandler *alice.Chain
+	measures := secure.NewJWTValidationMeasures(registry)
 
-	if authHandler, err = getAuthHandler(v, logger); err == nil {
+	if authHandler, err = getAuthHandler(v, logger, measures); err == nil {
 		if err = addDeviceSendRoutes(logger, authHandler, router, v); err == nil {
 			if err = addFanoutRoutes(logger, authHandler, router, v); err == nil {
-				factory, err = addWebhooks(router, authHandler, v, logger)
+				factory, err = addWebhooks(router, authHandler, v, logger, registry)
 			}
 		}
 	}

@@ -24,7 +24,10 @@ import (
 
 	"github.com/Comcast/webpa-common/concurrent"
 	"github.com/Comcast/webpa-common/logging"
+	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/server"
+	"github.com/Comcast/webpa-common/webhook"
+	"github.com/Comcast/webpa-common/webhook/aws"
 	"github.com/go-kit/kit/log/level"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -49,7 +52,7 @@ func scytale(arguments []string) int {
 		f = pflag.NewFlagSet(applicationName, pflag.ContinueOnError)
 		v = viper.New()
 
-		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v)
+		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, secure.Metrics)
 	)
 
 	if err != nil {
@@ -59,7 +62,7 @@ func scytale(arguments []string) int {
 
 	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
 
-	primaryHandler, webhookFactory, err := NewPrimaryHandler(logger, v)
+	primaryHandler, webhookFactory, err := NewPrimaryHandler(logger, v, metricsRegistry)
 	if err != nil {
 		logger.Log(level.Key(), level.ErrorValue(), logging.ErrorKey(), err, logging.MessageKey(), "unable to create primary handler")
 		return 2

@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	//DefaultKeyID is used to build JWT validators
+	//DefaultKeyID is used to build JWT validators 
 	DefaultKeyID = "current"
 
 	applicationName = "scytale"

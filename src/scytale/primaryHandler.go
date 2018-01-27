@@ -197,46 +197,41 @@ func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger
 	return webHookFactory, nil
 }
 
-//getAuthHandler configures the authorization requirements for requests trying to reach subsequent handler
-func getAuthHandler(v *viper.Viper, logger log.Logger, measures *secure.JWTValidationMeasures) (authHandler *alice.Chain, err error) {
-	validator, err := getValidator(v, measures)
+//authHandler configures the authorization requirements for requests to reach the main handler
+func authHandler(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (preHandler *alice.Chain, err error) {
+	m := secure.NewJWTValidationMeasures(registry)
+	var validator secure.Validator
+	if validator, err = validators(v, m); err == nil {
 
-	if err != nil {
-		return
+		authHandler := handler.AuthorizationHandler{
+			HeaderName:          "Authorization",
+			ForbiddenStatusCode: 403,
+			Validator:           validator,
+			Logger:              logger,
+		}
+
+		authHandler.DefineMeasures(m)
+
+		newPreHandler := alice.New(authHandler.Decorate)
+		preHandler = &newPreHandler
 	}
-
-	handler := handler.AuthorizationHandler{
-		HeaderName:          "Authorization",
-		ForbiddenStatusCode: 403,
-		Validator:           validator,
-		Logger:              logger,
-	}
-
-	handler.DefineMeasures(measures)
-
-	newPreHandler := alice.New(handler.Decorate)
-	authHandler = &newPreHandler
 	return
 }
 
-//getValidator returns a validator for JWT/Basic tokens
+//validators returns a validator for JWT/Basic tokens
 //It reads in tokens from a config file. Zero or more tokens
 //can be read.
-func getValidator(v *viper.Viper, measures *secure.JWTValidationMeasures) (validator secure.Validator, err error) {
+func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secure.Validator, err error) {
 	var jwtVals []JWTValidator
 
-	err = v.UnmarshalKey("jwtValidators", &jwtVals)
-
-	if err != nil {
-		return nil, err
-	}
+	v.UnmarshalKey("jwtValidators", &jwtVals)
 
 	// if a JWTKeys section was supplied, configure a JWS validator
 	// and append it to the chain of validators
 	validators := make(secure.Validators, 0, len(jwtVals))
 
 	for _, validatorDescriptor := range jwtVals {
-		validatorDescriptor.Custom.DefineMeasures(measures) // insert metrics tool
+		validatorDescriptor.Custom.DefineMeasures(m)
 
 		var keyResolver key.Resolver
 		keyResolver, err = validatorDescriptor.Keys.NewResolver()
@@ -244,20 +239,18 @@ func getValidator(v *viper.Viper, measures *secure.JWTValidationMeasures) (valid
 			validator = validators
 			return
 		}
+
 		validator := secure.JWSValidator{
 			DefaultKeyId:  DefaultKeyID,
 			Resolver:      keyResolver,
 			JWTValidators: []*jwt.Validator{validatorDescriptor.Custom.New()},
 		}
 
-		validator.DefineMeasures(measures)
-
+		validator.DefineMeasures(m)
 		validators = append(validators, validator)
 	}
 
 	basicAuth := v.GetStringSlice("authHeader")
-
-	// if basic auth tokens are provided, add them to the validators list as well
 	for _, authValue := range basicAuth {
 		validators = append(
 			validators,
@@ -275,7 +268,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	var authHandler *alice.Chain
 	measures := secure.NewJWTValidationMeasures(registry)
 
-	if authHandler, err = getAuthHandler(v, logger, measures); err == nil {
+	if authHandler, err = authHandler(v, logger, measures); err == nil {
 		if err = addDeviceSendRoutes(logger, authHandler, router, v); err == nil {
 			if err = addFanoutRoutes(logger, authHandler, router, v); err == nil {
 				factory, err = addWebhooks(router, authHandler, v, logger, registry)

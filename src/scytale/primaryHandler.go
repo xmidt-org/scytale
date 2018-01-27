@@ -197,8 +197,8 @@ func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger
 	return webHookFactory, nil
 }
 
-//authHandler configures the authorization requirements for requests to reach the main handler
-func authHandler(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (preHandler *alice.Chain, err error) {
+//instrumentAuthHandler configures the authorization requirements for requests to reach the main handler
+func instrumentAuthHandler(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (preHandler *alice.Chain, err error) {
 	m := secure.NewJWTValidationMeasures(registry)
 	var validator secure.Validator
 	if validator, err = validators(v, m); err == nil {
@@ -266,9 +266,8 @@ func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secu
 func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry) (handler http.Handler, factory *webhook.Factory, err error) {
 	router := mux.NewRouter()
 	var authHandler *alice.Chain
-	measures := secure.NewJWTValidationMeasures(registry)
 
-	if authHandler, err = authHandler(v, logger, measures); err == nil {
+	if authHandler, err = instrumentAuthHandler(v, logger, registry); err == nil {
 		if err = addDeviceSendRoutes(logger, authHandler, router, v); err == nil {
 			if err = addFanoutRoutes(logger, authHandler, router, v); err == nil {
 				factory, err = addWebhooks(router, authHandler, v, logger, registry)

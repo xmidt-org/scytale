@@ -1,4 +1,4 @@
 package: .
 import:
 - package: github.com/Comcast/webpa-common
-  version: d7cf234676e116d7b627936493c3259d35fe290f
+  version: 22ab2a2a2faf9a1f46a3c2a983a776a28af72203

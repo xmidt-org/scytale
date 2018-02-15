@@ -1,5 +1,5 @@
-hash: f86931b3d871d44613080fae4c1540acdbf880c8ae79b0df8108642e51161905
-updated: 2018-01-26T17:57:59.218139-08:00
+hash: 801fd5b2f627c9c2127239a3a9cca22ac109f755384e41ef6f710ed95c2571c5
+updated: 2018-02-14T23:15:18.426908459-08:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 7be45195c3af1b54a609812f90c05a7e492e2491
@@ -38,7 +38,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: d7cf234676e116d7b627936493c3259d35fe290f
+  version: 22ab2a2a2faf9a1f46a3c2a983a776a28af72203
   subpackages:
   - concurrent
   - health
@@ -61,6 +61,7 @@ imports:
   - wrp/wrpendpoint
   - wrp/wrphttp
   - xhttp
+  - xlistener
   - xmetrics
 - name: github.com/davecgh/go-spew
   version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
@@ -101,7 +102,7 @@ imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
-  version: 392c28fe23e1c45ddba891b0320b3b5df220beea
+  version: 53c1911da2b537f792e7cafcb446b05ffe33b996
 - name: github.com/hashicorp/hcl
   version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
   subpackages:
@@ -193,16 +194,12 @@ imports:
   - codec
 - name: github.com/VividCortex/gohistogram
   version: 51564d9861991fb0ad0f531c99ef602d0f9866e6
-- name: golang.org/x/net
-  version: 5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec
-  subpackages:
-  - netutil
 - name: golang.org/x/sys
   version: af50095a40f9041b3b38960738837185c26e9419
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: e19ae1496984b1c655b8044a65c0300a3c878dd3
+  version: a71fd10341b064c10f4a81ceac72bcf70f26ea34
   subpackages:
   - transform
   - unicode/norm

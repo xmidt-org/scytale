@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/Comcast/webpa-common"
-  revision = "75d21caa5da8a1fb952c1c507f8250b0c1eb57a6"
+  revision = "1fd4def5fece497fa1b77134c028e49853ef5e2e"
 
 [prune]
   go-tests = true

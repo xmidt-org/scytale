@@ -188,8 +188,13 @@ func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger
 	baseRouter.Handle("/hook", authHandler.ThenFunc(webHookRegistry.UpdateRegistry))
 	baseRouter.Handle("/hooks", authHandler.ThenFunc(webHookRegistry.GetRegistry))
 
+	scheme := v.GetString("scheme")
+	if len(scheme) < 1 {
+		scheme = "https"
+	}
+
 	selfURL := &url.URL{
-		Scheme: "https",
+		Scheme: scheme,
 		Host:   v.GetString("fqdn") + v.GetString("primary.address"),
 	}
 

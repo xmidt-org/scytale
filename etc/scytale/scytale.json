@@ -12,11 +12,27 @@
 	},
 
 	"fanout": {
-		"method": "POST",
-		"endpoints": ["http://localhost:7000/api/v2/device/send"],
-		"authorization": "QWxhZGRpbjpPcGVuU2VzYW1l"
+		"fanoutTimeout": "125s",
+		"clientTimeout": "45s"
 	},
-	
+
+	"service": {
+		"consul": {
+			"client": {
+				"address": "127.0.0.1:8500",
+				"scheme": "http"
+			},
+			"disableGenerateID": true,
+			"vnodeCount": 211,
+			"watches": [
+				{
+					"service": "talaria",
+					"tags": ["dev"],
+					"passingOnly": true
+				}
+			]
+		}
+	},
 	
 	"log" : {
 		"file"      : "stdout",

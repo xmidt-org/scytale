@@ -17,23 +17,22 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 
-	"github.com/Comcast/webpa-common/middleware/fanout"
-	"github.com/Comcast/webpa-common/middleware/fanout/fanouthttp"
 	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/secure/handler"
 	"github.com/Comcast/webpa-common/secure/key"
-	"github.com/Comcast/webpa-common/tracing"
-	"github.com/Comcast/webpa-common/webhook"
+	"github.com/Comcast/webpa-common/service"
 	"github.com/Comcast/webpa-common/wrp"
 	"github.com/Comcast/webpa-common/wrp/wrphttp"
+	"github.com/Comcast/webpa-common/xhttp"
+	"github.com/Comcast/webpa-common/xhttp/fanout"
 	"github.com/Comcast/webpa-common/xmetrics"
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/log"
-	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
@@ -44,55 +43,89 @@ const (
 	version = "v2"
 )
 
-// addDeviceSendRoutes is the legacy function that adds the fanout route for device/send
-func addDeviceSendRoutes(logger log.Logger, authHandler *alice.Chain, r *mux.Router, v *viper.Viper) error {
-	fanoutOptions := new(wrphttp.FanoutOptions)
-	if err := v.UnmarshalKey("fanout", fanoutOptions); err != nil {
-		return err
-	}
-
-	fanoutOptions.Logger = logger
-	fanoutEndpoint, err := wrphttp.NewFanoutEndpoint(fanoutOptions)
-	if err != nil {
-		return err
-	}
-
+func addDeviceSendRoutes(logger log.Logger, handlerChain alice.Chain, r *mux.Router, endpoints fanout.Endpoints, o fanout.Options) error {
 	subrouter := r.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
 
 	subrouter.Headers(wrphttp.MessageTypeHeader, "").Handler(
-		authHandler.Then(
-			gokithttp.NewServer(
-				fanoutEndpoint,
-				wrphttp.ServerDecodeRequestHeaders(fanoutOptions.Logger),
-				wrphttp.ServerEncodeResponseHeaders(""),
-				gokithttp.ServerErrorEncoder(
-					fanouthttp.ServerErrorEncoder(""),
+		handlerChain.Then(
+			fanout.New(
+				endpoints,
+				fanout.WithOptions(o),
+				fanout.WithFanoutBefore(
+					fanout.ForwardBody(true),
+					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
+						message, err := wrphttp.NewMessageFromHeaders(original.Header, bytes.NewReader(body))
+						if err != nil {
+							return ctx, err
+						}
+
+						fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
+						return ctx, nil
+					},
 				),
 			),
 		),
 	)
 
 	subrouter.Headers("Content-Type", wrp.JSON.ContentType()).Handler(
-		authHandler.Then(
-			gokithttp.NewServer(
-				fanoutEndpoint,
-				wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, wrp.JSON),
-				wrphttp.ServerEncodeResponseBody("", wrp.JSON),
-				gokithttp.ServerErrorEncoder(
-					fanouthttp.ServerErrorEncoder(""),
+		handlerChain.Then(
+			fanout.New(
+				endpoints,
+				fanout.WithOptions(o),
+				fanout.WithFanoutBefore(
+					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
+						var (
+							message wrp.Message
+							decoder = wrp.NewDecoderBytes(body, wrp.JSON)
+						)
+
+						if err := decoder.Decode(&message); err != nil {
+							return ctx, err
+						}
+
+						var (
+							buffer  bytes.Buffer
+							encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
+						)
+
+						if err := encoder.Encode(&message); err != nil {
+							return ctx, err
+						}
+
+						fanoutBody := buffer.Bytes()
+						fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
+						fanout.ContentLength = int64(len(fanoutBody))
+						fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
+						fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
+						return ctx, nil
+					},
 				),
 			),
 		),
 	)
 
 	subrouter.Headers("Content-Type", wrp.Msgpack.ContentType()).Handler(
-		authHandler.Then(
-			gokithttp.NewServer(
-				fanoutEndpoint,
-				wrphttp.ServerDecodeRequestBody(fanoutOptions.Logger, wrp.Msgpack),
-				wrphttp.ServerEncodeResponseBody("", wrp.Msgpack),
-				gokithttp.ServerErrorEncoder(
-					fanouthttp.ServerErrorEncoder(""),
+		handlerChain.Then(
+			fanout.New(
+				endpoints,
+				fanout.WithOptions(o),
+				fanout.WithFanoutBefore(
+					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
+						var (
+							message wrp.Message
+							decoder = wrp.NewDecoderBytes(body, wrp.Msgpack)
+						)
+
+						if err := decoder.Decode(&message); err != nil {
+							return ctx, err
+						}
+
+						fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(body)
+						fanout.ContentLength = int64(len(body))
+						fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
+						fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
+						return ctx, nil
+					},
 				),
 			),
 		),
@@ -101,131 +134,42 @@ func addDeviceSendRoutes(logger log.Logger, authHandler *alice.Chain, r *mux.Rou
 	return nil
 }
 
-// addFanoutRoutes uses the new generic fanout and adds appropriate routes.  Right now, this is only /device/xxx/stat
-func addFanoutRoutes(logger log.Logger, authHandler *alice.Chain, r *mux.Router, v *viper.Viper) error {
-	options := new(fanouthttp.Options)
-	if err := v.UnmarshalKey("fanout", options); err != nil {
-		return err
-	}
-
-	// HACK! we need to preprocess the endpoints in order to strip path information
-	urls := make([]string, len(options.Endpoints))
-	for i := 0; i < len(options.Endpoints); i++ {
-		parsed, err := url.Parse(options.Endpoints[i])
-		if err != nil {
-			return err
-		}
-
-		parsed.Path = ""
-		parsed.RawPath = ""
-		parsed.ForceQuery = false
-		parsed.RawQuery = ""
-		parsed.Fragment = ""
-
-		urls[i] = parsed.String()
-	}
-
-	options.Logger = logger
-	requestFuncs := []gokithttp.RequestFunc{
-		fanouthttp.VariablesToHeaders("deviceID", "X-Webpa-Device-Name"),
-	}
-
-	// TODO: This should probably be handled generically by some infrastructure
-	if len(options.Authorization) > 0 {
-		requestFuncs = append(
-			requestFuncs,
-			gokithttp.SetRequestHeader("Authorization", "Basic "+options.Authorization),
-		)
-	}
-
-	components, err := fanouthttp.NewComponents(
-		urls,
-		fanouthttp.EncodePassThroughRequest,
-		fanouthttp.DecodePassThroughResponse,
-		gokithttp.SetClient(options.NewClient()),
-		gokithttp.ClientBefore(requestFuncs...),
-	)
-
-	if err != nil {
-		return err
-	}
-
-	// this fanoutHandler is generic, as opposed to the legacy wrphttp fanout (above)
-	fanoutHandler := fanouthttp.NewHandler(
-		options.FanoutMiddleware()(
-			fanout.New(tracing.NewSpanner(), components),
-		),
-		fanouthttp.DecodePassThroughRequest,
-		fanouthttp.EncodePassThroughResponse,
-		gokithttp.ServerErrorEncoder(
-			fanouthttp.ServerErrorEncoder(""),
-		),
+func addFanoutRoutes(logger log.Logger, handlerChain alice.Chain, r *mux.Router, endpoints fanout.Endpoints, o fanout.Options) error {
+	handler := fanout.New(
+		endpoints,
+		fanout.WithOptions(o),
+		fanout.WithFanoutBefore(fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name")),
 	)
 
 	r.Handle(
 		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),
-		authHandler.Then(fanoutHandler),
+		handlerChain.Then(handler),
 	).Methods("GET")
 
 	return nil
 }
 
-//ConfigureWebHooks sets route paths, initializes and synchronizes hook registries for this tr1d1um instance
-//baseRouter is pre-configured with the api/v2 prefix path
-//root is the original router used by webHookFactory.Initialize()
-func addWebhooks(r *mux.Router, authHandler *alice.Chain, v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (*webhook.Factory, error) {
-	webHookFactory, err := webhook.NewFactory(v)
+func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
+	var (
+		m              = secure.NewJWTValidationMeasures(registry)
+		validator, err = validators(v, m)
+	)
 
 	if err != nil {
-		return nil, err
+		return alice.Chain{}, err
 	}
 
-	baseRouter := r.PathPrefix(fmt.Sprintf("%s/%s", baseURI, version)).Subrouter()
-
-	webHookRegistry, webHookHandler := webHookFactory.NewRegistryAndHandler(registry)
-
-	// register webHook end points for api
-	baseRouter.Handle("/hook", authHandler.ThenFunc(webHookRegistry.UpdateRegistry))
-	baseRouter.Handle("/hooks", authHandler.ThenFunc(webHookRegistry.GetRegistry))
-
-	scheme := v.GetString("scheme")
-	if len(scheme) < 1 {
-		scheme = "https"
+	authHandler := handler.AuthorizationHandler{
+		HeaderName:          "Authorization",
+		ForbiddenStatusCode: 403,
+		Validator:           validator,
+		Logger:              logger,
 	}
 
-	selfURL := &url.URL{
-		Scheme: scheme,
-		Host:   v.GetString("fqdn") + v.GetString("primary.address"),
-	}
-
-	webHookFactory.Initialize(r, selfURL, webHookHandler, logger, registry, nil)
-	return webHookFactory, nil
+	authHandler.DefineMeasures(m)
+	return alice.New(authHandler.Decorate), nil
 }
 
-//instrumentAuthHandler configures the authorization requirements for requests to reach the main handler
-func instrumentAuthHandler(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (preHandler *alice.Chain, err error) {
-	m := secure.NewJWTValidationMeasures(registry)
-	var validator secure.Validator
-	if validator, err = validators(v, m); err == nil {
-
-		authHandler := handler.AuthorizationHandler{
-			HeaderName:          "Authorization",
-			ForbiddenStatusCode: 403,
-			Validator:           validator,
-			Logger:              logger,
-		}
-
-		authHandler.DefineMeasures(m)
-
-		newPreHandler := alice.New(authHandler.Decorate)
-		preHandler = &newPreHandler
-	}
-	return
-}
-
-//validators returns a validator for JWT/Basic tokens
-//It reads in tokens from a config file. Zero or more tokens
-//can be read.
 func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secure.Validator, err error) {
 	var jwtVals []JWTValidator
 
@@ -268,17 +212,35 @@ func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secu
 	return
 }
 
-func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry) (handler http.Handler, factory *webhook.Factory, err error) {
-	router := mux.NewRouter()
-	var authHandler *alice.Chain
-
-	if authHandler, err = instrumentAuthHandler(v, logger, registry); err == nil {
-		if err = addDeviceSendRoutes(logger, authHandler, router, v); err == nil {
-			if err = addFanoutRoutes(logger, authHandler, router, v); err == nil {
-				factory, err = addWebhooks(router, authHandler, v, logger, registry)
-			}
-		}
+func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment) (http.Handler, error) {
+	var o fanout.Options
+	if err := v.Unmarshal(&o); err != nil {
+		return nil, err
 	}
 
-	return router, factory, err
+	var handlerChain alice.Chain
+	if authChain, err := authChain(v, logger, registry); err != nil {
+		return nil, err
+	} else {
+		handlerChain = authChain.Extend(fanout.NewChain(o))
+	}
+
+	endpoints, err := fanout.NewEndpoints(o, fanout.ServiceEndpointsAlternate(fanout.WithAccessorFactory(e.AccessorFactory())))
+	if err != nil {
+		return nil, err
+	}
+
+	router := mux.NewRouter()
+
+	/*
+		if err := addDeviceSendRoutes(logger, handlerChain, router, o); err != nil {
+			return nil, err
+		}
+	*/
+
+	if err := addFanoutRoutes(logger, handlerChain, router, endpoints, o); err != nil {
+		return nil, err
+	}
+
+	return router, nil
 }

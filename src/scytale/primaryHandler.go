@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Comcast/webpa-common/logging/logginghttp"
 	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/secure/handler"
 	"github.com/Comcast/webpa-common/secure/key"
@@ -33,6 +34,7 @@ import (
 	"github.com/Comcast/webpa-common/xmetrics"
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/log"
+	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
@@ -42,112 +44,6 @@ const (
 	baseURI = "/api"
 	version = "v2"
 )
-
-func addDeviceSendRoutes(logger log.Logger, handlerChain alice.Chain, r *mux.Router, endpoints fanout.Endpoints, o fanout.Options) error {
-	subrouter := r.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
-
-	subrouter.Headers(wrphttp.MessageTypeHeader, "").Handler(
-		handlerChain.Then(
-			fanout.New(
-				endpoints,
-				fanout.WithOptions(o),
-				fanout.WithFanoutBefore(
-					fanout.ForwardBody(true),
-					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-						message, err := wrphttp.NewMessageFromHeaders(original.Header, bytes.NewReader(body))
-						if err != nil {
-							return ctx, err
-						}
-
-						fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-						return ctx, nil
-					},
-				),
-			),
-		),
-	)
-
-	subrouter.Headers("Content-Type", wrp.JSON.ContentType()).Handler(
-		handlerChain.Then(
-			fanout.New(
-				endpoints,
-				fanout.WithOptions(o),
-				fanout.WithFanoutBefore(
-					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-						var (
-							message wrp.Message
-							decoder = wrp.NewDecoderBytes(body, wrp.JSON)
-						)
-
-						if err := decoder.Decode(&message); err != nil {
-							return ctx, err
-						}
-
-						var (
-							buffer  bytes.Buffer
-							encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
-						)
-
-						if err := encoder.Encode(&message); err != nil {
-							return ctx, err
-						}
-
-						fanoutBody := buffer.Bytes()
-						fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
-						fanout.ContentLength = int64(len(fanoutBody))
-						fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
-						fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-						return ctx, nil
-					},
-				),
-			),
-		),
-	)
-
-	subrouter.Headers("Content-Type", wrp.Msgpack.ContentType()).Handler(
-		handlerChain.Then(
-			fanout.New(
-				endpoints,
-				fanout.WithOptions(o),
-				fanout.WithFanoutBefore(
-					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-						var (
-							message wrp.Message
-							decoder = wrp.NewDecoderBytes(body, wrp.Msgpack)
-						)
-
-						if err := decoder.Decode(&message); err != nil {
-							return ctx, err
-						}
-
-						fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(body)
-						fanout.ContentLength = int64(len(body))
-						fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
-						fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-						return ctx, nil
-					},
-				),
-			),
-		),
-	)
-
-	return nil
-}
-
-func addFanoutRoutes(logger log.Logger, handlerChain alice.Chain, r *mux.Router, endpoints fanout.Endpoints, o fanout.Options) error {
-	handler := fanout.New(
-		endpoints,
-		fanout.WithOptions(o),
-		fanout.WithFanoutBefore(fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name")),
-	)
-
-	r.Handle(
-		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),
-		handlerChain.Then(handler),
-	).Methods("GET")
-
-	return nil
-}
 
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	var (
@@ -218,29 +114,168 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		return nil, err
 	}
 
-	var handlerChain alice.Chain
-	if authChain, err := authChain(v, logger, registry); err != nil {
+	authChain, err := authChain(v, logger, registry)
+	if err != nil {
 		return nil, err
-	} else {
-		handlerChain = authChain.Extend(fanout.NewChain(o))
 	}
 
+	var (
+		handlerChain = authChain.Extend(
+			fanout.NewChain(
+				o,
+				logginghttp.SetLogger(
+					logger,
+					logginghttp.RequestInfo,
+
+					// custom logger func that extracts the intended destination of requests
+					func(kv []interface{}, request *http.Request) []interface{} {
+						if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
+							return append(kv, "destination", deviceName)
+						}
+
+						if variables := mux.Vars(request); len(variables) > 0 {
+							if deviceID := variables["deviceID"]; len(deviceID) > 0 {
+								return append(kv, "destination", deviceID)
+							}
+						}
+
+						return kv
+					},
+				),
+			),
+		)
+
+		transactor = fanout.NewTransactor(o)
+		options    = []fanout.Option{
+			fanout.WithTransactor(transactor),
+		}
+	)
+
+	if len(o.Authorization) > 0 {
+		options = append(
+			options,
+			fanout.WithClientBefore(
+				gokithttp.SetRequestHeader("Authorization", o.Authorization),
+			),
+		)
+	}
+
+	// use the inject endpoints if present, or fallback to the alternate service discovery endpoints
 	endpoints, err := fanout.NewEndpoints(o, fanout.ServiceEndpointsAlternate(fanout.WithAccessorFactory(e.AccessorFactory())))
 	if err != nil {
 		return nil, err
 	}
 
-	router := mux.NewRouter()
+	var (
+		router        = mux.NewRouter()
+		sendSubrouter = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
+	)
 
-	/*
-		if err := addDeviceSendRoutes(logger, handlerChain, router, o); err != nil {
-			return nil, err
-		}
-	*/
+	sendSubrouter.Headers(wrphttp.MessageTypeHeader, "").Handler(
+		handlerChain.Then(
+			fanout.New(
+				endpoints,
+				append(
+					options,
+					fanout.WithFanoutBefore(
+						fanout.ForwardBody(true),
+						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
+							message, err := wrphttp.NewMessageFromHeaders(original.Header, bytes.NewReader(body))
+							if err != nil {
+								return ctx, err
+							}
 
-	if err := addFanoutRoutes(logger, handlerChain, router, endpoints, o); err != nil {
-		return nil, err
-	}
+							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
+							return ctx, nil
+						},
+					),
+				)...,
+			),
+		),
+	)
+
+	sendSubrouter.Headers("Content-Type", wrp.JSON.ContentType()).Handler(
+		handlerChain.Then(
+			fanout.New(
+				endpoints,
+				append(
+					options,
+					fanout.WithFanoutBefore(
+						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
+							var (
+								message wrp.Message
+								decoder = wrp.NewDecoderBytes(body, wrp.JSON)
+							)
+
+							if err := decoder.Decode(&message); err != nil {
+								return ctx, err
+							}
+
+							var (
+								buffer  bytes.Buffer
+								encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
+							)
+
+							if err := encoder.Encode(&message); err != nil {
+								return ctx, err
+							}
+
+							fanoutBody := buffer.Bytes()
+							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
+							fanout.ContentLength = int64(len(fanoutBody))
+							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
+							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
+							return ctx, nil
+						},
+					),
+				)...,
+			),
+		),
+	)
+
+	sendSubrouter.Headers("Content-Type", wrp.Msgpack.ContentType()).Handler(
+		handlerChain.Then(
+			fanout.New(
+				endpoints,
+				append(
+					options,
+					fanout.WithFanoutBefore(
+						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
+							var (
+								message wrp.Message
+								decoder = wrp.NewDecoderBytes(body, wrp.Msgpack)
+							)
+
+							if err := decoder.Decode(&message); err != nil {
+								return ctx, err
+							}
+
+							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(body)
+							fanout.ContentLength = int64(len(body))
+							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
+							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
+							return ctx, nil
+						},
+					),
+				)...,
+			),
+		),
+	)
+
+	router.Handle(
+		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),
+		handlerChain.Then(
+			fanout.New(
+				endpoints,
+				append(
+					options,
+					fanout.WithFanoutBefore(
+						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
+					),
+				)...,
+			),
+		),
+	).Methods("GET")
 
 	return router, nil
 }

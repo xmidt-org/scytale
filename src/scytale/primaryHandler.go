@@ -139,7 +139,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							}
 						}
 
-						return kv
+						return append(kv, "destination", "not supplied")
 					},
 				),
 			),

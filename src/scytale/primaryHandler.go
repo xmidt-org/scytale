@@ -109,8 +109,8 @@ func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secu
 }
 
 func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment) (http.Handler, error) {
-	var o fanout.Options
-	if err := v.Unmarshal(&o); err != nil {
+	var cfg fanout.Configuration
+	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
@@ -122,7 +122,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	var (
 		handlerChain = authChain.Extend(
 			fanout.NewChain(
-				o,
+				cfg,
 				logginghttp.SetLogger(
 					logger,
 					logginghttp.RequestInfo,
@@ -145,23 +145,23 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 			),
 		)
 
-		transactor = fanout.NewTransactor(o)
+		transactor = fanout.NewTransactor(cfg)
 		options    = []fanout.Option{
 			fanout.WithTransactor(transactor),
 		}
 	)
 
-	if len(o.Authorization) > 0 {
+	if len(cfg.Authorization) > 0 {
 		options = append(
 			options,
 			fanout.WithClientBefore(
-				gokithttp.SetRequestHeader("Authorization", o.Authorization),
+				gokithttp.SetRequestHeader("Authorization", cfg.Authorization),
 			),
 		)
 	}
 
 	// use the inject endpoints if present, or fallback to the alternate service discovery endpoints
-	endpoints, err := fanout.NewEndpoints(o, fanout.ServiceEndpointsAlternate(fanout.WithAccessorFactory(e.AccessorFactory())))
+	endpoints, err := fanout.NewEndpoints(cfg, fanout.ServiceEndpointsAlternate(fanout.WithAccessorFactory(e.AccessorFactory())))
 	if err != nil {
 		return nil, err
 	}

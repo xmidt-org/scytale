@@ -1,5 +1,5 @@
-hash: 79be44ed73ddfae0b48431da4706e1ccfc3d2190b5bfe1f7637fd130ad8a8197
-updated: 2018-05-22T05:29:58.315414613-07:00
+hash: 5e3f979ec773afccbfde768944857c3dd68ff0bac80c67c5b6af7b9f2269ee35
+updated: 2018-05-22T14:26:34.359972327-07:00
 imports:
 - name: github.com/armon/go-metrics
   version: 783273d703149aaeb9897cf58613d5af48861c25
@@ -42,7 +42,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: d18c24eb36c791f1b614977e544575528feace97
+  version: 5150cf171cac659c06a41a872795b7b1768ea845
   subpackages:
   - concurrent
   - convey
@@ -50,9 +50,9 @@ imports:
   - device
   - health
   - logging
+  - logging/logginghttp
   - middleware
   - middleware/fanout
-  - middleware/fanout/fanouthttp
   - resource
   - secure
   - secure/handler
@@ -244,7 +244,7 @@ imports:
 - name: github.com/VividCortex/gohistogram
   version: 51564d9861991fb0ad0f531c99ef602d0f9866e6
 - name: golang.org/x/sys
-  version: 7c87d13f8e835d2fb3a70a2912c811ed0c1d241b
+  version: 0b6bef996066e7afc14080cbafc9719ca35f6204
   subpackages:
   - unix
 - name: golang.org/x/text

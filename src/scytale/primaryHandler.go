@@ -161,7 +161,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	}
 
 	// use the inject endpoints if present, or fallback to the alternate service discovery endpoints
-	endpoints, err := fanout.NewEndpoints(cfg, fanout.ServiceEndpointsAlternate(fanout.WithAccessorFactory(e.AccessorFactory())))
+	var alternate func() (fanout.Endpoints, error)
+	if e != nil {
+		alternate = fanout.ServiceEndpointsAlternate(fanout.WithAccessorFactory(e.AccessorFactory()))
+	}
+
+	endpoints, err := fanout.NewEndpoints(cfg, alternate)
 	if err != nil {
 		return nil, err
 	}

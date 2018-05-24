@@ -26,6 +26,8 @@ import (
 	"github.com/Comcast/webpa-common/logging"
 	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/server"
+	"github.com/Comcast/webpa-common/service"
+	"github.com/Comcast/webpa-common/service/servicecfg"
 	"github.com/Comcast/webpa-common/webhook"
 	"github.com/Comcast/webpa-common/webhook/aws"
 	"github.com/go-kit/kit/log/level"
@@ -34,7 +36,7 @@ import (
 )
 
 const (
-	//DefaultKeyID is used to build JWT validators 
+	//DefaultKeyID is used to build JWT validators
 	DefaultKeyID = "current"
 
 	applicationName = "scytale"
@@ -62,7 +64,17 @@ func scytale(arguments []string) int {
 
 	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
 
-	primaryHandler, webhookFactory, err := NewPrimaryHandler(logger, v, metricsRegistry)
+	var e service.Environment
+	if v.IsSet("service") {
+		var err error
+		e, err = servicecfg.NewEnvironment(logger, v.Sub("service"))
+		if err != nil {
+			logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "Unable to initialize service discovery environment", logging.ErrorKey(), err)
+			return 4
+		}
+	}
+
+	primaryHandler, err := NewPrimaryHandler(logger, v, metricsRegistry, e)
 	if err != nil {
 		logger.Log(level.Key(), level.ErrorValue(), logging.ErrorKey(), err, logging.MessageKey(), "unable to create primary handler")
 		return 2
@@ -76,8 +88,6 @@ func scytale(arguments []string) int {
 	//
 	// Execute the runnable, which runs all the servers, and wait for a signal
 	//
-
-	go webhookFactory.PrepareAndStart()
 
 	waitGroup, shutdown, err := concurrent.Execute(caduceusServer)
 	if err != nil {

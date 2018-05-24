@@ -1,6 +1,8 @@
-hash: 9516bd2445d0452f16fbdfc9f76a9a84221f930101473e69f51c7e6a61c75acb
-updated: 2018-05-20T20:04:59.786946282-07:00
+hash: 5e3f979ec773afccbfde768944857c3dd68ff0bac80c67c5b6af7b9f2269ee35
+updated: 2018-05-22T14:26:34.359972327-07:00
 imports:
+- name: github.com/armon/go-metrics
+  version: 783273d703149aaeb9897cf58613d5af48861c25
 - name: github.com/aws/aws-sdk-go
   version: 7be45195c3af1b54a609812f90c05a7e492e2491
   subpackages:
@@ -33,24 +35,34 @@ imports:
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
   subpackages:
   - quantile
+- name: github.com/billhathaway/consistentHash
+  version: addea16d2229dba874111898b45be7f4a78af631
 - name: github.com/c9s/goprocinfo
   version: 19cb9f127a9c8d2034cf59ccb683cdb94b9deb6c
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 093c2cf50ca8094c5186345caf568324b35598e3
+  version: 5150cf171cac659c06a41a872795b7b1768ea845
   subpackages:
   - concurrent
+  - convey
+  - convey/conveyhttp
+  - device
   - health
   - logging
+  - logging/logginghttp
   - middleware
   - middleware/fanout
-  - middleware/fanout/fanouthttp
   - resource
   - secure
   - secure/handler
   - secure/key
   - server
+  - service
+  - service/consul
+  - service/monitor
+  - service/servicecfg
+  - service/zk
   - tracing
   - tracing/tracinghttp
   - transport/transporthttp
@@ -61,10 +73,13 @@ imports:
   - wrp/wrpendpoint
   - wrp/wrphttp
   - xhttp
+  - xhttp/fanout
+  - xhttp/xcontext
   - xlistener
   - xmetrics
+  - xviper
 - name: github.com/davecgh/go-spew
-  version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
+  version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
   subpackages:
   - spew
 - name: github.com/fsnotify/fsnotify
@@ -89,6 +104,10 @@ imports:
   - metrics/prometheus
   - metrics/provider
   - metrics/statsd
+  - sd
+  - sd/consul
+  - sd/internal/instance
+  - sd/zk
   - transport/http
   - util/conn
 - name: github.com/go-logfmt/logfmt
@@ -103,6 +122,22 @@ imports:
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: 53c1911da2b537f792e7cafcb446b05ffe33b996
+- name: github.com/gorilla/websocket
+  version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
+- name: github.com/hashicorp/consul
+  version: 9a494b5fb9c86180a5702e29c485df1507a47198
+  subpackages:
+  - api
+- name: github.com/hashicorp/go-cleanhttp
+  version: d5fe4b57a186c716b0e00b8c301cbd9b4182694d
+- name: github.com/hashicorp/go-immutable-radix
+  version: 7f3cd4390caab3250a57f30efdb2a65dd7649ecf
+- name: github.com/hashicorp/go-rootcerts
+  version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
+- name: github.com/hashicorp/golang-lru
+  version: 0fb14efe8c47ae851c0034ed7a448854d3d34cf3
+  subpackages:
+  - simplelru
 - name: github.com/hashicorp/hcl
   version: ef8a98b0bbce4a65b5aa4c368430a80ddc533168
   subpackages:
@@ -114,8 +149,12 @@ imports:
   - json/parser
   - json/scanner
   - json/token
+- name: github.com/hashicorp/serf
+  version: 80ab48778deee28e4ea2dc4ef1ebb2c5f4063996
+  subpackages:
+  - coordinate
 - name: github.com/influxdata/influxdb
-  version: 531dc497177bd423b539db35cc0a48b36c4a280c
+  version: e62b1a02fb8e218c64fea5e34a39f74d1eaef60b
   subpackages:
   - client/v2
   - models
@@ -134,12 +173,14 @@ imports:
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
   - pbutil
+- name: github.com/mitchellh/go-homedir
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: bb74f1db0675b241733089d5a1faa5dd8b0ef57b
 - name: github.com/pelletier/go-toml
   version: 66540cf1fcd2c3aee6f6787dfa32a6ae9a870f12
 - name: github.com/pmezard/go-difflib
-  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
   - difflib
 - name: github.com/prometheus/client_golang
@@ -158,17 +199,23 @@ imports:
   - internal/bitbucket.org/ww/goautoneg
   - model
 - name: github.com/prometheus/procfs
-  version: 54d17b57dd7d4a3aa092476596b3f8a933bde349
+  version: 8b1c2da0d56deffdbb9e48d4414b4e674bd8083e
   subpackages:
   - internal/util
   - nfs
   - xfs
+- name: github.com/samuel/go-zookeeper
+  version: c4fab1ac1bec58281ad0667dc3f0907a9476ac47
+  subpackages:
+  - zk
 - name: github.com/SermoDigital/jose
   version: f6df55f235c24f236d11dbcf665249a59ac2021f
   subpackages:
   - crypto
   - jws
   - jwt
+- name: github.com/spaolacci/murmur3
+  version: 0d12bf811670bf6a1a63828dfbd003eded177fce
 - name: github.com/spf13/afero
   version: 63644898a8da0bc22138abf860edaf5277b6102e
   subpackages:
@@ -182,7 +229,7 @@ imports:
 - name: github.com/spf13/viper
   version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
 - name: github.com/stretchr/objx
-  version: cbeaeb16a013161a98496fad62933b1d21786672
+  version: a5cfa15c000af5f09784e5355969ba7eb66ef0de
 - name: github.com/stretchr/testify
   version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:
@@ -197,7 +244,7 @@ imports:
 - name: github.com/VividCortex/gohistogram
   version: 51564d9861991fb0ad0f531c99ef602d0f9866e6
 - name: golang.org/x/sys
-  version: 7c87d13f8e835d2fb3a70a2912c811ed0c1d241b
+  version: 0b6bef996066e7afc14080cbafc9719ca35f6204
   subpackages:
   - unix
 - name: golang.org/x/text

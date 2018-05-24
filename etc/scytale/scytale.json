@@ -12,12 +12,10 @@
 	},
 
 	"fanout": {
-		"method": "POST",
-		"endpoints": ["http://localhost:7000/api/v2/device/send"],
-		"authorization": "QWxhZGRpbjpPcGVuU2VzYW1l"
+		"fanoutTimeout": "125s",
+		"clientTimeout": "45s"
 	},
-	
-	
+
 	"log" : {
 		"file"      : "stdout",
 		"level"     : "DEBUG",

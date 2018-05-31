@@ -24,3 +24,4 @@ rpm --import https://github.com/Comcast/scytale/releases/download/0.0.1-65/RPM-G
 ```
 yum install https://github.com/Comcast/scytale/releases/download/0.0.1-65/scytale-0.0.1-65.el6.x86_64.rpm
 ```
+

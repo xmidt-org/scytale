@@ -1,0 +1,14 @@
+---
+  primary: 
+    address: ":6000"
+  health: 
+    address: ":6001"
+  pprof: 
+    address: ":6002"
+  fanout: 
+    fanoutTimeout: "125s"
+    clientTimeout: "45s"
+  log" : 
+    file: "stdout"
+    level: "DEBUG"
+    json: true

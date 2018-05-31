@@ -110,7 +110,7 @@ func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secu
 
 func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment) (http.Handler, error) {
 	var cfg fanout.Configuration
-	if err := v.Unmarshal(&cfg); err != nil {
+	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
 	}
 

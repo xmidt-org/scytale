@@ -1,6 +1,8 @@
 #!/bin/bash
 
 NAME=scytale
+ARCH=x86_64
+DIST=el6
 
 echo "Adjusting build number..."
 
@@ -40,6 +42,11 @@ yes "" | rpmbuild -ba --sign \
     --define "_releaseno ${BUILD_NUMBER}" \
     --define "_fullver $new_release" \
     ${NAME}.spec
+
+if [ ! -f /root/rpmbuild/RPMS/${ARCH}/${NAME}-${BUILD_NUMBER}.${DIST}.${ARCH}.rpm ]; then
+    echo "RPM not present.  Check steps prior for root cause."
+    exit 1
+fi
 
 pushd ..
 echo "$new_release" > versionno.txt

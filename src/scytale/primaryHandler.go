@@ -155,7 +155,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		options = append(
 			options,
 			fanout.WithClientBefore(
-				gokithttp.SetRequestHeader("Authorization", cfg.Authorization),
+				gokithttp.SetRequestHeader("Authorization", "Basic " + cfg.Authorization),
 			),
 		)
 	}

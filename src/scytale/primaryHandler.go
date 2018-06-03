@@ -155,7 +155,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		options = append(
 			options,
 			fanout.WithClientBefore(
-				gokithttp.SetRequestHeader("Authorization", "Basic " + cfg.Authorization),
+				gokithttp.SetRequestHeader("Authorization", "Basic "+cfg.Authorization),
 			),
 		)
 	}
@@ -183,13 +183,26 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				append(
 					options,
 					fanout.WithFanoutBefore(
-						fanout.ForwardBody(true),
+						fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
 						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 							message, err := wrphttp.NewMessageFromHeaders(original.Header, bytes.NewReader(body))
 							if err != nil {
 								return ctx, err
 							}
 
+							var (
+								buffer  bytes.Buffer
+								encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
+							)
+
+							if err := encoder.Encode(&message); err != nil {
+								return ctx, err
+							}
+
+							fanoutBody := buffer.Bytes()
+							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
+							fanout.ContentLength = int64(len(fanoutBody))
+							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
 							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
 							return ctx, nil
 						},
@@ -206,6 +219,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				append(
 					options,
 					fanout.WithFanoutBefore(
+						fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
 						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 							var (
 								message wrp.Message
@@ -245,6 +259,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				append(
 					options,
 					fanout.WithFanoutBefore(
+						fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
 						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 							var (
 								message wrp.Message

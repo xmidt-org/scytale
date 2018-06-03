@@ -1,5 +1,5 @@
-hash: 5e3f979ec773afccbfde768944857c3dd68ff0bac80c67c5b6af7b9f2269ee35
-updated: 2018-05-22T14:26:34.359972327-07:00
+hash: 1606dff36dbb90b2329f27e5c821138208706964d20bbcad5f3a24d1f9ecf8be
+updated: 2018-06-03T12:52:11.962325122-07:00
 imports:
 - name: github.com/armon/go-metrics
   version: 783273d703149aaeb9897cf58613d5af48861c25
@@ -42,7 +42,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 5150cf171cac659c06a41a872795b7b1768ea845
+  version: 85e394215a2d6ba4350847b9329e546bbd97babf
   subpackages:
   - concurrent
   - convey
@@ -85,7 +85,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/go-ini/ini
-  version: bda519ae5f4cbc60d391ff8610711627a08b86ae
+  version: 06f5f3d67269ccec1fe5fe4134ba6e982984f7f5
 - name: github.com/go-kit/kit
   version: 4dc7be5d2d12881735283bcab7352178e190fc71
   subpackages:
@@ -115,7 +115,7 @@ imports:
 - name: github.com/go-stack/stack
   version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
 - name: github.com/golang/protobuf
-  version: 70c277a8a150a8e069492e6600926300405c2884
+  version: 3a3da3a4e26776cc22a79ef46d5d58477532dede
   subpackages:
   - proto
 - name: github.com/gorilla/context
@@ -150,11 +150,11 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hashicorp/serf
-  version: 80ab48778deee28e4ea2dc4ef1ebb2c5f4063996
+  version: 984a73625de3138f44deb38d00878fab39eb6447
   subpackages:
   - coordinate
 - name: github.com/influxdata/influxdb
-  version: e62b1a02fb8e218c64fea5e34a39f74d1eaef60b
+  version: 5ec7b901bbcb2be9d94a1b87504cc0fc1d25e9c8
   subpackages:
   - client/v2
   - models
@@ -174,7 +174,7 @@ imports:
   subpackages:
   - pbutil
 - name: github.com/mitchellh/go-homedir
-  version: b8bc1bf767474819792c23f32d8286a45736f1c6
+  version: 3864e76763d94a6df2f9960b16a20a33da9f9a66
 - name: github.com/mitchellh/mapstructure
   version: bb74f1db0675b241733089d5a1faa5dd8b0ef57b
 - name: github.com/pelletier/go-toml
@@ -199,7 +199,7 @@ imports:
   - internal/bitbucket.org/ww/goautoneg
   - model
 - name: github.com/prometheus/procfs
-  version: 8b1c2da0d56deffdbb9e48d4414b4e674bd8083e
+  version: 94663424ae5ae9856b40a9f170762b4197024661
   subpackages:
   - internal/util
   - nfs
@@ -217,7 +217,7 @@ imports:
 - name: github.com/spaolacci/murmur3
   version: 0d12bf811670bf6a1a63828dfbd003eded177fce
 - name: github.com/spf13/afero
-  version: 63644898a8da0bc22138abf860edaf5277b6102e
+  version: 787d034dfe70e44075ccc060d346146ef53270ad
   subpackages:
   - mem
 - name: github.com/spf13/cast
@@ -229,7 +229,7 @@ imports:
 - name: github.com/spf13/viper
   version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
 - name: github.com/stretchr/objx
-  version: a5cfa15c000af5f09784e5355969ba7eb66ef0de
+  version: 0ab728f62c7f6fcd754334f7931c2dd659dce1d1
 - name: github.com/stretchr/testify
   version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:
@@ -244,7 +244,7 @@ imports:
 - name: github.com/VividCortex/gohistogram
   version: 51564d9861991fb0ad0f531c99ef602d0f9866e6
 - name: golang.org/x/sys
-  version: 0b6bef996066e7afc14080cbafc9719ca35f6204
+  version: c11f84a56e43e20a78cee75a7c034031ecf57d1f
   subpackages:
   - unix
 - name: golang.org/x/text

@@ -45,6 +45,12 @@ const (
 	version = "v2"
 )
 
+func populateMessage(ctx context.Context, message *wrp.Message) {
+	if values, ok := handler.FromContext(ctx); ok {
+		message.PartnerIDs = values.PartnerIDs
+	}
+}
+
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	var (
 		m              = secure.NewJWTValidationMeasures(registry)
@@ -130,16 +136,16 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					// custom logger func that extracts the intended destination of requests
 					func(kv []interface{}, request *http.Request) []interface{} {
 						if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
-							return append(kv, "destination", deviceName)
+							return append(kv, "X-Webpa-Device-Name", deviceName)
 						}
 
 						if variables := mux.Vars(request); len(variables) > 0 {
 							if deviceID := variables["deviceID"]; len(deviceID) > 0 {
-								return append(kv, "destination", deviceID)
+								return append(kv, "deviceID", deviceID)
 							}
 						}
 
-						return append(kv, "destination", "not supplied")
+						return kv
 					},
 				),
 			),
@@ -190,12 +196,9 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return ctx, err
 							}
 
-							var (
-								buffer  bytes.Buffer
-								encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
-							)
-
-							if err := encoder.Encode(&message); err != nil {
+							populateMessage(ctx, message)
+							var buffer bytes.Buffer
+							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
 								return ctx, err
 							}
 
@@ -230,12 +233,9 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return ctx, err
 							}
 
-							var (
-								buffer  bytes.Buffer
-								encoder = wrp.NewEncoder(&buffer, wrp.Msgpack)
-							)
-
-							if err := encoder.Encode(&message); err != nil {
+							populateMessage(ctx, &message)
+							var buffer bytes.Buffer
+							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
 								return ctx, err
 							}
 
@@ -270,8 +270,15 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return ctx, err
 							}
 
-							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(body)
-							fanout.ContentLength = int64(len(body))
+							populateMessage(ctx, &message)
+							var buffer bytes.Buffer
+							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
+								return ctx, err
+							}
+
+							fanoutBody := buffer.Bytes()
+							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
+							fanout.ContentLength = int64(len(fanoutBody))
 							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
 							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
 							return ctx, nil

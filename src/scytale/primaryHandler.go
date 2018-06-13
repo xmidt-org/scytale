@@ -198,7 +198,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 
 							populateMessage(ctx, message)
 							var buffer bytes.Buffer
-							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
+							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
 								return ctx, err
 							}
 

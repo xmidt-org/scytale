@@ -182,6 +182,10 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		sendSubrouter = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
 	)
 
+	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+		response.WriteHeader(http.StatusBadRequest)
+	})
+
 	sendSubrouter.Headers(wrphttp.MessageTypeHeader, "").Handler(
 		handlerChain.Then(
 			fanout.New(

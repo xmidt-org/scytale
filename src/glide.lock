@@ -1,5 +1,5 @@
-hash: 3d9fb2e2bd0d39aa71379a42d082660087f8fbeb89620e8597b62c8d60a713ed
-updated: 2018-06-04T22:00:58.714251633-07:00
+hash: 7409ef1ecc31b5e3b951141e7abb716ac3bc70445db59a7cbde0ba4868e0e15f
+updated: 2018-06-18T19:23:39.806727128-07:00
 imports:
 - name: github.com/armon/go-metrics
   version: 783273d703149aaeb9897cf58613d5af48861c25
@@ -42,7 +42,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: d1025b7d8ef6926721f0c40ddd423cab7ded90da
+  version: b73898e10b20c12565c1cd9bd4d5991b08c9e690
   subpackages:
   - concurrent
   - convey
@@ -85,7 +85,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/go-ini/ini
-  version: 06f5f3d67269ccec1fe5fe4134ba6e982984f7f5
+  version: cec2bdc49009247305a260b082a18e802d0fe292
 - name: github.com/go-kit/kit
   version: 4dc7be5d2d12881735283bcab7352178e190fc71
   subpackages:
@@ -115,7 +115,7 @@ imports:
 - name: github.com/go-stack/stack
   version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
 - name: github.com/golang/protobuf
-  version: 3a3da3a4e26776cc22a79ef46d5d58477532dede
+  version: 9f81198da99b79e14d70ca2c3cc1bbe44c6e69b6
   subpackages:
   - proto
 - name: github.com/gorilla/context
@@ -154,7 +154,7 @@ imports:
   subpackages:
   - coordinate
 - name: github.com/influxdata/influxdb
-  version: d54a580bbad31c0c0ed8ada95bcd0edc90e5e6d1
+  version: aa61f5016e6cbfcf3bd850047cedfde8640175c1
   subpackages:
   - client/v2
   - models
@@ -178,7 +178,7 @@ imports:
 - name: github.com/mitchellh/mapstructure
   version: bb74f1db0675b241733089d5a1faa5dd8b0ef57b
 - name: github.com/pelletier/go-toml
-  version: 66540cf1fcd2c3aee6f6787dfa32a6ae9a870f12
+  version: c01d1270ff3e442a8a57cddc1c92dc1138598194
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
@@ -199,7 +199,7 @@ imports:
   - internal/bitbucket.org/ww/goautoneg
   - model
 - name: github.com/prometheus/procfs
-  version: 94663424ae5ae9856b40a9f170762b4197024661
+  version: 7d6f385de8bea29190f15ba9931442a0eaef9af7
   subpackages:
   - internal/util
   - nfs
@@ -244,11 +244,11 @@ imports:
 - name: github.com/VividCortex/gohistogram
   version: 51564d9861991fb0ad0f531c99ef602d0f9866e6
 - name: golang.org/x/sys
-  version: c11f84a56e43e20a78cee75a7c034031ecf57d1f
+  version: 6c888cc515d3ed83fc103cf1d84468aad274b0a7
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: 5c1cf69b5978e5a34c5f9ba09a83e56acc4b7877
+  version: 5cec4b58c438bd98288aeb248bab2c1840713d21
   subpackages:
   - transform
   - unicode/norm

@@ -1,5 +1,5 @@
-hash: 5114ac229e50f89e8cc0ad20688958c7224f7f330e6db5d3c536e6a5201d5f62
-updated: 2018-06-18T19:58:10.523388403-07:00
+hash: 0723862521be323f3757f4baa93ecbe25ba95381ffe1d710964ff30016be9e6d
+updated: 2018-06-19T18:17:00.913239646-07:00
 imports:
 - name: github.com/armon/go-metrics
   version: 783273d703149aaeb9897cf58613d5af48861c25
@@ -42,7 +42,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 57f44304514e245ae4383507583ab747a3a409aa
+  version: 75fc1ca8e8cccd4226ebb41f7dd9639e22ba27ce
   subpackages:
   - concurrent
   - convey
@@ -154,7 +154,7 @@ imports:
   subpackages:
   - coordinate
 - name: github.com/influxdata/influxdb
-  version: aa61f5016e6cbfcf3bd850047cedfde8640175c1
+  version: 439bb435ea7ce4ba51b7e65889c0d1fbabf4f21d
   subpackages:
   - client/v2
   - models
@@ -244,7 +244,7 @@ imports:
 - name: github.com/VividCortex/gohistogram
   version: 51564d9861991fb0ad0f531c99ef602d0f9866e6
 - name: golang.org/x/sys
-  version: 6c888cc515d3ed83fc103cf1d84468aad274b0a7
+  version: fc8bd948cf46f9c7af0f07d34151ce25fe90e477
   subpackages:
   - unix
 - name: golang.org/x/text

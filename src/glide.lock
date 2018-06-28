@@ -1,8 +1,8 @@
-hash: 0723862521be323f3757f4baa93ecbe25ba95381ffe1d710964ff30016be9e6d
-updated: 2018-06-19T18:17:00.913239646-07:00
+hash: 1f0cadf6216c3fa4f015e1a17c2713a6ee4778527557d8bc619aa0bb39082750
+updated: 2018-06-28T13:16:13.30892152-07:00
 imports:
 - name: github.com/armon/go-metrics
-  version: 783273d703149aaeb9897cf58613d5af48861c25
+  version: 58588f401c2cc130a7308a52ca3bc6c0a76db04b
 - name: github.com/aws/aws-sdk-go
   version: 7be45195c3af1b54a609812f90c05a7e492e2491
   subpackages:
@@ -42,7 +42,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 75fc1ca8e8cccd4226ebb41f7dd9639e22ba27ce
+  version: 4dd30806ab4eeea6c3bb7077765f74c070b1ec7b
   subpackages:
   - concurrent
   - convey
@@ -115,7 +115,7 @@ imports:
 - name: github.com/go-stack/stack
   version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
 - name: github.com/golang/protobuf
-  version: 9f81198da99b79e14d70ca2c3cc1bbe44c6e69b6
+  version: 9eb2c01ac278a5d89ce4b2be68fe4500955d8179
   subpackages:
   - proto
 - name: github.com/gorilla/context
@@ -154,7 +154,7 @@ imports:
   subpackages:
   - coordinate
 - name: github.com/influxdata/influxdb
-  version: 439bb435ea7ce4ba51b7e65889c0d1fbabf4f21d
+  version: 48797873ee24fc1dcb5a63f23474d3210f6d68c5
   subpackages:
   - client/v2
   - models
@@ -229,7 +229,7 @@ imports:
 - name: github.com/spf13/viper
   version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
 - name: github.com/stretchr/objx
-  version: 0ab728f62c7f6fcd754334f7931c2dd659dce1d1
+  version: 9e1dfc121bca96d392da5d00591953bdb54ab306
 - name: github.com/stretchr/testify
   version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:
@@ -244,7 +244,7 @@ imports:
 - name: github.com/VividCortex/gohistogram
   version: 51564d9861991fb0ad0f531c99ef602d0f9866e6
 - name: golang.org/x/sys
-  version: fc8bd948cf46f9c7af0f07d34151ce25fe90e477
+  version: 7138fd3d9dc8335c567ca206f4333fb75eb05d56
   subpackages:
   - unix
 - name: golang.org/x/text

@@ -127,6 +127,7 @@ func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secu
 func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment) (http.Handler, error) {
 
 	infoLogger := logging.Info(logger)
+	errorLogger := logging.Error(logger)
 	var cfg fanout.Configuration
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
@@ -187,7 +188,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 			satClientID = reqContextValues.SatClientID
 		}
 
-		logger.Log(logging.MessageKey(), "Bookkeeping response",
+		errorLogger.Log(logging.MessageKey(), "Bookkeeping response",
 			"method", r.Method,
 			"requestURLPath", r.URL.Path,
 			"responseCode", http.StatusBadRequest,
@@ -207,14 +208,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							message, err := wrphttp.NewMessageFromHeaders(original.Header, bytes.NewReader(body))
 							bookKeeper := NewBookkeeper(message, original)
 							if err != nil {
-								bookKeeper.Log(infoLogger, 500, "err", err)
+								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
 							populateMessage(ctx, message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
-								bookKeeper.Log(infoLogger, 500, "err", err)
+								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
@@ -248,14 +249,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							bookKeeper := NewBookkeeper(&message, original)
 
 							if err := decoder.Decode(&message); err != nil {
-								bookKeeper.Log(infoLogger, 500, "err", err)
+								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
 							populateMessage(ctx, &message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								bookKeeper.Log(infoLogger, 500, "err", err)
+								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
@@ -289,14 +290,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							bookKeeper := NewBookkeeper(&message, original)
 
 							if err := decoder.Decode(&message); err != nil {
-								bookKeeper.Log(infoLogger, 500, "err", err)
+								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
 							populateMessage(ctx, &message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								bookKeeper.Log(infoLogger, 500, "err", err)
+								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 

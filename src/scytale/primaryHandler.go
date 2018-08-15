@@ -125,6 +125,8 @@ func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secu
 }
 
 func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment) (http.Handler, error) {
+
+	infoLogger := logging.Info(logger)
 	var cfg fanout.Configuration
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
@@ -142,21 +144,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				logginghttp.SetLogger(
 					logger,
 					logginghttp.RequestInfo,
-
-					// custom logger func that extracts the intended destination of requests
-					func(kv []interface{}, request *http.Request) []interface{} {
-						if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
-							return append(kv, "X-Webpa-Device-Name", deviceName)
-						}
-
-						if variables := mux.Vars(request); len(variables) > 0 {
-							if deviceID := variables["deviceID"]; len(deviceID) > 0 {
-								return append(kv, "deviceID", deviceID)
-							}
-						}
-
-						return kv
-					},
 				),
 			),
 		)
@@ -220,14 +207,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							message, err := wrphttp.NewMessageFromHeaders(original.Header, bytes.NewReader(body))
 							bookKeeper := NewBookkeeper(message, original)
 							if err != nil {
-								bookKeeper.Log(logger, 500, "err", err)
+								bookKeeper.Log(infoLogger, 500, "err", err)
 								return ctx, err
 							}
 
 							populateMessage(ctx, message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
-								bookKeeper.Log(logger, 500, "err", err)
+								bookKeeper.Log(infoLogger, 500, "err", err)
 								return ctx, err
 							}
 
@@ -236,7 +223,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							fanout.ContentLength = int64(len(fanoutBody))
 							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
 							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							bookKeeper.Log(logger, 200)
+							bookKeeper.Log(infoLogger, 200)
 							return ctx, nil
 						},
 					),
@@ -261,14 +248,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							bookKeeper := NewBookkeeper(&message, original)
 
 							if err := decoder.Decode(&message); err != nil {
-								bookKeeper.Log(logger, 500, "err", err)
+								bookKeeper.Log(infoLogger, 500, "err", err)
 								return ctx, err
 							}
 
 							populateMessage(ctx, &message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								bookKeeper.Log(logger, 500, "err", err)
+								bookKeeper.Log(infoLogger, 500, "err", err)
 								return ctx, err
 							}
 
@@ -277,7 +264,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							fanout.ContentLength = int64(len(fanoutBody))
 							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
 							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							bookKeeper.Log(logger, 200)
+							bookKeeper.Log(infoLogger, 200)
 							return ctx, nil
 						},
 					),
@@ -302,14 +289,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							bookKeeper := NewBookkeeper(&message, original)
 
 							if err := decoder.Decode(&message); err != nil {
-								bookKeeper.Log(logger, 500, "err", err)
+								bookKeeper.Log(infoLogger, 500, "err", err)
 								return ctx, err
 							}
 
 							populateMessage(ctx, &message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								bookKeeper.Log(logger, 500, "err", err)
+								bookKeeper.Log(infoLogger, 500, "err", err)
 								return ctx, err
 							}
 
@@ -318,7 +305,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							fanout.ContentLength = int64(len(fanoutBody))
 							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
 							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							bookKeeper.Log(logger, 200)
+							bookKeeper.Log(infoLogger, 200)
 							return ctx, nil
 						},
 					),

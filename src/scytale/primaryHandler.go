@@ -335,7 +335,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							logger.Log(logging.MessageKey(), "Bookkeeping response",
 								"method", original.Method,
 								"requestURLPath", original.URL.Path,
-								"responseCode", original.Response.StatusCode,
 								"satClientID", satClientID)
 							return ctx, nil
 						},

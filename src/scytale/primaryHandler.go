@@ -145,6 +145,24 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				logginghttp.SetLogger(
 					logger,
 					logginghttp.RequestInfo,
+
+					// custom logger func that extracts the intended destination of requests
+					func(kv []interface{}, request *http.Request) []interface{} {
+						if transactionID := request.Header.Get("X-Webpa-Transaction-Id"); len(transactionID) > 0 {
+							kv = append(kv, "transactionID", transactionID)
+						}
+						if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
+							return append(kv, "X-Webpa-Device-Name", deviceName)
+						}
+
+						if variables := mux.Vars(request); len(variables) > 0 {
+							if deviceID := variables["deviceID"]; len(deviceID) > 0 {
+								return append(kv, "deviceID", deviceID)
+							}
+						}
+
+						return kv
+					},
 				),
 			),
 		)

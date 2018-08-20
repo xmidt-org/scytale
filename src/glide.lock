@@ -1,8 +1,8 @@
-hash: 1f0cadf6216c3fa4f015e1a17c2713a6ee4778527557d8bc619aa0bb39082750
-updated: 2018-06-28T13:16:13.30892152-07:00
+hash: 27412c08fb0228e78e91a9217b877c041229daba4ea26944187cd33f56daf381
+updated: 2018-08-20T15:47:54.451176-07:00
 imports:
 - name: github.com/armon/go-metrics
-  version: 58588f401c2cc130a7308a52ca3bc6c0a76db04b
+  version: 783273d703149aaeb9897cf58613d5af48861c25
 - name: github.com/aws/aws-sdk-go
   version: 7be45195c3af1b54a609812f90c05a7e492e2491
   subpackages:
@@ -42,7 +42,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 4dd30806ab4eeea6c3bb7077765f74c070b1ec7b
+  version: fe5c1484b2da90c16669df9a4e92d0517c29fff5
   subpackages:
   - concurrent
   - convey
@@ -85,7 +85,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/go-ini/ini
-  version: cec2bdc49009247305a260b082a18e802d0fe292
+  version: bda519ae5f4cbc60d391ff8610711627a08b86ae
 - name: github.com/go-kit/kit
   version: 4dc7be5d2d12881735283bcab7352178e190fc71
   subpackages:
@@ -150,7 +150,7 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hashicorp/serf
-  version: 984a73625de3138f44deb38d00878fab39eb6447
+  version: 3b250ce4404edb266330f53fcfc8ad0d0dacfae7
   subpackages:
   - coordinate
 - name: github.com/influxdata/influxdb
@@ -174,7 +174,7 @@ imports:
   subpackages:
   - pbutil
 - name: github.com/mitchellh/go-homedir
-  version: 3864e76763d94a6df2f9960b16a20a33da9f9a66
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: bb74f1db0675b241733089d5a1faa5dd8b0ef57b
 - name: github.com/pelletier/go-toml
@@ -199,7 +199,7 @@ imports:
   - internal/bitbucket.org/ww/goautoneg
   - model
 - name: github.com/prometheus/procfs
-  version: 7d6f385de8bea29190f15ba9931442a0eaef9af7
+  version: 54d17b57dd7d4a3aa092476596b3f8a933bde349
   subpackages:
   - internal/util
   - nfs

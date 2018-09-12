@@ -38,21 +38,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
-	"github.com/Comcast/webpa-common/logging"
 )
 
 const (
-	baseURI       = "/api"
-	version       = "v2"
-	wrpMessageKey = "wrp_message_key"
-)
-
-type contextKey int
-
-//Keys to important context values on incoming requests to TR1D1UM
-const (
-	ContextKeyRequestArrivalTime contextKey = iota
-	ContextKeyRequestTID
+	baseURI = "/api"
+	version = "v2"
 )
 
 func populateMessage(ctx context.Context, message *wrp.Message) {
@@ -125,9 +115,6 @@ func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secu
 }
 
 func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment) (http.Handler, error) {
-
-	infoLogger := logging.Info(logger)
-	errorLogger := logging.Error(logger)
 	var cfg fanout.Configuration
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
@@ -148,9 +135,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 
 					// custom logger func that extracts the intended destination of requests
 					func(kv []interface{}, request *http.Request) []interface{} {
-						if transactionID := request.Header.Get("X-Webpa-Transaction-Id"); len(transactionID) > 0 {
-							kv = append(kv, "transactionID", transactionID)
-						}
 						if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
 							return append(kv, "X-Webpa-Device-Name", deviceName)
 						}
@@ -198,19 +182,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		sendSubrouter = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
 	)
 
-	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, r *http.Request) {
-		var satClientID = "N/A"
-
-		// retrieve satClientID from request context
-		if reqContextValues, ok := handler.FromContext(r.Context()); ok {
-			satClientID = reqContextValues.SatClientID
-		}
-
-		errorLogger.Log(logging.MessageKey(), "Bookkeeping response",
-			"method", r.Method,
-			"requestURLPath", r.URL.Path,
-			"responseCode", http.StatusBadRequest,
-			"satClientID", satClientID)
+	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		response.WriteHeader(http.StatusBadRequest)
 	})
 
@@ -224,16 +196,13 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 						fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
 						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 							message, err := wrphttp.NewMessageFromHeaders(original.Header, bytes.NewReader(body))
-							bookKeeper := NewBookkeeper(message, original)
 							if err != nil {
-								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
 							populateMessage(ctx, message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
-								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
@@ -242,7 +211,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							fanout.ContentLength = int64(len(fanoutBody))
 							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
 							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							bookKeeper.Log(infoLogger, 200)
 							return ctx, nil
 						},
 					),
@@ -264,17 +232,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								message wrp.Message
 								decoder = wrp.NewDecoderBytes(body, wrp.JSON)
 							)
-							bookKeeper := NewBookkeeper(&message, original)
 
 							if err := decoder.Decode(&message); err != nil {
-								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
 							populateMessage(ctx, &message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
@@ -283,7 +248,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							fanout.ContentLength = int64(len(fanoutBody))
 							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
 							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							bookKeeper.Log(infoLogger, 200)
 							return ctx, nil
 						},
 					),
@@ -305,17 +269,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								message wrp.Message
 								decoder = wrp.NewDecoderBytes(body, wrp.Msgpack)
 							)
-							bookKeeper := NewBookkeeper(&message, original)
 
 							if err := decoder.Decode(&message); err != nil {
-								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
 							populateMessage(ctx, &message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								bookKeeper.Log(errorLogger, 500, "err", err)
 								return ctx, err
 							}
 
@@ -324,7 +285,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							fanout.ContentLength = int64(len(fanoutBody))
 							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
 							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							bookKeeper.Log(infoLogger, 200)
 							return ctx, nil
 						},
 					),
@@ -342,20 +302,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					options,
 					fanout.WithFanoutBefore(
 						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
-						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-							var satClientID = "N/A"
-
-							// retrieve satClientID from request context
-							if reqContextValues, ok := handler.FromContext(original.Context()); ok {
-								satClientID = reqContextValues.SatClientID
-							}
-
-							logger.Log(logging.MessageKey(), "Bookkeeping response",
-								"method", original.Method,
-								"requestURLPath", original.URL.Path,
-								"satClientID", satClientID)
-							return ctx, nil
-						},
 					),
 				)...,
 			),

@@ -20,7 +20,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/Comcast/webpa-common/logging"
 	"net/http"
+	"strings"
 
 	"github.com/Comcast/webpa-common/logging/logginghttp"
 	"github.com/Comcast/webpa-common/secure"
@@ -45,10 +47,36 @@ const (
 	version = "v2"
 )
 
+type scytaleContxtKey struct{}
+
 func populateMessage(ctx context.Context, message *wrp.Message) {
 	if values, ok := handler.FromContext(ctx); ok {
 		message.PartnerIDs = values.PartnerIDs
 	}
+}
+
+type Bookkeeping struct {
+	MessageType     wrp.MessageType
+	Destination     string
+	Source          string
+	Status          int64
+	TransactionUUID string
+}
+
+func populateContext(ctx context.Context, message *wrp.Message) context.Context {
+	if message != nil {
+		bookkeeping := Bookkeeping{
+			MessageType:     message.MessageType(),
+			Destination:     message.Destination,
+			Source:          message.Source,
+			TransactionUUID: message.TransactionUUID,
+		}
+		if message.Status != nil {
+			bookkeeping.Status = *message.Status
+		}
+		ctx = context.WithValue(ctx, scytaleContxtKey{}, &bookkeeping)
+	}
+	return ctx
 }
 
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
@@ -180,6 +208,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	var (
 		router        = mux.NewRouter()
 		sendSubrouter = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
+		infoLogger    = logging.Info(logger)
 	)
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
@@ -201,6 +230,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							}
 
 							populateMessage(ctx, message)
+							ctx = populateContext(ctx, message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
 								return ctx, err
@@ -214,6 +244,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							return ctx, nil
 						},
 					),
+					fanout.WithFanoutAfter(bookkeeping(infoLogger)),
 				)...,
 			),
 		),
@@ -238,6 +269,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							}
 
 							populateMessage(ctx, &message)
+							ctx = populateContext(ctx, &message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
 								return ctx, err
@@ -251,6 +283,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							return ctx, nil
 						},
 					),
+					fanout.WithFanoutAfter(bookkeeping(infoLogger)),
 				)...,
 			),
 		),
@@ -275,6 +308,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							}
 
 							populateMessage(ctx, &message)
+							ctx = populateContext(ctx, &message)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
 								return ctx, err
@@ -288,6 +322,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							return ctx, nil
 						},
 					),
+					fanout.WithFanoutAfter(bookkeeping(infoLogger)),
 				)...,
 			),
 		),
@@ -303,10 +338,30 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					fanout.WithFanoutBefore(
 						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
 					),
+					fanout.WithFanoutAfter(bookkeeping(infoLogger)),
 				)...,
 			),
 		),
 	).Methods("GET")
 
 	return router, nil
+}
+
+func bookkeeping(log log.Logger) func(ctx context.Context, response http.ResponseWriter, result fanout.Result) context.Context {
+	return func(ctx context.Context, response http.ResponseWriter, result fanout.Result) context.Context {
+		kv := []interface{}{logging.MessageKey(), "Bookkeeping response"}
+		if reqContextValues, ok := handler.FromContext(ctx); ok {
+			kv = append(kv, "satClientID", reqContextValues.SatClientID)
+			kv = append(kv, "partnerIDs", "["+strings.Join(reqContextValues.PartnerIDs, ", ")+"]")
+		}
+		if reqBodyValues, ok := ctx.Value(scytaleContxtKey{}).(*Bookkeeping); ok {
+			kv = append(kv, "wrp.transaction_uuid", reqBodyValues.TransactionUUID)
+			kv = append(kv, "wrp.dest", reqBodyValues.Destination)
+			kv = append(kv, "wrp.source", reqBodyValues.Source)
+			kv = append(kv, "wrp.msg_type", reqBodyValues.MessageType)
+			kv = append(kv, "wrp.status", reqBodyValues.Status)
+		}
+		log.Log(kv...)
+		return ctx
+	}
 }

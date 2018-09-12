@@ -21,9 +21,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/Comcast/webpa-common/logging"
-	"net/http"
-	"strings"
-
 	"github.com/Comcast/webpa-common/logging/logginghttp"
 	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/secure/handler"
@@ -36,10 +33,13 @@ import (
 	"github.com/Comcast/webpa-common/xmetrics"
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
+	"net/http"
+	"strings"
 )
 
 const (
@@ -47,36 +47,10 @@ const (
 	version = "v2"
 )
 
-type scytaleContxtKey struct{}
-
 func populateMessage(ctx context.Context, message *wrp.Message) {
 	if values, ok := handler.FromContext(ctx); ok {
 		message.PartnerIDs = values.PartnerIDs
 	}
-}
-
-type Bookkeeping struct {
-	MessageType     wrp.MessageType
-	Destination     string
-	Source          string
-	Status          int64
-	TransactionUUID string
-}
-
-func populateContext(ctx context.Context, message *wrp.Message) context.Context {
-	if message != nil {
-		bookkeeping := Bookkeeping{
-			MessageType:     message.MessageType(),
-			Destination:     message.Destination,
-			Source:          message.Source,
-			TransactionUUID: message.TransactionUUID,
-		}
-		if message.Status != nil {
-			bookkeeping.Status = *message.Status
-		}
-		ctx = context.WithValue(ctx, scytaleContxtKey{}, &bookkeeping)
-	}
-	return ctx
 }
 
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
@@ -208,7 +182,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	var (
 		router        = mux.NewRouter()
 		sendSubrouter = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
-		infoLogger    = logging.Info(logger)
 	)
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
@@ -228,23 +201,9 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							if err != nil {
 								return ctx, err
 							}
-
-							populateMessage(ctx, message)
-							ctx = populateContext(ctx, message)
-							var buffer bytes.Buffer
-							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
-								return ctx, err
-							}
-
-							fanoutBody := buffer.Bytes()
-							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
-							fanout.ContentLength = int64(len(fanoutBody))
-							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
-							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							return ctx, nil
+							return doFanout(ctx, fanout, message)
 						},
 					),
-					fanout.WithFanoutAfter(bookkeeping(infoLogger)),
 				)...,
 			),
 		),
@@ -263,27 +222,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								message wrp.Message
 								decoder = wrp.NewDecoderBytes(body, wrp.JSON)
 							)
-
 							if err := decoder.Decode(&message); err != nil {
 								return ctx, err
 							}
-
-							populateMessage(ctx, &message)
-							ctx = populateContext(ctx, &message)
-							var buffer bytes.Buffer
-							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								return ctx, err
-							}
-
-							fanoutBody := buffer.Bytes()
-							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
-							fanout.ContentLength = int64(len(fanoutBody))
-							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
-							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							return ctx, nil
+							return doFanout(ctx, fanout, &message)
 						},
 					),
-					fanout.WithFanoutAfter(bookkeeping(infoLogger)),
 				)...,
 			),
 		),
@@ -302,27 +246,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								message wrp.Message
 								decoder = wrp.NewDecoderBytes(body, wrp.Msgpack)
 							)
-
 							if err := decoder.Decode(&message); err != nil {
 								return ctx, err
 							}
-
-							populateMessage(ctx, &message)
-							ctx = populateContext(ctx, &message)
-							var buffer bytes.Buffer
-							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								return ctx, err
-							}
-
-							fanoutBody := buffer.Bytes()
-							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
-							fanout.ContentLength = int64(len(fanoutBody))
-							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
-							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							return ctx, nil
+							return doFanout(ctx, fanout, &message)
 						},
 					),
-					fanout.WithFanoutAfter(bookkeeping(infoLogger)),
 				)...,
 			),
 		),
@@ -338,7 +267,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					fanout.WithFanoutBefore(
 						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
 					),
-					fanout.WithFanoutAfter(bookkeeping(infoLogger)),
 				)...,
 			),
 		),
@@ -347,21 +275,47 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	return router, nil
 }
 
-func bookkeeping(log log.Logger) func(ctx context.Context, response http.ResponseWriter, result fanout.Result) context.Context {
-	return func(ctx context.Context, response http.ResponseWriter, result fanout.Result) context.Context {
-		kv := []interface{}{logging.MessageKey(), "Bookkeeping response"}
-		if reqContextValues, ok := handler.FromContext(ctx); ok {
-			kv = append(kv, "satClientID", reqContextValues.SatClientID)
-			kv = append(kv, "partnerIDs", "["+strings.Join(reqContextValues.PartnerIDs, ", ")+"]")
-		}
-		if reqBodyValues, ok := ctx.Value(scytaleContxtKey{}).(*Bookkeeping); ok {
-			kv = append(kv, "wrp.transaction_uuid", reqBodyValues.TransactionUUID)
-			kv = append(kv, "wrp.dest", reqBodyValues.Destination)
-			kv = append(kv, "wrp.source", reqBodyValues.Source)
-			kv = append(kv, "wrp.msg_type", reqBodyValues.MessageType)
-			kv = append(kv, "wrp.status", reqBodyValues.Status)
-		}
-		log.Log(kv...)
-		return ctx
+func doFanout(ctx context.Context, fanout *http.Request, message *wrp.Message) (context.Context, error) {
+	populateMessage(ctx, message)
+
+	bookkeepingLog(ctx, message)
+
+	var buffer bytes.Buffer
+	if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
+		return ctx, err
 	}
+
+	fanoutBody := buffer.Bytes()
+	fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
+	fanout.ContentLength = int64(len(fanoutBody))
+	fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
+	fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
+	return ctx, nil
+}
+
+func bookkeepingLog(ctx context.Context, message *wrp.Message) error {
+	kv := []interface{}{logging.MessageKey(), "Bookkeeping response", level.Key(), level.InfoValue()}
+	if reqContextValues, ok := handler.FromContext(ctx); ok {
+		kv = append(kv, "satClientID", reqContextValues.SatClientID)
+		kv = append(kv, "partnerIDs", "["+strings.Join(reqContextValues.PartnerIDs, ", ")+"]")
+	}
+
+	if message != nil {
+		if message.TransactionUUID != "" {
+			kv = append(kv, "wrp.transaction_uuid", message.TransactionUUID)
+		}
+		if message.TransactionUUID != "" {
+			kv = append(kv, "wrp.dest", message.Destination)
+		}
+		if message.TransactionUUID != "" {
+			kv = append(kv, "wrp.source", message.Source)
+		}
+		if message.TransactionUUID != "" {
+			kv = append(kv, "wrp.msg_type", message.MessageType)
+		}
+		if message.Status != nil {
+			kv = append(kv, "wrp.status", *message.Status)
+		}
+	}
+	return logging.GetLogger(ctx).Log(kv...)
 }

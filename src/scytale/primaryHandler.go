@@ -268,7 +268,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							return doFanout(ctx, fanout, message)
 						},
 					),
+					fanout.WithFanoutFailure(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
+					fanout.WithFanoutAfter(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
 				)...,
+
 			),
 		),
 	)
@@ -291,6 +298,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							}
 							return doFanout(ctx, fanout, &message)
 						},
+					),
+					fanout.WithFanoutFailure(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
+					fanout.WithFanoutAfter(
+						fanout.ReturnHeadersWithPrefix("X-"),
 					),
 				)...,
 			),
@@ -316,6 +329,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							return doFanout(ctx, fanout, &message)
 						},
 					),
+					fanout.WithFanoutFailure(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
+					fanout.WithFanoutAfter(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
 				)...,
 			),
 		),
@@ -330,6 +349,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					options,
 					fanout.WithFanoutBefore(
 						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
+					),
+					fanout.WithFanoutFailure(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
+					fanout.WithFanoutAfter(
+						fanout.ReturnHeadersWithPrefix("X-"),
 					),
 				)...,
 			),

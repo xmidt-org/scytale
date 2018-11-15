@@ -81,8 +81,8 @@ func scytale(arguments []string) int {
 	}
 
 	var (
-		_, caduceusServer = webPA.Prepare(logger, nil, metricsRegistry, primaryHandler)
-		signals           = make(chan os.Signal, 10)
+		_, caduceusServer, done = webPA.Prepare(logger, nil, metricsRegistry, primaryHandler)
+		signals                 = make(chan os.Signal, 10)
 	)
 
 	//
@@ -96,11 +96,24 @@ func scytale(arguments []string) int {
 	}
 
 	signal.Notify(signals)
-	s := server.SignalWait(logging.Info(logger), signals, os.Kill, os.Interrupt)
-	logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "exiting due to signal", "signal", s)
+	for exit := false; !exit; {
+		select {
+		case s := <-signals:
+			if s != os.Kill && s != os.Interrupt {
+				logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "ignoring signal", "signal", s)
+			} else {
+				logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "exiting due to signal", "signal", s)
+				exit = true
+			}
+
+		case <-done:
+			logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "one or more servers exited")
+			exit = true
+		}
+	}
+
 	close(shutdown)
 	waitGroup.Wait()
-
 	return 0
 }
 

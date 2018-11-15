@@ -1,5 +1,5 @@
-hash: 4d3f8abcbc491b5afd80bfdd9b6572003b17d0419e57b26570b1c95e68628d2d
-updated: 2018-11-14T16:38:24.546017-08:00
+hash: 0fe711195e8ee06aaeb91bea0e4ab14aa3a24bdbda085cad95523c1bcc1600bb
+updated: 2018-11-14T17:54:03.929378-08:00
 imports:
 - name: github.com/armon/go-metrics
   version: 783273d703149aaeb9897cf58613d5af48861c25
@@ -42,7 +42,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 4a951f674bd51e0a0b3073ab9eee06b3944a61a9
+  version: f703ee9a5b76fab90a15d8cb74755c9b0c300099
   subpackages:
   - capacitor
   - clock

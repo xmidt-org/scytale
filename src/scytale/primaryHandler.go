@@ -20,8 +20,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net/http"
-
 	"github.com/Comcast/webpa-common/logging/logginghttp"
 	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/secure/handler"
@@ -38,6 +36,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
+	"net/http"
 )
 
 const (
@@ -214,7 +213,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							return ctx, nil
 						},
 					),
+					fanout.WithFanoutFailure(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
+					fanout.WithFanoutAfter(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
 				)...,
+
 			),
 		),
 	)
@@ -250,6 +256,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
 							return ctx, nil
 						},
+					),
+					fanout.WithFanoutFailure(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
+					fanout.WithFanoutAfter(
+						fanout.ReturnHeadersWithPrefix("X-"),
 					),
 				)...,
 			),
@@ -288,6 +300,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							return ctx, nil
 						},
 					),
+					fanout.WithFanoutFailure(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
+					fanout.WithFanoutAfter(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
 				)...,
 			),
 		),
@@ -302,6 +320,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					options,
 					fanout.WithFanoutBefore(
 						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
+					),
+					fanout.WithFanoutFailure(
+						fanout.ReturnHeadersWithPrefix("X-"),
+					),
+					fanout.WithFanoutAfter(
+						fanout.ReturnHeadersWithPrefix("X-"),
 					),
 				)...,
 			),

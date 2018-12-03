@@ -81,15 +81,15 @@ func scytale(arguments []string) int {
 	}
 
 	var (
-		_, caduceusServer, done = webPA.Prepare(logger, nil, metricsRegistry, primaryHandler)
-		signals                 = make(chan os.Signal, 10)
+		_, scytaleServer, done = webPA.Prepare(logger, nil, metricsRegistry, primaryHandler)
+		signals                = make(chan os.Signal, 10)
 	)
 
 	//
 	// Execute the runnable, which runs all the servers, and wait for a signal
 	//
 
-	waitGroup, shutdown, err := concurrent.Execute(caduceusServer)
+	waitGroup, shutdown, err := concurrent.Execute(scytaleServer)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when starting %s: %s", applicationName, err)
 		return 4

@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/Comcast/webpa-common/logging"
+	"github.com/Comcast/webpa-common/bookkeeping"
 	"github.com/Comcast/webpa-common/logging/logginghttp"
 	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/secure/handler"
@@ -127,14 +127,11 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 				}
 				return kv
 			}, ),
+		gokithttp.PopulateRequestContext,
 	)
+
+	bookkeeper := bookkeeping.New(bookkeeping.WithResponses(bookkeeping.ResponseHeadersWithPrefix("X-")))
 	return alice.New(authHandler.Decorate, bookkeeperPop, bookkeeper), nil
-}
-func bookkeeper(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		logging.GetLogger(request.Context()).Log(logging.MessageKey(), "Bookkeeping response")
-		next.ServeHTTP(response, request)
-	})
 }
 
 func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secure.Validator, err error) {

@@ -10,7 +10,7 @@ License:    ASL 2.0
 URL:        https://github.com/Comcast/scytale
 Source0:    %{name}-%{_fullver}.tar.gz
 
-BuildRequires:  golang >= 1.11
+BuildRequires:  golang >= 1.7
 Requires:       supervisor
 
 %description

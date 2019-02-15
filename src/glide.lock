@@ -1,5 +1,5 @@
-hash: c1c0599b8d4782c9515e04e42f96a00f87c3c35faba694413a8284c345eb9a56
-updated: 2018-11-14T19:03:20.343614-08:00
+hash: 93db9f97af1a935857d0e466082d4b72dfeaed71e8bbaa8aba547c490f6ded1e
+updated: 2019-02-14T23:37:10.874336-08:00
 imports:
 - name: github.com/armon/go-metrics
   version: 783273d703149aaeb9897cf58613d5af48861c25
@@ -42,7 +42,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 11a5e3024661b9f1ed0df38eeddb001f0be94202
+  version: 3cbdf30a543b222be8957a3a63222e410e264592
   subpackages:
   - capacitor
   - clock
@@ -58,6 +58,7 @@ imports:
   - secure
   - secure/handler
   - secure/key
+  - semaphore
   - server
   - service
   - service/consul
@@ -72,6 +73,7 @@ imports:
   - webhook/aws
   - wrp
   - wrp/wrphttp
+  - wrp/wrpmeta
   - xhttp
   - xhttp/fanout
   - xhttp/gate
@@ -143,6 +145,7 @@ imports:
   subpackages:
   - hcl/ast
   - hcl/parser
+  - hcl/printer
   - hcl/scanner
   - hcl/strconv
   - hcl/token
@@ -229,7 +232,7 @@ imports:
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: github.com/spf13/viper
-  version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
+  version: 6d33b5a963d922d182c91e8a1c88d81fd150cfd4
 - name: github.com/stretchr/objx
   version: cbeaeb16a013161a98496fad62933b1d21786672
 - name: github.com/stretchr/testify
@@ -240,7 +243,7 @@ imports:
   - mock
   - require
 - name: github.com/ugorji/go
-  version: 00a57e09e383d445aeef6c6cd642969dc4360231
+  version: e5e69e061d4f7ee3a69b793cf9c1b41afe21918e
   subpackages:
   - codec
 - name: github.com/VividCortex/gohistogram

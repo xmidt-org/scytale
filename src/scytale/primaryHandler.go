@@ -29,6 +29,7 @@ import (
 	"github.com/Comcast/webpa-common/secure/handler"
 	"github.com/Comcast/webpa-common/secure/key"
 	"github.com/Comcast/webpa-common/service"
+	"github.com/Comcast/webpa-common/service/monitor"
 	"github.com/Comcast/webpa-common/wrp"
 	"github.com/Comcast/webpa-common/wrp/wrphttp"
 	"github.com/Comcast/webpa-common/xhttp"
@@ -119,7 +120,7 @@ func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secu
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
 // endpoints or service discovery.
-func createEndpoints(logger log.Logger, cfg fanout.Configuration, e service.Environment) (fanout.Endpoints, error) {
+func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
 
 	if len(cfg.Endpoints) > 0 {
 		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using configured endpoints for fanout", "endpoints", cfg.Endpoints)
@@ -127,8 +128,18 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, e service.Envi
 	} else if e != nil {
 		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using service discovery for fanout")
 		endpoints := fanout.NewServiceEndpoints(fanout.WithAccessorFactory(e.AccessorFactory()))
-		// TODO: Monitor endpoints
-		return endpoints, nil
+
+		_, err := monitor.New(
+			monitor.WithLogger(logger),
+			monitor.WithFilter(monitor.NewNormalizeFilter(e.DefaultScheme())),
+			monitor.WithEnvironment(e),
+			monitor.WithListeners(
+				monitor.NewMetricsListener(registry),
+				endpoints,
+			),
+		)
+
+		return endpoints, err
 	}
 
 	return nil, errors.New("Unable to create endpoints")
@@ -140,7 +151,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		return nil, err
 	}
 
-	endpoints, err := createEndpoints(logger, cfg, e)
+	endpoints, err := createEndpoints(logger, cfg, registry, e)
 	if err != nil {
 		return nil, err
 	}

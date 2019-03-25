@@ -1,5 +1,5 @@
-hash: 93db9f97af1a935857d0e466082d4b72dfeaed71e8bbaa8aba547c490f6ded1e
-updated: 2019-02-14T23:37:10.874336-08:00
+hash: bc83f3f8803d782b6e1f39cdd1ffa5d3c98681d5e5197dba27e508d9d0705d52
+updated: 2019-03-25T10:51:15.529368-07:00
 imports:
 - name: github.com/armon/go-metrics
   version: 783273d703149aaeb9897cf58613d5af48861c25
@@ -42,7 +42,7 @@ imports:
   subpackages:
   - linux
 - name: github.com/Comcast/webpa-common
-  version: 3cbdf30a543b222be8957a3a63222e410e264592
+  version: 400bb4f8fc509ead8a6180a357d448bc593ea000
   subpackages:
   - capacitor
   - clock
@@ -83,7 +83,7 @@ imports:
   - xmetrics
   - xviper
 - name: github.com/davecgh/go-spew
-  version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
   - spew
 - name: github.com/fsnotify/fsnotify
@@ -117,7 +117,7 @@ imports:
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/golang/protobuf
-  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
+  version: 925541529c1fa6821df4e44ce2723319eb2be768
   subpackages:
   - proto
 - name: github.com/gorilla/context
@@ -127,7 +127,7 @@ imports:
 - name: github.com/gorilla/websocket
   version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
 - name: github.com/hashicorp/consul
-  version: 9a494b5fb9c86180a5702e29c485df1507a47198
+  version: c97c712e96e0e53308054d5e1180289fe02dce38
   subpackages:
   - api
 - name: github.com/hashicorp/go-cleanhttp
@@ -189,9 +189,10 @@ imports:
   subpackages:
   - difflib
 - name: github.com/prometheus/client_golang
-  version: 967789050ba94deca04a5e84cce8ad472ce313c1
+  version: 505eaef017263e299324067d40ca2c48f6a2cf50
   subpackages:
   - prometheus
+  - prometheus/internal
   - prometheus/promhttp
 - name: github.com/prometheus/client_model
   version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c

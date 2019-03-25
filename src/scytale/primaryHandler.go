@@ -19,12 +19,17 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
+
+	"github.com/Comcast/webpa-common/logging"
 	"github.com/Comcast/webpa-common/logging/logginghttp"
 	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/secure/handler"
 	"github.com/Comcast/webpa-common/secure/key"
 	"github.com/Comcast/webpa-common/service"
+	"github.com/Comcast/webpa-common/service/monitor"
 	"github.com/Comcast/webpa-common/wrp"
 	"github.com/Comcast/webpa-common/wrp/wrphttp"
 	"github.com/Comcast/webpa-common/xhttp"
@@ -32,11 +37,11 @@ import (
 	"github.com/Comcast/webpa-common/xmetrics"
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
-	"net/http"
 )
 
 const (
@@ -113,9 +118,41 @@ func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secu
 	return
 }
 
+// createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
+// endpoints or service discovery.
+func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
+
+	if len(cfg.Endpoints) > 0 {
+		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using configured endpoints for fanout", "endpoints", cfg.Endpoints)
+		return fanout.ParseURLs(cfg.Endpoints...)
+	} else if e != nil {
+		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using service discovery for fanout")
+		endpoints := fanout.NewServiceEndpoints(fanout.WithAccessorFactory(e.AccessorFactory()))
+
+		_, err := monitor.New(
+			monitor.WithLogger(logger),
+			monitor.WithFilter(monitor.NewNormalizeFilter(e.DefaultScheme())),
+			monitor.WithEnvironment(e),
+			monitor.WithListeners(
+				monitor.NewMetricsListener(registry),
+				endpoints,
+			),
+		)
+
+		return endpoints, err
+	}
+
+	return nil, errors.New("Unable to create endpoints")
+}
+
 func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment) (http.Handler, error) {
 	var cfg fanout.Configuration
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
+		return nil, err
+	}
+
+	endpoints, err := createEndpoints(logger, cfg, registry, e)
+	if err != nil {
 		return nil, err
 	}
 
@@ -165,17 +202,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		)
 	}
 
-	// use the inject endpoints if present, or fallback to the alternate service discovery endpoints
-	var alternate func() (fanout.Endpoints, error)
-	if e != nil {
-		alternate = fanout.ServiceEndpointsAlternate(fanout.WithAccessorFactory(e.AccessorFactory()))
-	}
-
-	endpoints, err := fanout.NewEndpoints(cfg, alternate)
-	if err != nil {
-		return nil, err
-	}
-
 	var (
 		router        = mux.NewRouter()
 		sendSubrouter = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
@@ -220,7 +246,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 						fanout.ReturnHeadersWithPrefix("X-"),
 					),
 				)...,
-
 			),
 		),
 	)

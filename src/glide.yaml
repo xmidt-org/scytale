@@ -1,4 +1,7 @@
 package: .
 import:
 - package: github.com/Comcast/webpa-common
-  version: 723a128f40c78e45ca079dd113ebb2cf798b7aef
+  version: dbe6b5fc60b1927040ae73e0202d01e39e4d24a6
+  repo: git@github.com:kristinaspring/webpa-common.git
+- package: github.com/Comcast/comcast-bascule
+  version: 010ac656740f8ddc51903f96d0a8ac936f1b40d3

@@ -1,5 +1,5 @@
-hash: f639b6a25f1f597f780a1cfff6449fb3c35bf9f0fda2a908211281e0d5f6a682
-updated: 2019-04-30T09:16:12.141965-07:00
+hash: 5b247947da0b452333719cbb9b4bd9b2312194aa7e7ecc1eb7a9826115892f37
+updated: 2019-05-09T15:54:04.202218-07:00
 imports:
 - name: github.com/armon/go-metrics
   version: f0300d1749da6fa982027e449ec0c7a145510c3c
@@ -41,9 +41,16 @@ imports:
   version: 19cb9f127a9c8d2034cf59ccb683cdb94b9deb6c
   subpackages:
   - linux
-- name: github.com/Comcast/webpa-common
-  version: 12930f1f017a104086c665386fd638684f648ed5
+- name: github.com/Comcast/comcast-bascule
+  version: d07d9e49941c9a0998295574bf6b885148666742
   subpackages:
+  - bascule
+  - bascule/basculehttp
+  - bascule/key
+- name: github.com/Comcast/webpa-common
+  version: f5fa67d65cf557eb746e2799100fe8356c7b5753
+  subpackages:
+  - basculechecks
   - capacitor
   - clock
   - concurrent
@@ -121,6 +128,8 @@ imports:
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
   - proto
+- name: github.com/goph/emperror
+  version: ae59d9fdc3f0c4814bc5fac2d4a68441dcff5a17
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
@@ -185,6 +194,8 @@ imports:
   version: fa473d140ef3c6adf42d6b391fe76707f1f243c8
 - name: github.com/pelletier/go-toml
   version: 78b76feda6f35b2c5c1d283513f6419e59086729
+- name: github.com/pkg/errors
+  version: 2233dee583dcf88f3c8b22cb7a33f05a499800d8
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
@@ -241,9 +252,7 @@ imports:
   version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:
   - assert
-  - linux
   - mock
-  - require
 - name: github.com/ugorji/go
   version: e5e69e061d4f7ee3a69b793cf9c1b41afe21918e
   subpackages:

@@ -17,8 +17,8 @@
 package main
 
 import (
+	"github.com/Comcast/comcast-bascule/bascule/key"
 	"github.com/Comcast/webpa-common/secure"
-	"github.com/Comcast/webpa-common/secure/key"
 )
 
 //JWTValidator provides a convenient way to define jwt validator through config files

@@ -19,15 +19,16 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/Comcast/comcast-bascule/bascule"
+	"github.com/Comcast/comcast-bascule/bascule/basculehttp"
+	"github.com/Comcast/webpa-common/basculechecks"
 	"github.com/Comcast/webpa-common/logging"
 	"github.com/Comcast/webpa-common/logging/logginghttp"
-	"github.com/Comcast/webpa-common/secure"
-	"github.com/Comcast/webpa-common/secure/handler"
-	"github.com/Comcast/webpa-common/secure/key"
 	"github.com/Comcast/webpa-common/service"
 	"github.com/Comcast/webpa-common/service/monitor"
 	"github.com/Comcast/webpa-common/wrp"
@@ -39,6 +40,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	gokithttp "github.com/go-kit/kit/transport/http"
+	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
@@ -49,73 +51,106 @@ const (
 	version = "v2"
 )
 
+func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
+	return func(delegate http.Handler) http.Handler {
+		return http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				ctx := r.WithContext(logging.WithLogger(r.Context(),
+					log.With(logger, "requestHeaders", r.Header, "requestURL", r.URL.EscapedPath(), "method", r.Method)))
+				delegate.ServeHTTP(w, ctx)
+			})
+	}
+}
+
+func GetLogger(ctx context.Context) bascule.Logger {
+	logger := log.With(logging.GetLogger(ctx), "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
+	return logger
+}
+
 func populateMessage(ctx context.Context, message *wrp.Message) {
-	if values, ok := handler.FromContext(ctx); ok {
-		message.PartnerIDs = values.PartnerIDs
+	if auth, ok := bascule.FromContext(ctx); ok {
+		if token := auth.Token; token != nil {
+			if ids, ok := token.Attributes().Get("partnerIDs"); ok {
+				if idStr, ok := ids.([]string); ok {
+					message.PartnerIDs = idStr
+				}
+			}
+		}
 	}
 }
 
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	var (
-		m              = secure.NewJWTValidationMeasures(registry)
-		validator, err = validators(v, m)
+		m *basculechecks.JWTValidationMeasures
 	)
 
-	if err != nil {
-		return alice.Chain{}, err
+	if registry != nil {
+		m = basculechecks.NewJWTValidationMeasures(registry)
 	}
+	listener := basculechecks.NewMetricListener(m)
 
-	authHandler := handler.AuthorizationHandler{
-		HeaderName:          "Authorization",
-		ForbiddenStatusCode: 403,
-		Validator:           validator,
-		Logger:              logger,
-	}
-
-	authHandler.DefineMeasures(m)
-	return alice.New(authHandler.Decorate), nil
-}
-
-func validators(v *viper.Viper, m *secure.JWTValidationMeasures) (validator secure.Validator, err error) {
-	var jwtVals []JWTValidator
-
-	v.UnmarshalKey("jwtValidators", &jwtVals)
-
-	// if a JWTKeys section was supplied, configure a JWS validator
-	// and append it to the chain of validators
-	validators := make(secure.Validators, 0, len(jwtVals))
-
-	for _, validatorDescriptor := range jwtVals {
-		validatorDescriptor.Custom.DefineMeasures(m)
-
-		var keyResolver key.Resolver
-		keyResolver, err = validatorDescriptor.Keys.NewResolver()
-		if err != nil {
-			validator = validators
-			return
-		}
-
-		validator := secure.JWSValidator{
-			DefaultKeyId:  DefaultKeyID,
-			Resolver:      keyResolver,
-			JWTValidators: []*jwt.Validator{validatorDescriptor.Custom.New()},
-		}
-
-		validator.DefineMeasures(m)
-		validators = append(validators, validator)
-	}
-
+	basicAllowed := make(map[string]string)
 	basicAuth := v.GetStringSlice("authHeader")
-	for _, authValue := range basicAuth {
-		validators = append(
-			validators,
-			secure.ExactMatchValidator(authValue),
-		)
+	for _, a := range basicAuth {
+		decoded, err := base64.StdEncoding.DecodeString(a)
+		if err != nil {
+			logging.Info(logger).Log(logging.MessageKey(), "failed to decode auth header", "authHeader", a, logging.ErrorKey(), err.Error())
+		}
+
+		i := bytes.IndexByte(decoded, ':')
+		logging.Debug(logger).Log(logging.MessageKey(), "decoded string", "string", decoded, "i", i)
+		if i > 0 {
+			basicAllowed[string(decoded[:i])] = string(decoded[i+1:])
+		}
+	}
+	logging.Debug(logger).Log(logging.MessageKey(), "Created list of allowed basic auths", "allowed", basicAllowed, "config", basicAuth)
+
+	options := []basculehttp.COption{basculehttp.WithCLogger(GetLogger), basculehttp.WithCErrorResponseFunc(listener.OnErrorResponse)}
+	if len(basicAllowed) > 0 {
+		options = append(options, basculehttp.WithTokenFactory("Basic", basculehttp.BasicTokenFactory(basicAllowed)))
+	}
+	var jwtVal JWTValidator
+
+	v.UnmarshalKey("jwtValidator", &jwtVal)
+	if jwtVal.Keys.URI != "" {
+		resolver, err := jwtVal.Keys.NewResolver()
+		if err != nil {
+			return alice.Chain{}, emperror.With(err, "failed to create resolver")
+		}
+
+		options = append(options, basculehttp.WithTokenFactory("Bearer", basculehttp.BearerTokenFactory{
+			DefaultKeyId:  DefaultKeyID,
+			Resolver:      resolver,
+			Parser:        bascule.DefaultJWSParser,
+			JWTValidators: []*jwt.Validator{jwtVal.Custom.New()},
+		}))
 	}
 
-	validator = validators
+	authConstructor := basculehttp.NewConstructor(options...)
 
-	return
+	bearerRules := []bascule.Validator{
+		bascule.CreateNonEmptyPrincipalCheck(),
+		bascule.CreateNonEmptyTypeCheck(),
+		bascule.CreateValidTypeCheck([]string{"jwt"}),
+	}
+
+	// only add capability check if the configuration is set
+	var capabilityConfig basculechecks.CapabilityConfig
+	v.UnmarshalKey("capabilityConfig", &capabilityConfig)
+	if capabilityConfig.FirstPiece != "" && capabilityConfig.SecondPiece != "" && capabilityConfig.ThirdPiece != "" {
+		bearerRules = append(bearerRules, bascule.CreateListAttributeCheck("capabilities", basculechecks.CreateValidCapabilityCheck(capabilityConfig)))
+	}
+
+	authEnforcer := basculehttp.NewEnforcer(
+		basculehttp.WithELogger(GetLogger),
+		basculehttp.WithRules("Basic", []bascule.Validator{
+			bascule.CreateAllowAllCheck(),
+		}),
+		basculehttp.WithRules("Bearer", bearerRules),
+		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
+	)
+
+	return alice.New(SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)), nil
 }
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
@@ -150,6 +185,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
 	}
+	logging.Error(logger).Log(logging.MessageKey(), "creating primary handler")
 
 	endpoints, err := createEndpoints(logger, cfg, registry, e)
 	if err != nil {

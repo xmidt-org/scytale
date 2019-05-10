@@ -22,9 +22,9 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/Comcast/webpa-common/basculechecks"
 	"github.com/Comcast/webpa-common/concurrent"
 	"github.com/Comcast/webpa-common/logging"
-	"github.com/Comcast/webpa-common/secure"
 	"github.com/Comcast/webpa-common/server"
 	"github.com/Comcast/webpa-common/service"
 	"github.com/Comcast/webpa-common/service/servicecfg"
@@ -54,7 +54,7 @@ func scytale(arguments []string) int {
 		f = pflag.NewFlagSet(applicationName, pflag.ContinueOnError)
 		v = viper.New()
 
-		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, secure.Metrics)
+		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, basculechecks.Metrics)
 	)
 
 	if err != nil {

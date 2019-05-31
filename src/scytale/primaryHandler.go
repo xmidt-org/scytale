@@ -27,6 +27,7 @@ import (
 	"github.com/Comcast/comcast-bascule/bascule"
 	"github.com/Comcast/comcast-bascule/bascule/basculehttp"
 	"github.com/Comcast/webpa-common/basculechecks"
+	"github.com/Comcast/webpa-common/client"
 	"github.com/Comcast/webpa-common/logging"
 	"github.com/Comcast/webpa-common/logging/logginghttp"
 	"github.com/Comcast/webpa-common/service"
@@ -39,7 +40,6 @@ import (
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
@@ -180,7 +180,7 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 	return nil, errors.New("Unable to create endpoints")
 }
 
-func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment) (http.Handler, error) {
+func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, webPAClient *client.WebPAClient) (http.Handler, error) {
 	var cfg fanout.Configuration
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
@@ -223,20 +223,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 			),
 		)
 
-		transactor = fanout.NewTransactor(cfg)
-		options    = []fanout.Option{
-			fanout.WithTransactor(transactor),
+		options = []fanout.Option{
+			fanout.WithWebPAClient(webPAClient),
 		}
-	)
 
-	if len(cfg.Authorization) > 0 {
-		options = append(
-			options,
-			fanout.WithClientBefore(
-				gokithttp.SetRequestHeader("Authorization", "Basic "+cfg.Authorization),
-			),
-		)
-	}
+		options = append(options, WithAuthorizationConfiguration(cfg))
+	)
 
 	var (
 		router        = mux.NewRouter()

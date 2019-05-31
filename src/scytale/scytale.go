@@ -23,7 +23,9 @@ import (
 	"os/signal"
 
 	"github.com/Comcast/webpa-common/basculechecks"
+	"github.com/Comcast/webpa-common/client"
 	"github.com/Comcast/webpa-common/concurrent"
+
 	"github.com/Comcast/webpa-common/logging"
 	"github.com/Comcast/webpa-common/server"
 	"github.com/Comcast/webpa-common/service"
@@ -62,6 +64,13 @@ func scytale(arguments []string) int {
 		return 1
 	}
 
+	oc := client.ClientMetricOptions{InFlight: true, RequestDuration: true, RequestCounter: true, DroppedMessages: true, OutboundRetries: true}
+	webPAClient, err := client.Initialize(v, metricsRegistry, logger, oc, nil, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to initialize client: %s\n", err.Error())
+		return 1
+	}
+
 	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
 
 	var e service.Environment
@@ -74,7 +83,7 @@ func scytale(arguments []string) int {
 		}
 	}
 
-	primaryHandler, err := NewPrimaryHandler(logger, v, metricsRegistry, e)
+	primaryHandler, err := NewPrimaryHandler(logger, v, metricsRegistry, e, webPAClient)
 	if err != nil {
 		logger.Log(level.Key(), level.ErrorValue(), logging.ErrorKey(), err, logging.MessageKey(), "unable to create primary handler")
 		return 2

@@ -39,8 +39,9 @@ const (
 	//DefaultKeyID is used to build JWT validators
 	DefaultKeyID = "current"
 
-	applicationName = "scytale"
-	release         = "Developer"
+	applicationName    = "scytale"
+	release            = "Developer"
+	applicationVersion = "0.1.2"
 )
 
 // scytale is the driver function for Scytale.  It performs everything main() would do,

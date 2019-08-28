@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Comcast Cable Communications Management, LLC
+ * Copyright 2019 Comcast Cable Communications Management, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
  * limitations under the License.
  *
  */
+
 package main
 
 import (
-	"github.com/Comcast/comcast-bascule/bascule/key"
-	"github.com/Comcast/webpa-common/secure"
+	"github.com/xmidt-org/bascule/key"
+	"github.com/xmidt-org/webpa-common/secure"
 )
 
 //JWTValidator provides a convenient way to define jwt validator through config files

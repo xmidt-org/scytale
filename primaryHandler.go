@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Comcast Cable Communications Management, LLC
+ * Copyright 2019 Comcast Cable Communications Management, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+
 package main
 
 import (
@@ -24,19 +25,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Comcast/comcast-bascule/bascule"
-	"github.com/Comcast/comcast-bascule/bascule/basculehttp"
-	"github.com/Comcast/webpa-common/basculechecks"
-	"github.com/Comcast/webpa-common/logging"
-	"github.com/Comcast/webpa-common/logging/logginghttp"
-	"github.com/Comcast/webpa-common/service"
-	"github.com/Comcast/webpa-common/service/monitor"
-	"github.com/Comcast/webpa-common/wrp"
-	"github.com/Comcast/webpa-common/wrp/wrphttp"
-	"github.com/Comcast/webpa-common/xhttp"
-	"github.com/Comcast/webpa-common/xhttp/fanout"
-	"github.com/Comcast/webpa-common/xmetrics"
-	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	gokithttp "github.com/go-kit/kit/transport/http"
@@ -44,6 +32,18 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
+	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/webpa-common/basculechecks"
+	"github.com/xmidt-org/webpa-common/logging"
+	"github.com/xmidt-org/webpa-common/logging/logginghttp"
+	"github.com/xmidt-org/webpa-common/service"
+	"github.com/xmidt-org/webpa-common/service/monitor"
+	"github.com/xmidt-org/webpa-common/xhttp"
+	"github.com/xmidt-org/webpa-common/xhttp/fanout"
+	"github.com/xmidt-org/webpa-common/xmetrics"
+	"github.com/xmidt-org/wrp-go/wrp"
+	"github.com/xmidt-org/wrp-go/wrp/wrphttp"
 )
 
 const (
@@ -119,16 +119,16 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		}
 
 		options = append(options, basculehttp.WithTokenFactory("Bearer", basculehttp.BearerTokenFactory{
-			DefaultKeyId:  DefaultKeyID,
-			Resolver:      resolver,
-			Parser:        bascule.DefaultJWSParser,
-			JWTValidators: []*jwt.Validator{jwtVal.Custom.New()},
+			DefaultKeyId: DefaultKeyID,
+			Resolver:     resolver,
+			Parser:       bascule.DefaultJWTParser,
+			// JWTValidators: []*jwt.Validator{jwtVal.Custom.New()},
 		}))
 	}
 
 	authConstructor := basculehttp.NewConstructor(options...)
 
-	bearerRules := []bascule.Validator{
+	bearerRules := bascule.Validators{
 		bascule.CreateNonEmptyPrincipalCheck(),
 		bascule.CreateNonEmptyTypeCheck(),
 		bascule.CreateValidTypeCheck([]string{"jwt"}),
@@ -143,7 +143,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 
 	authEnforcer := basculehttp.NewEnforcer(
 		basculehttp.WithELogger(GetLogger),
-		basculehttp.WithRules("Basic", []bascule.Validator{
+		basculehttp.WithRules("Basic", bascule.Validators{
 			bascule.CreateAllowAllCheck(),
 		}),
 		basculehttp.WithRules("Bearer", bearerRules),

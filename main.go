@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Comcast Cable Communications Management, LLC
+ * Copyright 2019 Comcast Cable Communications Management, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+
 package main
 
 import (
@@ -22,17 +23,17 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/Comcast/webpa-common/basculechecks"
-	"github.com/Comcast/webpa-common/concurrent"
-	"github.com/Comcast/webpa-common/logging"
-	"github.com/Comcast/webpa-common/server"
-	"github.com/Comcast/webpa-common/service"
-	"github.com/Comcast/webpa-common/service/servicecfg"
-	"github.com/Comcast/webpa-common/webhook"
-	"github.com/Comcast/webpa-common/webhook/aws"
 	"github.com/go-kit/kit/log/level"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/xmidt-org/webpa-common/basculechecks"
+	"github.com/xmidt-org/webpa-common/concurrent"
+	"github.com/xmidt-org/webpa-common/logging"
+	"github.com/xmidt-org/webpa-common/server"
+	"github.com/xmidt-org/webpa-common/service"
+	"github.com/xmidt-org/webpa-common/service/servicecfg"
+	"github.com/xmidt-org/webpa-common/webhook"
+	"github.com/xmidt-org/webpa-common/webhook/aws"
 )
 
 const (

@@ -48,4 +48,4 @@ _testmain.go
 *.prof
 
 scytale
-
+.ignore

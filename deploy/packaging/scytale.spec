@@ -3,8 +3,8 @@
 
 
 Name:       scytale
-Version:    %{_ver}
-Release:    %{_releaseno}%{?dist}
+Version:    %{_version}
+Release:    %{_release}%{?dist}
 Summary:    The Xmidt API interface server.
 
 
@@ -18,11 +18,11 @@ Source0:    %{name}-%{_version}.tar.gz
 Prefix:     /opt
 BuildRoot:  %{_tmppath}/%{name}
 BuildRequires: systemd
-BuildRequires: golang >= 1.11
+BuildRequires: golang >= 1.12
 
 %description
-The shield to protect our users from incoming events for the codex project.
-aka. The receiver of data from XMiDT Caduceus
+The Xmidt API interface server.
+
 
 %build
 GO111MODULE=on go build -o $RPM_SOURCE_DIR/%{name} %{_topdir}/..

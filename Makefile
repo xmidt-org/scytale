@@ -2,8 +2,9 @@ DEFAULT: build
 
 GO           ?= go
 GOFMT        ?= $(GO)fmt
+APP          := scytale
 FIRST_GOPATH := $(firstword $(subst :, ,$(shell $(GO) env GOPATH)))
-scytale    := $(FIRST_GOPATH)/bin/scytale
+BINARY    := $(FIRST_GOPATH)/bin/$(APP)
 
 PROGVER = $(shell grep 'applicationVersion.*= ' main.go | awk '{print $$3}' | sed -e 's/\"//g')
 
@@ -13,20 +14,20 @@ go-mod-vendor:
 
 .PHONY: build
 build: go-mod-vendor
-	$(GO) build -o scytale
+	$(GO) build -o $(APP)
 
 rpm:
 	mkdir -p ./OPATH/SOURCES
-	tar -czvf ./OPATH/SOURCES/scytale-$(PROGVER).tar.gz . --exclude ./.git --exclude ./OPATH --exclude ./conf --exclude ./deploy --exclude ./vendor
-	cp conf/scytale.service ./OPATH/SOURCES/
-	cp conf/scytale.yaml  ./OPATH/SOURCES/
+	tar -czvf ./OPATH/SOURCES/$(APP)-$(PROGVER).tar.gz . --exclude ./.git --exclude ./OPATH --exclude ./conf --exclude ./deploy --exclude ./vendor
+	cp conf/$(APP).service ./OPATH/SOURCES/
+	cp $(APP).yaml  ./OPATH/SOURCES/
 	cp LICENSE ./OPATH/SOURCES/
 	cp NOTICE ./OPATH/SOURCES/
 	cp CHANGELOG.md ./OPATH/SOURCES/
 	rpmbuild --define "_topdir $(CURDIR)/OPATH" \
     		--define "_version $(PROGVER)" \
     		--define "_release 1" \
-    		-ba deploy/packaging/scytale.spec
+    		-ba deploy/packaging/$(APP).spec
 
 .PHONY: version
 version:
@@ -48,22 +49,22 @@ update-version:
 
 .PHONY: install
 install: go-mod-vendor
-	echo $(GO) build -o $(scytale) $(PROGVER)
+	echo $(GO) build -o $(BINARY) $(PROGVER)
 
 .PHONY: release-artifacts
 release-artifacts: go-mod-vendor
-	GOOS=darwin GOARCH=amd64 $(GO) build -o ./OPATH/scytale-$(PROGVER).darwin-amd64
-	GOOS=linux  GOARCH=amd64 $(GO) build -o ./OPATH/scytale-$(PROGVER).linux-amd64
+	GOOS=darwin GOARCH=amd64 $(GO) build -o ./OPATH/$(APP)-$(PROGVER).darwin-amd64
+	GOOS=linux  GOARCH=amd64 $(GO) build -o ./OPATH/$(APP)-$(PROGVER).linux-amd64
 
 .PHONY: docker
 docker:
-	docker build -f ./deploy/Dockerfile -t scytale:$(PROGVER) .
+	docker build -f ./deploy/Dockerfile -t $(APP):$(PROGVER) .
 
 # build docker without running modules
 .PHONY: local-docker
 local-docker:
-	GOOS=linux  GOARCH=amd64 $(GO) build -o scytale_linux_amd64
-	docker build -f ./deploy/Dockerfile.local -t scytale:local .
+	GOOS=linux  GOARCH=amd64 $(GO) build -o $(APP)_linux_amd64
+	docker build -f ./deploy/Dockerfile.local -t $(APP):local .
 
 .PHONY: style
 style:
@@ -87,4 +88,4 @@ it:
 
 .PHONY: clean
 clean:
-	rm -rf ./scytale ./OPATH ./coverage.txt ./vendor
+	rm -rf ./$(APP) ./OPATH ./coverage.txt ./vendor

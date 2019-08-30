@@ -1,1 +1,2 @@
 - converting glide to go mod
+- bumped bascule version and removed any dependencies on webpa-common secure package

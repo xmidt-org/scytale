@@ -122,7 +122,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 			DefaultKeyId: DefaultKeyID,
 			Resolver:     resolver,
 			Parser:       bascule.DefaultJWTParser,
-			// JWTValidators: []*jwt.Validator{jwtVal.Custom.New()},
+			Leeway:       jwtVal.Leeway,
 		}))
 	}
 

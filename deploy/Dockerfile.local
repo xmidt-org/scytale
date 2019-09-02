@@ -19,4 +19,5 @@ EXPOSE 8080
 
 COPY --from=builder /go/src/github.com/xmidt-org/scytale/scytale_linux_amd64 /
 COPY scytale.yaml /
+COPY deploy/Dockerfile NOTICE LICENSE CHANGELOG.md /
 ENTRYPOINT ["/scytale_linux_amd64"]

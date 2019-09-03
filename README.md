@@ -1,5 +1,5 @@
 # scytale
-(pronounced "pet-uh-sos")
+(pronounced "scyt-a-​le")
 
 [![Build Status](https://travis-ci.com/xmidt-org/scytale.svg?branch=master)](https://travis-ci.com/xmidt-org/scytale)
 [![codecov.io](http://codecov.io/github/xmidt-org/scytale/coverage.svg?branch=master)](http://codecov.io/github/xmidt-org/scytale?branch=master)

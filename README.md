@@ -1,5 +1,5 @@
 # scytale
-(pronounced "scyt-a-​le")
+(pronounced "skit-uh-​lee")
 
 [![Build Status](https://travis-ci.com/xmidt-org/scytale.svg?branch=master)](https://travis-ci.com/xmidt-org/scytale)
 [![codecov.io](http://codecov.io/github/xmidt-org/scytale/coverage.svg?branch=master)](http://codecov.io/github/xmidt-org/scytale?branch=master)
@@ -11,7 +11,7 @@
 
 ## Summary
 Scytale is the API server of [XMiDT](https://xmidt.io/). Scytale will fanout the
-API request to [petasos](https://github.com/xmidt-org/petasos) to talk with talaria.
+API request to all the [petasoses](https://github.com/xmidt-org/petasos) that scytale knows of.
 
 ## Details
 Scytale has two API endpoints to interact with the devices: 1) get the statictics

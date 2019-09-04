@@ -10,11 +10,11 @@
 [![GitHub release](https://img.shields.io/github/release/xmidt-org/scytale.svg)](CHANGELOG.md)
 
 ## Summary
-scytale is the API server of [XMiDT](https://xmidt.io/). Scytale will fanout the
+Scytale is the API server of [XMiDT](https://xmidt.io/). Scytale will fanout the
 API request to [petasos](https://github.com/xmidt-org/petasos) to talk with talaria.
 
 ## Details
-Talaria has two API endpoints to interact with the devices: 1) get the statictics
+Scytale has two API endpoints to interact with the devices: 1) get the statictics
 a device and 2) send a  [WRP Messages](https://github.com/xmidt-org/wrp-c/wiki/Web-Routing-Protocol)
 to the device.
 

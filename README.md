@@ -14,14 +14,14 @@ Scytale is the API server of [XMiDT](https://xmidt.io/). Scytale will fanout the
 API request to all the [petasoses](https://github.com/xmidt-org/petasos) that scytale knows of.
 
 ## Details
-Scytale has two API endpoints to interact with the devices: 1) get the statictics
-a device and 2) send a  [WRP Messages](https://github.com/xmidt-org/wrp-c/wiki/Web-Routing-Protocol)
-to the device.
+Scytale has two API endpoints to interact with the devices: 1) get the statistics for
+a device and 2) send a [WRP Message](https://github.com/xmidt-org/wrp-c/wiki/Web-Routing-Protocol)
+to the device.  If the device isn't connected, a 404 is returned.
 
 #### Device Statistics - `/device/{deviceID}/stat` endpoint
 This will return the statistics of the connected device,
 including information such as uptime and bytes sent.
-This information is retrieved from the talaria that the device is connected too.
+This information is retrieved from the talaria that the device is connected to.
 
 #### Send WRP to Device - `/device/send` endpoint
 This will send a WRP message to the device.

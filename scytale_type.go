@@ -18,7 +18,7 @@
 package main
 
 import (
-	"github.com/xmidt-org/bascule/key"
+	"github.com/xmidt-org/bascule/bascule/key"
 	"github.com/xmidt-org/webpa-common/secure"
 )
 

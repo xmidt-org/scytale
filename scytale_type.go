@@ -18,8 +18,8 @@
 package main
 
 import (
-	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/bascule/key"
+	"github.com/xmidt-org/bascule/bascule/key"
+	"github.com/xmidt-org/webpa-common/secure"
 )
 
 //JWTValidator provides a convenient way to define jwt validator through config files
@@ -27,7 +27,7 @@ type JWTValidator struct {
 	// JWTKeys is used to create the key.Resolver for JWT verification keys
 	Keys key.ResolverFactory
 
-	// Leeway is used to set the amount of time buffer should be given to JWT
-	// time values, such as nbf
-	Leeway bascule.Leeway
+	// Custom is an optional configuration section that defines
+	// custom rules for validation over and above the standard RFC rules.
+	Custom secure.JWTValidatorFactory `json:"custom"`
 }

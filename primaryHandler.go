@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	gokithttp "github.com/go-kit/kit/transport/http"
@@ -32,8 +33,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
-	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/bascule/bascule"
+	"github.com/xmidt-org/bascule/bascule/basculehttp"
 	"github.com/xmidt-org/webpa-common/basculechecks"
 	"github.com/xmidt-org/webpa-common/logging"
 	"github.com/xmidt-org/webpa-common/logging/logginghttp"
@@ -119,10 +120,10 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		}
 
 		options = append(options, basculehttp.WithTokenFactory("Bearer", basculehttp.BearerTokenFactory{
-			DefaultKeyId: DefaultKeyID,
-			Resolver:     resolver,
-			Parser:       bascule.DefaultJWTParser,
-			Leeway:       jwtVal.Leeway,
+			DefaultKeyId:  DefaultKeyID,
+			Resolver:      resolver,
+			Parser:        bascule.DefaultJWSParser,
+			JWTValidators: []*jwt.Validator{jwtVal.Custom.New()},
 		}))
 	}
 

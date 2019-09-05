@@ -161,14 +161,15 @@ log:
 #   Fanout Related Configuration
 ########################################
 
-# fanout describes the configuration used for faning out the http requests too.
+# fanout describes the endpoints to fanout to and the http configuration to use for each fanout connection.
 # defined https://godoc.org/github.com/xmidt-org/webpa-common/xhttp/fanout#Configuration
 fanout:
   # endpoints are the URLs for each endpoint to fan out to.
+  # if this is set, it overrides the service.fixed values.
   # (Optional) if empty, endpoints are driven by service discovery
   endpoints: ["https://petasos:6400/api/v2/device/send"]
 
-  # Authorization is the Basic Auth token.  There is no default for this field.
+  # Authorization is the Basic Auth token to use for each request.
   # (Optional) defaults to no auth token
   # WARNING: This is an example auth token. DO NOT use this in production.
   authorization: YXV0aEhlYWRlcg==
@@ -199,11 +200,11 @@ fanout:
   # (Optional) defaults to 1000
   concurrency: 10
 
-  # maxRedirects defines the maximum number of redirects each fanout will allow
+  # maxRedirects defines the maximum number of redirects each fanout will allow.
   # (Optional) default to unlimited
   maxRedirects: 3
 
-  # redirectExcludeHeaders are the headers that will *not* be copied on a redirect
+  # redirectExcludeHeaders are the headers that will *not* be copied on a redirect.
   # (Optional) defaults to copying all headers over.
   redirectExcludeHeaders:
     - X-Xmidt-Log-Level

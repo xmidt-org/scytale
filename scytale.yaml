@@ -185,6 +185,8 @@ fanout:
     idleConnTimeout: "120s"
 
   # fanoutTimeout is the timeout for the entire fanout operation.
+  # fanoutTimeout should be the same or greater than the clientTimeout.
+  # fanoutTimeout includes multiple http requests.
   # (Optional) defaults to 45s
   fanoutTimeout: "127s"
 
@@ -193,6 +195,7 @@ fanout:
   clientTimeout: "127s"
 
   # concurrency is the maximum number of concurrent fanouts allowed.
+  # concurrency is managed by a semaphore described https://godoc.org/github.com/xmidt-org/webpa-common/xhttp#Busy.
   # (Optional) defaults to 1000
   concurrency: 10
 

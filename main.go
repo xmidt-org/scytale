@@ -42,7 +42,7 @@ const (
 
 	applicationName    = "scytale"
 	release            = "Developer"
-	applicationVersion = "0.1.4"
+	applicationVersion = "0.1.5"
 )
 
 // scytale is the driver function for Scytale.  It performs everything main() would do,

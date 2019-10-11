@@ -209,6 +209,49 @@ fanout:
   redirectExcludeHeaders:
     - X-Xmidt-Log-Level
 
+
+########################################
+#   Authorization Related Configuration
+########################################
+
+# Any combination of these configurations may be used for authorization.
+# If ANY match, the request goes onwards.  If none are provided, no requests
+# will be accepted.
+
+# authHeader provides the list of basic auth headers that scytale will accept
+# as authorization. Note: This is an example authHeader. Do not use this in production.
+# (Optional)
+authHeader: ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=","dXNlcjpwYXNzCg=="]
+
+# jwtValidator provides the details about where to get the keys for JWT
+# kid values and their associated information (expiration, etc) for JWTs
+# used as authorization
+# (Optional)
+jwtValidator:
+  keys:
+    factory:
+      uri: "https://jwt.example.com/keys/{keyId}"
+    purpose: 0
+    updateInterval: 604800000000000
+
+# capabilityConfig provides the details needed for checking an incoming JWT's
+# capabilities.  If this isn't provided, no checking is done.  The capability
+# is expected to have the format:
+#
+# {firstPiece}:{secondPiece}:{thirdPiece}:{endpoint}:{method}
+#
+# The first three pieces have a single expectation given in this configuration.
+# The endpoint is a regular expression that should match the endpoint the
+# request was sent to. The method is usually the method of the request, such as
+# GET.  The accept all method is a catchall string that indicates the capability
+# is approved for all methods.
+# (Optional)
+capabilityConfig:
+  firstPiece: "p1"
+  secondPiece: "p2"
+  thirdPiece: "p3"
+  acceptAllMethod: "all"
+
 ########################################
 #   Service Discovery Configuration
 ########################################

@@ -56,6 +56,7 @@ primary:
   # (Optional)
   # certificateFile: "/etc/scytale/public.pem"
   # keyFile: "/etc/scytale/private.pem"
+
 ########################################
 #   health endpoint Configuration
 ########################################
@@ -246,11 +247,11 @@ jwtValidator:
 # GET.  The accept all method is a catchall string that indicates the capability
 # is approved for all methods.
 # (Optional)
-capabilityConfig:
-  firstPiece: "p1"
-  secondPiece: "p2"
-  thirdPiece: "p3"
-  acceptAllMethod: "all"
+# capabilityConfig:
+#   firstPiece: "p1"
+#   secondPiece: "p2"
+#   thirdPiece: "p3"
+#   acceptAllMethod: "all"
 
 ########################################
 #   Service Discovery Configuration

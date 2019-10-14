@@ -13,6 +13,19 @@
 Scytale is the API server of [XMiDT](https://xmidt.io/). Scytale will fanout the
 API request to all the [petasoses](https://github.com/xmidt-org/petasos) that scytale knows of.
 
+## Table of Contents
+
+- [Code of Conduct](#code-of-conduct)
+- [Details](#details)
+- [Build](#build)
+- [Deploy](#deploy)
+- [Contributing](#contributing)
+
+## Code of Conduct
+
+This project and everyone participating in it are governed by the [XMiDT Code Of Conduct](https://xmidt.io/code_of_conduct/). 
+By participating, you agree to this Code.
+
 ## Details
 Scytale has two API endpoints to interact with the devices: 1) get the statistics for
 a device and 2) send a [WRP Message](https://github.com/xmidt-org/wrp-c/wiki/Web-Routing-Protocol)

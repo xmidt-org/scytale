@@ -168,7 +168,7 @@ fanout:
   # endpoints are the URLs for each endpoint to fan out to.
   # if this is set, it overrides the service.fixed values.
   # (Optional) if empty, endpoints are driven by service discovery
-  endpoints: ["https://petasos:6400/api/v2/device/send"]
+  endpoints: ["http://localhost:6400/api/v2/device/send"]
 
   # Authorization is the Basic Auth token to use for each request.
   # (Optional) defaults to no auth token
@@ -279,7 +279,7 @@ service:
   # fixed is the list of servers in the datacenter.
   # (Optional) default to empty list
   fixed:
-    - http://petasos:6400
+    - http://localhost:6400
   # # consul configures consul for service discovery.
   # # defined https://godoc.org/github.com/xmidt-org/webpa-common/service/consul#Options
   # # (Optional) defaults define https://sourcegraph.com/github.com/hashicorp/consul/-/blob/api/api.go#L347

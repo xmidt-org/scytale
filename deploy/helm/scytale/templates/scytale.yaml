@@ -311,9 +311,6 @@ spec:
     - name: pprof
       port: {{ .Values.pprof.address.port }}
       protocol: TCP
-    - name: control
-      port: {{ .Values.control.address.port }}
-      protocol: TCP
     - name: metric
       port: {{ .Values.metric.address.port }}
       protocol: TCP
@@ -372,8 +369,6 @@ spec:
             - containerPort: {{ .Values.health.address.port }}
               protocol: TCP
             - containerPort: {{ .Values.pprof.address.port }}
-              protocol: TCP
-            - containerPort: {{ .Values.control.address.port }}
               protocol: TCP
             - containerPort: {{ .Values.metric.address.port }}
               protocol: TCP

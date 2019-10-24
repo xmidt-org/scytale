@@ -18,15 +18,10 @@ pprof:
     host: ""
     port: "6302"
 
-control:
-  address:
-    host: ""
-    port: "6303"
-
 metric:
   address:
     host: ""
-    port: "6304"  
+    port: "6303"  
 
 # Pull secret used when images are stored in a private repository
 # imagePullSecretName:

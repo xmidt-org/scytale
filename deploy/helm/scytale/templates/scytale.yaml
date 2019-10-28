@@ -226,7 +226,7 @@ data:
     # authHeader provides the list of basic auth headers that scytale will accept
     # as authorization. Note: This is an example authHeader. Do not use this in production.
     # (Optional)
-    authHeader: ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=","dXNlcjpwYXNzCg=="]
+    authHeader: ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=","dXNlcjpwYXNz"]
 
     # jwtValidator provides the details about where to get the keys for JWT
     # kid values and their associated information (expiration, etc) for JWTs
@@ -283,7 +283,7 @@ data:
       # fixed is the list of servers in the datacenter.
       # (Optional) default to empty list
       fixed:
-        - http://localhost:6400
+        - http://petasos:6400
 kind: ConfigMap
 metadata:
   labels:

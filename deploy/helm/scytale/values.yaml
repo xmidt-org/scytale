@@ -1,0 +1,29 @@
+# Default values for scytale.
+scytale:
+  # docker image used
+  image: xmidt/scytale
+  address:
+    host: ""
+    port: "6300"
+  fanout:
+    endpoints: ["http://localhost:6400/api/v2/device/send"]
+
+health:
+  address:
+    host: ""
+    port: "6301"
+
+pprof:
+  address:
+    host: ""
+    port: "6302"
+
+metric:
+  address:
+    host: ""
+    port: "6303"  
+
+# Pull secret used when images are stored in a private repository
+# imagePullSecretName:
+
+

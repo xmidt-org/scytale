@@ -49,3 +49,6 @@ _testmain.go
 
 scytale
 .ignore
+
+!deploy/helm/scytale
+deploy/helm/scytale/rendered.*

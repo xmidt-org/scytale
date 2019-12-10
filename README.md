@@ -67,13 +67,21 @@ make build
 
 The Makefile has the following options you may find helpful:
 * `make build`: builds the scytale binary
-* `make rpm`: builds an rpm containing scytale
 * `make docker`: builds a docker image for scytale, making sure to get all
    dependencies
 * `make local-docker`: builds a docker image for scytale with the assumption
    that the dependencies can be found already
 * `make test`: runs unit tests with coverage for scytale
 * `make clean`: deletes previously-built binaries and object files
+
+### RPM
+
+First have a local clone of the source and go into the root directory of the 
+repository.  Then use rpkg to build the rpm:
+```bash
+rpkg srpm --spec <repo location>/<spec file location in repo>
+rpkg -C <repo location>/.config/rpkg.conf sources --outdir <repo location>'
+```
 
 ### Docker
 

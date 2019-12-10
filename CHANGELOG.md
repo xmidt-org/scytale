@@ -5,12 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- updated release pipeline to use travis [#73](https://github.com/xmidt-org/scytale/pull/73)
 
 ## [v0.1.5]
 - converting glide to go mod
 - bumped bascule version and removed any dependencies on webpa-common secure package
-
-
 
 ## [v0.1.4]
 Switching to new build process

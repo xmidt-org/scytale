@@ -235,22 +235,20 @@ jwtValidator:
     purpose: 0
     updateInterval: 604800000000000
 
-# capabilityConfig provides the details needed for checking an incoming JWT's
-# capabilities.  If this isn't provided, no checking is done.  The capability
+# capabilityCheck provides the details needed for checking an incoming JWT's
+# capabilities.  If this isn't provided, no checking is done.  The capability 
 # is expected to have the format:
 #
-# {firstPiece}:{secondPiece}:{thirdPiece}:{endpoint}:{method}
+# {prefix}{endpoint}:{method}
 #
-# The first three pieces have a single expectation given in this configuration.
-# The endpoint is a regular expression that should match the endpoint the
-# request was sent to. The method is usually the method of the request, such as
-# GET.  The accept all method is a catchall string that indicates the capability
+# The prefix can be a regular expression.  If it's empty, no capability check 
+# is done.  The endpoint is a regular expression that should match the endpoint
+# the request was sent to. The method is usually the method of the request, such as 
+# GET.  The accept all method is a catchall string that indicates the capability 
 # is approved for all methods.
 # (Optional)
-# capabilityConfig:
-#   firstPiece: "p1"
-#   secondPiece: "p2"
-#   thirdPiece: "p3"
+# capabilityCheck:
+#   prefix: "prefix Here"
 #   acceptAllMethod: "all"
 
 ########################################

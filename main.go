@@ -52,6 +52,11 @@ var (
 	BuildTime = "undefined"
 )
 
+type CapabilityConfig struct {
+	Prefix          string
+	AcceptAllMethod string
+}
+
 // scytale is the driver function for Scytale.  It performs everything main() would do,
 // except for obtaining the command-line arguments (which are passed to it).
 func scytale(arguments []string) int {

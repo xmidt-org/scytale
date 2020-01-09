@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 - updated release pipeline to use travis [#73](https://github.com/xmidt-org/scytale/pull/73)
+- bumped bascule, webpa-common, and wrp-go for updated capability configuration [#75](https://github.com/xmidt-org/scytale/pull/75)
 
 ## [v0.1.5]
 - converting glide to go mod

@@ -135,10 +135,14 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	}
 
 	// only add capability check if the configuration is set
-	var capabilityConfig basculechecks.CapabilityConfig
-	v.UnmarshalKey("capabilityConfig", &capabilityConfig)
-	if capabilityConfig.FirstPiece != "" && capabilityConfig.SecondPiece != "" && capabilityConfig.ThirdPiece != "" {
-		bearerRules = append(bearerRules, bascule.CreateListAttributeCheck("capabilities", basculechecks.CreateValidCapabilityCheck(capabilityConfig)))
+	var capabilityCheck CapabilityConfig
+	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
+	if capabilityCheck.Prefix != "" {
+		check, err := basculechecks.CreateValidCapabilityCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+		if err != nil {
+			return alice.Chain{}, emperror.With(err, "failed to create capability check")
+		}
+		bearerRules = append(bearerRules, bascule.CreateListAttributeCheck("capabilities", check))
 	}
 
 	authEnforcer := basculehttp.NewEnforcer(

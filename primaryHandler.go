@@ -142,7 +142,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		if err != nil {
 			return alice.Chain{}, emperror.With(err, "failed to create capability check")
 		}
-		bearerRules = append(bearerRules, bascule.CreateListAttributeCheck("capabilities", check.EnforceCapabilities))
+		bearerRules = append(bearerRules, bascule.CreateListAttributeCheck(basculechecks.DefaultKey, check.EnforceCapabilities))
 	}
 
 	authEnforcer := basculehttp.NewEnforcer(

@@ -53,6 +53,7 @@ var (
 )
 
 type CapabilityConfig struct {
+	Type            string
 	Prefix          string
 	AcceptAllMethod string
 }

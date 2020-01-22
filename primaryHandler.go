@@ -78,6 +78,14 @@ func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logge
 	}
 }
 
+type a struct {
+	logger log.Logger
+}
+
+func (a *a) OnAuthenticated(bascule.Authentication) {
+
+}
+
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	var (
 		m *basculechecks.JWTValidationMeasures
@@ -137,12 +145,12 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	// only add capability check if the configuration is set
 	var capabilityCheck CapabilityConfig
 	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
-	if capabilityCheck.Prefix != "" {
-		check, err := basculechecks.CreateValidCapabilityCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+	if capabilityCheck.Type == "enforce" {
+		check, err := basculechecks.NewCapabilityChecker(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
 		if err != nil {
 			return alice.Chain{}, emperror.With(err, "failed to create capability check")
 		}
-		bearerRules = append(bearerRules, bascule.CreateListAttributeCheck("capabilities", check))
+		bearerRules = append(bearerRules, bascule.CreateListAttributeCheck("capabilities", check.EnforceCapabilities))
 	}
 
 	authEnforcer := basculehttp.NewEnforcer(
@@ -154,7 +162,19 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	return alice.New(SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)), nil
+	constructors := []alice.Constructor{SetLogger(logger), authConstructor, authEnforcer}
+
+	if capabilityCheck.Type == "monitor" {
+		check, err := basculechecks.NewCapabilityLogger(logger, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+		if err != nil {
+			return alice.Chain{}, emperror.With(err, "failed to create capability check listener")
+		}
+		constructors = append(constructors, basculehttp.NewListenerDecorator(listener, check))
+	} else {
+		constructors = append(constructors, basculehttp.NewListenerDecorator(listener))
+	}
+
+	return alice.New(constructors...), nil
 }
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured

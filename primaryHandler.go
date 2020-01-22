@@ -82,13 +82,14 @@ func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logge
 			var claims claims
 
 			err := mapstructure.Decode(auth.Token.Attributes(), &claims)
+			warnLogger := logging.Warn(logger)
 			if err != nil {
-				logging.Warn(logger, logging.MessageKey(), "error decoding JWT claims for fanout WRP message", logging.ErrorKey(), err, "clientID", token.Principal())
+				warnLogger.Log(logging.MessageKey(), "error decoding JWT claims for fanout WRP message", logging.ErrorKey(), err, "clientID", token.Principal())
 				return
 			}
 
 			if len(claims.AllowedResources.AllowedPartners) < 1 {
-				logging.Warn(logger, logging.MessageKey(), "empty JWT partnerID claims for fanout WRP message", "clientID", token.Principal())
+				warnLogger.Log(logging.MessageKey(), "empty JWT partnerID claims for fanout WRP message", "clientID", token.Principal())
 			}
 
 			message.PartnerIDs = claims.AllowedResources.AllowedPartners

@@ -23,20 +23,6 @@ func TestPopulateMessagePartners(t *testing.T) {
 				}},
 			expectedPartnerIDs: []string{"partner0", "partner1"},
 		},
-
-		{
-			name:               "no partnerIDs",
-			attributes:         nil,
-			expectedPartnerIDs: nil,
-		},
-		{
-			name: "malformed partnerIDs field",
-			attributes: map[string]interface{}{
-				"allowedResources": map[string]interface{}{
-					"allowedPartners": "partner0",
-				}},
-			expectedPartnerIDs: nil,
-		},
 	}
 
 	for _, test := range tests {

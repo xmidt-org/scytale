@@ -52,14 +52,6 @@ const (
 	version = "v2"
 )
 
-type allowedResources struct {
-	AllowedPartners []string
-}
-
-type claims struct {
-	AllowedResources allowedResources
-}
-
 func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(
@@ -80,18 +72,7 @@ func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logge
 	if auth, ok := bascule.FromContext(ctx); ok {
 		if token := auth.Token; token != nil {
 			var claims claims
-
-			err := mapstructure.Decode(token.Attributes(), &claims)
-			warnLogger := logging.Warn(logger)
-			if err != nil {
-				warnLogger.Log(logging.MessageKey(), "error decoding JWT claims for fanout WRP message", logging.ErrorKey(), err, "clientID", token.Principal())
-				return
-			}
-
-			if len(claims.AllowedResources.AllowedPartners) < 1 {
-				warnLogger.Log(logging.MessageKey(), "empty JWT partnerID claims for fanout WRP message", "clientID", token.Principal())
-			}
-
+			mapstructure.Decode(token.Attributes(), &claims)
 			message.PartnerIDs = claims.AllowedResources.AllowedPartners
 		}
 	}
@@ -150,6 +131,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		bascule.CreateNonEmptyPrincipalCheck(),
 		bascule.CreateNonEmptyTypeCheck(),
 		bascule.CreateValidTypeCheck([]string{"jwt"}),
+		requirePartnerIDs,
 	}
 
 	// only add capability check if the configuration is set

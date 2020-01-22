@@ -81,7 +81,7 @@ func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logge
 		if token := auth.Token; token != nil {
 			var claims claims
 
-			err := mapstructure.Decode(auth.Token.Attributes(), &claims)
+			err := mapstructure.Decode(token.Attributes(), &claims)
 			warnLogger := logging.Warn(logger)
 			if err != nil {
 				warnLogger.Log(logging.MessageKey(), "error decoding JWT claims for fanout WRP message", logging.ErrorKey(), err, "clientID", token.Principal())

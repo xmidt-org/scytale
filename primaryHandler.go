@@ -58,7 +58,6 @@ type allowedResources struct {
 
 type claims struct {
 	AllowedResources allowedResources
-	Sub              string
 }
 
 func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
@@ -84,12 +83,12 @@ func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logge
 
 			err := mapstructure.Decode(auth.Token.Attributes(), &claims)
 			if err != nil {
-				logging.Warn(logger, logging.MessageKey(), "error decoding JWT claims for fanout WRP message", logging.ErrorKey(), err)
+				logging.Warn(logger, logging.MessageKey(), "error decoding JWT claims for fanout WRP message", logging.ErrorKey(), err, "clientID", token.Principal())
 				return
 			}
 
 			if len(claims.AllowedResources.AllowedPartners) < 1 {
-				logging.Warn(logger, logging.MessageKey(), "empty JWT partnerID claims for fanout WRP message", "sub", claims.Sub)
+				logging.Warn(logger, logging.MessageKey(), "empty JWT partnerID claims for fanout WRP message", "clientID", token.Principal())
 			}
 
 			message.PartnerIDs = claims.AllowedResources.AllowedPartners

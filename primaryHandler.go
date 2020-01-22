@@ -78,14 +78,6 @@ func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logge
 	}
 }
 
-type a struct {
-	logger log.Logger
-}
-
-func (a *a) OnAuthenticated(bascule.Authentication) {
-
-}
-
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	var (
 		m *basculechecks.JWTValidationMeasures

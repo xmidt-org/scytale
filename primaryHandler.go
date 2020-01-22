@@ -52,12 +52,12 @@ const (
 	version = "v2"
 )
 
-type AllowedResources struct {
+type allowedResources struct {
 	AllowedPartners []string
 }
 
-type Claims struct {
-	AllowedResources AllowedResources
+type claims struct {
+	AllowedResources allowedResources
 	Sub              string
 }
 
@@ -80,7 +80,7 @@ func GetLogger(ctx context.Context) bascule.Logger {
 func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logger) {
 	if auth, ok := bascule.FromContext(ctx); ok {
 		if token := auth.Token; token != nil {
-			var claims Claims
+			var claims claims
 
 			err := mapstructure.Decode(auth.Token.Attributes(), &claims)
 			if err != nil {
@@ -93,7 +93,6 @@ func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logge
 			}
 
 			message.PartnerIDs = claims.AllowedResources.AllowedPartners
-
 		}
 	}
 }

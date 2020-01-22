@@ -5,8 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v0.2.0]
 - updated release pipeline to use travis [#73](https://github.com/xmidt-org/scytale/pull/73)
 - bumped bascule, webpa-common, and wrp-go for updated capability configuration [#75](https://github.com/xmidt-org/scytale/pull/75)
+- fix feature for passing partnerIDs from JWT to fanout WRP messages. Enforce nonempty partnerIDs [#81](https://github.com/xmidt-org/scytale/pull/81)
 
 ## [v0.1.5]
 - converting glide to go mod
@@ -20,7 +23,8 @@ Switching to new build process
 - initial creation
 
 
-[Unreleased]: https://github.com/Comcast/scytale/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/Comcast/scytale/compare/v0.2.0...HEAD
+[v0.2.0]: https://github.com/Comcast/scytale/compare/v0.1.5...v0.2.0
 [v0.1.5]: https://github.com/Comcast/scytale/compare/v0.1.4...v0.1.5
 [v0.1.4]: https://github.com/Comcast/scytale/compare/v0.1.1...v0.1.4
 [v0.1.1]: https://github.com/Comcast/scytale/compare/v0.1.0...v0.1.1

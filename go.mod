@@ -10,11 +10,13 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/influxdata/influxdb v1.7.7 // indirect
 	github.com/justinas/alice v0.0.0-20171023064455-03f45bd4b7da
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/prometheus/client_golang v1.0.0 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20190810000440-0ceca61e4d75 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.4.0
+	github.com/stretchr/testify v1.3.0
 	github.com/xmidt-org/bascule v0.7.0
 	github.com/xmidt-org/webpa-common v1.5.1
 	github.com/xmidt-org/wrp-go v1.3.3

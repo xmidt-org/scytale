@@ -2,33 +2,17 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/xmidt-org/bascule"
 )
 
-type allowedResources struct {
-	AllowedPartners []string
-}
-
-type claims struct {
-	AllowedResources allowedResources
-}
+//PartnerIDClaimsKey is the key path to the partnerID key in the JWT claims
+const PartnerIDClaimsKey = "allowedResources.allowedPartners"
 
 var requirePartnerIDs bascule.ValidatorFunc = func(_ context.Context, token bascule.Token) error {
-	var claims claims
-
-	err := mapstructure.Decode(token.Attributes(), &claims)
-
-	if err != nil {
-		return fmt.Errorf("Unexpected JWT claim format for partnerIDs: %v", err)
+	if partnerIDs, ok := token.Attributes().GetStringSlice(PartnerIDClaimsKey); !ok || len(partnerIDs) < 1 {
+		return fmt.Errorf("value of JWT claim '%v' was not a non-empty list of strings", PartnerIDClaimsKey)
 	}
-
-	if len(claims.AllowedResources.AllowedPartners) < 1 {
-		return errors.New("JWT must provide claims for partnerIDs")
-	}
-
 	return nil
 }

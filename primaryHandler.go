@@ -27,11 +27,11 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/kit/metrics"
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
@@ -68,12 +68,21 @@ func GetLogger(ctx context.Context) bascule.Logger {
 	return logger
 }
 
-func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logger) {
+func ensureWRPMessageIntegrity(ctx context.Context, m *wrp.Message, violatorsCount metrics.Counter) {
 	if auth, ok := bascule.FromContext(ctx); ok {
-		if token := auth.Token; token != nil {
-			var claims claims
-			mapstructure.Decode(token.Attributes(), &claims)
-			message.PartnerIDs = claims.AllowedResources.AllowedPartners
+		var (
+			token       = auth.Token
+			satClientID = "none"
+			attributes  = token.Attributes()
+		)
+
+		if principal := token.Principal(); len(principal) > 0 {
+			satClientID = principal
+		}
+
+		if len(m.PartnerIDs) < 1 {
+			violatorsCount.With(ClientIDLabel, satClientID).Add(1)
+			m.PartnerIDs, _ = attributes.GetStringSlice(PartnerIDClaimsKey)
 		}
 	}
 }
@@ -201,6 +210,8 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		return nil, err
 	}
 
+	emptyWRPPartnerIDCounter := NewEmptyWRPPartnerIDsCounter(registry)
+
 	var (
 		handlerChain = authChain.Extend(
 			fanout.NewChain(
@@ -265,7 +276,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return ctx, err
 							}
 
-							populateMessage(ctx, message, logger)
+							ensureWRPMessageIntegrity(ctx, message, emptyWRPPartnerIDCounter)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
 								return ctx, err
@@ -308,7 +319,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return ctx, err
 							}
 
-							populateMessage(ctx, &message, logger)
+							ensureWRPMessageIntegrity(ctx, &message, emptyWRPPartnerIDCounter)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
 								return ctx, err
@@ -351,7 +362,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return ctx, err
 							}
 
-							populateMessage(ctx, &message, logger)
+							ensureWRPMessageIntegrity(ctx, &message, emptyWRPPartnerIDCounter)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
 								return ctx, err

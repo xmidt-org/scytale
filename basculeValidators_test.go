@@ -16,23 +16,23 @@ func TestRequirePartnerIDs(t *testing.T) {
 	}{
 		{
 			name: "partnerIDs",
-			attributes: map[string]interface{}{
+			attributes: bascule.NewAttributesFromMap(map[string]interface{}{
 				"allowedResources": map[string]interface{}{
 					"allowedPartners": []string{"partner0", "partner1"},
-				}},
+				}}),
 			shouldPass: true,
 		},
 
 		{
 			name:       "no partnerIDs",
-			attributes: nil,
+			attributes: bascule.NewAttributes(),
 		},
 		{
 			name: "malformed partnerIDs field",
-			attributes: map[string]interface{}{
+			attributes: bascule.NewAttributesFromMap(map[string]interface{}{
 				"allowedResources": map[string]interface{}{
-					"allowedPartners": "partner0",
-				}},
+					"allowedPartners": []bool{true},
+				}}),
 		},
 	}
 

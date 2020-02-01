@@ -2,25 +2,40 @@ package main
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/webpa-common/logging"
+	"github.com/xmidt-org/webpa-common/xmetrics"
 	"github.com/xmidt-org/wrp-go/wrp"
-	"testing"
 )
 
-func TestPopulateMessagePartners(t *testing.T) {
+func TestEnsureWRPMessageIntegrity(t *testing.T) {
 	var tests = []struct {
 		name               string
+		wrpMsg             *wrp.Message
 		attributes         bascule.Attributes
 		expectedPartnerIDs []string
 	}{
 		{
-			name: "partnerIDs",
-			attributes: map[string]interface{}{
+			name: "partnerIDsPresent",
+			wrpMsg: &wrp.Message{
+				PartnerIDs: []string{"partner0"},
+			},
+			attributes: bascule.NewAttributesFromMap(map[string]interface{}{
 				"allowedResources": map[string]interface{}{
 					"allowedPartners": []string{"partner0", "partner1"},
-				}},
+				}}),
+			expectedPartnerIDs: []string{"partner0"},
+		},
+
+		{
+			name:   "partnerIDsAbsent",
+			wrpMsg: new(wrp.Message),
+			attributes: bascule.NewAttributesFromMap(map[string]interface{}{
+				"allowedResources": map[string]interface{}{
+					"allowedPartners": []string{"partner0", "partner1"},
+				}}),
 			expectedPartnerIDs: []string{"partner0", "partner1"},
 		},
 	}
@@ -35,9 +50,10 @@ func TestPopulateMessagePartners(t *testing.T) {
 
 			ctx := bascule.WithAuthentication(context.Background(), auth)
 
-			wrpMsg := new(wrp.Message)
-			populateMessage(ctx, wrpMsg, logging.DefaultLogger())
-			assert.Equal(test.expectedPartnerIDs, wrpMsg.PartnerIDs)
+			r, err := xmetrics.NewRegistry(&xmetrics.Options{}, Metrics)
+			assert.Nil(err)
+			ensureWRPMessageIntegrity(ctx, test.wrpMsg, NewEmptyWRPPartnerIDsCounter(r))
+			assert.Equal(test.expectedPartnerIDs, test.wrpMsg.PartnerIDs)
 		})
 	}
 }

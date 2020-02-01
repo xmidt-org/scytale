@@ -19,7 +19,7 @@ func TestRequirePartnerIDs(t *testing.T) {
 			attrMap: map[string]interface{}{
 				"allowedResources": map[string]interface{}{
 					"allowedPartners": []string{"partner0", "partner1"},
-				}},
+				}}),
 			shouldPass: true,
 		},
 

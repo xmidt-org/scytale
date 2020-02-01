@@ -27,6 +27,7 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/kit/metrics"
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
@@ -69,7 +70,7 @@ func GetLogger(ctx context.Context) bascule.Logger {
 	return logger
 }
 
-func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logger) {
+func ensureWRPMessageIntegrity(ctx context.Context, m *wrp.Message, violatorsCount metrics.Counter) {
 	if auth, ok := bascule.FromContext(ctx); ok {
 		if token := auth.Token; token != nil {
 			partnerIDs, ok := token.Attributes().GetStringSlice(basculechecks.PartnerKey)
@@ -209,6 +210,8 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		return nil, err
 	}
 
+	emptyWRPPartnerIDCounter := NewEmptyWRPPartnerIDsCounter(registry)
+
 	var (
 		handlerChain = authChain.Extend(
 			fanout.NewChain(
@@ -273,7 +276,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return ctx, err
 							}
 
-							populateMessage(ctx, message, logger)
+							ensureWRPMessageIntegrity(ctx, message, emptyWRPPartnerIDCounter)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
 								return ctx, err
@@ -316,7 +319,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return ctx, err
 							}
 
-							populateMessage(ctx, &message, logger)
+							ensureWRPMessageIntegrity(ctx, &message, emptyWRPPartnerIDCounter)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
 								return ctx, err
@@ -359,7 +362,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return ctx, err
 							}
 
-							populateMessage(ctx, &message, logger)
+							ensureWRPMessageIntegrity(ctx, &message, emptyWRPPartnerIDCounter)
 							var buffer bytes.Buffer
 							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
 								return ctx, err

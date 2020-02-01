@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/xmidt-org/webpa-common/basculechecks"
@@ -19,6 +18,5 @@ var requirePartnerIDs bascule.ValidatorFunc = func(_ context.Context, token basc
 	if len(ids) < 1 {
 		return errors.New("JWT must provide claims for partnerIDs")
 	}
-
 	return nil
 }

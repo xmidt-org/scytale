@@ -6,11 +6,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/webpa-common/logging"
+	"github.com/xmidt-org/webpa-common/xmetrics"
 	"github.com/xmidt-org/wrp-go/wrp"
 )
 
-func TestPopulateMessagePartners(t *testing.T) {
+func TestEnsureWRPMessageIntegrity(t *testing.T) {
 	var tests = []struct {
 		name               string
 		attrMap            map[string]interface{}
@@ -21,7 +21,7 @@ func TestPopulateMessagePartners(t *testing.T) {
 			attrMap: map[string]interface{}{
 				"allowedResources": map[string]interface{}{
 					"allowedPartners": []string{"partner0", "partner1"},
-				}},
+				}}),
 			expectedPartnerIDs: []string{"partner0", "partner1"},
 		},
 	}
@@ -37,9 +37,10 @@ func TestPopulateMessagePartners(t *testing.T) {
 
 			ctx := bascule.WithAuthentication(context.Background(), auth)
 
-			wrpMsg := new(wrp.Message)
-			populateMessage(ctx, wrpMsg, logging.DefaultLogger())
-			assert.Equal(test.expectedPartnerIDs, wrpMsg.PartnerIDs)
+			r, err := xmetrics.NewRegistry(&xmetrics.Options{}, Metrics)
+			assert.Nil(err)
+			ensureWRPMessageIntegrity(ctx, test.wrpMsg, NewEmptyWRPPartnerIDsCounter(r))
+			assert.Equal(test.expectedPartnerIDs, test.wrpMsg.PartnerIDs)
 		})
 	}
 }

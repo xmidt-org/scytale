@@ -210,8 +210,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		return nil, err
 	}
 
-	emptyWRPPartnerIDCounter := NewEmptyWRPPartnerIDsCounter(registry)
-
 	var (
 		handlerChain = authChain.Extend(
 			fanout.NewChain(
@@ -262,117 +260,34 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		response.WriteHeader(http.StatusBadRequest)
 	})
 
-	sendSubrouter.Headers(wrphttp.MessageTypeHeader, "").Handler(
-		handlerChain.Then(
+	wrpDecorators := []alice.Constructor{WRPEntityDecorator}
+	//TODO: configure wrpDecorators with partnerID validator if applicable. Will need to break up authChain from above as well to ensure middleware ordering
+
+	sendSubrouter.Headers("Content-Type", wrp.Msgpack.ContentType(), "Content-Type", wrp.JSON.ContentType(), wrphttp.MessageTypeHeader, "").Handler(
+		handlerChain.Append(wrpDecorators...).Then(
 			fanout.New(
 				endpoints,
 				append(
 					options,
 					fanout.WithFanoutBefore(
 						fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
-						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-							message, err := wrphttp.NewMessageFromHeaders(original.Header, bytes.NewReader(body))
-							if err != nil {
-								return ctx, err
+						func(ctx context.Context, original, fanout *http.Request, _ []byte) (context.Context, error) {
+
+							entity, ok := FromContext(ctx)
+							if !ok {
+								return ctx, errors.New("WRP entity to fanount was not not found")
 							}
 
-							ensureWRPMessageIntegrity(ctx, message, emptyWRPPartnerIDCounter)
 							var buffer bytes.Buffer
-							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(message); err != nil {
+							if err := wrp.NewEncoder(&buffer, entity.Format).Encode(&entity.Message); err != nil {
 								return ctx, err
 							}
 
 							fanoutBody := buffer.Bytes()
 							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
 							fanout.ContentLength = int64(len(fanoutBody))
-							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
-							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							return ctx, nil
-						},
-					),
-					fanout.WithFanoutFailure(
-						fanout.ReturnHeadersWithPrefix("X-"),
-					),
-					fanout.WithFanoutAfter(
-						fanout.ReturnHeadersWithPrefix("X-"),
-					),
-				)...,
-			),
-		),
-	)
-
-	sendSubrouter.Headers("Content-Type", wrp.JSON.ContentType()).Handler(
-		handlerChain.Then(
-			fanout.New(
-				endpoints,
-				append(
-					options,
-					fanout.WithFanoutBefore(
-						fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
-						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-							var (
-								message wrp.Message
-								decoder = wrp.NewDecoderBytes(body, wrp.JSON)
-							)
-
-							if err := decoder.Decode(&message); err != nil {
-								return ctx, err
-							}
-
-							ensureWRPMessageIntegrity(ctx, &message, emptyWRPPartnerIDCounter)
-							var buffer bytes.Buffer
-							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								return ctx, err
-							}
-
-							fanoutBody := buffer.Bytes()
-							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
-							fanout.ContentLength = int64(len(fanoutBody))
-							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
-							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
-							return ctx, nil
-						},
-					),
-					fanout.WithFanoutFailure(
-						fanout.ReturnHeadersWithPrefix("X-"),
-					),
-					fanout.WithFanoutAfter(
-						fanout.ReturnHeadersWithPrefix("X-"),
-					),
-				)...,
-			),
-		),
-	)
-
-	sendSubrouter.Headers("Content-Type", wrp.Msgpack.ContentType()).Handler(
-		handlerChain.Then(
-			fanout.New(
-				endpoints,
-				append(
-					options,
-					fanout.WithFanoutBefore(
-						fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
-						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-							var (
-								message wrp.Message
-								decoder = wrp.NewDecoderBytes(body, wrp.Msgpack)
-							)
-
-							if err := decoder.Decode(&message); err != nil {
-								return ctx, err
-							}
-
-							ensureWRPMessageIntegrity(ctx, &message, emptyWRPPartnerIDCounter)
-							var buffer bytes.Buffer
-							if err := wrp.NewEncoder(&buffer, wrp.Msgpack).Encode(&message); err != nil {
-								return ctx, err
-							}
-
-							fanoutBody := buffer.Bytes()
-							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
-							fanout.ContentLength = int64(len(fanoutBody))
-							fanout.Header.Set("Content-Type", wrp.Msgpack.ContentType())
-							fanout.Header.Set("X-Webpa-Device-Name", message.Destination)
+							fanout.Header.Set("Content-Type", entity.Format.ContentType())
+							fanout.Header.Set("X-Webpa-Device-Name", entity.Message.Destination)
 							return ctx, nil
 						},
 					),

@@ -397,3 +397,11 @@ service:
   #       # (Optional) defaults to empty struct
   #       # queryOptions:
   #       #   useCache: true
+
+# # WRPIntegrity enables metrics to track users which do not populate the partnerIDs field
+# # in the WRP messages they send.
+# # If this config is not provided, no metrics are tracked
+# WRPIntegrity:
+#   # enforce should be set to true if scytale should no longer compensate for users
+#   # which do not populate the partnerIDs WRP field
+#   enforce: false

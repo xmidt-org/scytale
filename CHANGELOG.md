@@ -5,7 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- added configurable way to check capabilities and log the result, without rejecting requests [#80](https://github.com/xmidt-org/scytale/pull/80)
+
+## [v0.3.0]
+- added configurable way to check capabilities and put results into metrics, without rejecting requests [#80](https://github.com/xmidt-org/scytale/pull/80)
 
 ## [v0.2.0]
 - updated release pipeline to use travis [#73](https://github.com/xmidt-org/scytale/pull/73)
@@ -24,7 +26,8 @@ Switching to new build process
 - initial creation
 
 
-[Unreleased]: https://github.com/Comcast/scytale/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Comcast/scytale/compare/v0.3.0...HEAD
+[v0.3.0]: https://github.com/Comcast/scytale/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/Comcast/scytale/compare/v0.1.5...v0.2.0
 [v0.1.5]: https://github.com/Comcast/scytale/compare/v0.1.4...v0.1.5
 [v0.1.4]: https://github.com/Comcast/scytale/compare/v0.1.1...v0.1.4

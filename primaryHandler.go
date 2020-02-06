@@ -31,11 +31,11 @@ import (
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/webpa-common/basculechecks"
+	"github.com/xmidt-org/webpa-common/basculemetrics"
 	"github.com/xmidt-org/webpa-common/logging"
 	"github.com/xmidt-org/webpa-common/logging/logginghttp"
 	"github.com/xmidt-org/webpa-common/service"
@@ -71,22 +71,23 @@ func GetLogger(ctx context.Context) bascule.Logger {
 func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logger) {
 	if auth, ok := bascule.FromContext(ctx); ok {
 		if token := auth.Token; token != nil {
-			var claims claims
-			mapstructure.Decode(token.Attributes(), &claims)
-			message.PartnerIDs = claims.AllowedResources.AllowedPartners
+			partnerIDs, ok := token.Attributes().GetStringSlice(basculechecks.PartnerKey)
+			if !ok {
+				logging.Error(logger).Log(logging.MessageKey(), "couldn't get partner IDs", "principal", token.Principal())
+			}
+			message.PartnerIDs = partnerIDs
 		}
 	}
 }
 
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
-	var (
-		m *basculechecks.JWTValidationMeasures
-	)
-
-	if registry != nil {
-		m = basculechecks.NewJWTValidationMeasures(registry)
+	if registry == nil {
+		return alice.Chain{}, errors.New("nil registry")
 	}
-	listener := basculechecks.NewMetricListener(m)
+
+	basculeMeasures := basculemetrics.NewAuthValidationMeasures(registry)
+	capabilityCheckMeasures := basculechecks.NewAuthCapabilityCheckMeasures(registry)
+	listener := basculemetrics.NewMetricListener(basculeMeasures)
 
 	basicAllowed := make(map[string]string)
 	basicAuth := v.GetStringSlice("authHeader")
@@ -137,12 +138,12 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	// only add capability check if the configuration is set
 	var capabilityCheck CapabilityConfig
 	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
-	if capabilityCheck.Prefix != "" {
-		check, err := basculechecks.CreateValidCapabilityCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+	if capabilityCheck.Type == "enforce" || capabilityCheck.Type == "monitor" {
+		checker, err := basculechecks.NewCapabilityChecker(capabilityCheckMeasures, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
 		if err != nil {
 			return alice.Chain{}, emperror.With(err, "failed to create capability check")
 		}
-		bearerRules = append(bearerRules, bascule.CreateListAttributeCheck("capabilities", check))
+		bearerRules = append(bearerRules, checker.CreateBasculeCheck(capabilityCheck.Type == "enforce"))
 	}
 
 	authEnforcer := basculehttp.NewEnforcer(
@@ -154,7 +155,9 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	return alice.New(SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)), nil
+	constructors := []alice.Constructor{SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
+
+	return alice.New(constructors...), nil
 }
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured

@@ -236,8 +236,14 @@ jwtValidator:
     updateInterval: 604800000000000
 
 # capabilityCheck provides the details needed for checking an incoming JWT's
-# capabilities.  If this isn't provided, no checking is done.  The capability 
-# is expected to have the format:
+# capabilities.  If the type of check isn't provided, no checking is done.  The 
+# type can be "monitor" or "enforce".  If it is empty or a different value, no 
+# checking is done.  If "monitor" is provided, the capabilities are checked but 
+# the request isn't rejected when there isn't a valid capability for the 
+# request. Instead, a message is logged.  When "enforce" is provided, a request 
+# that doesn't have the needed capability is rejected.
+#
+# The capability is expected to have the format:
 #
 # {prefix}{endpoint}:{method}
 #
@@ -248,6 +254,7 @@ jwtValidator:
 # is approved for all methods.
 # (Optional)
 # capabilityCheck:
+#   type: "enforce"
 #   prefix: "prefix Here"
 #   acceptAllMethod: "all"
 

@@ -5,28 +5,18 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/xmidt-org/webpa-common/basculechecks"
+
 	"github.com/xmidt-org/bascule"
 )
 
-type allowedResources struct {
-	AllowedPartners []string
-}
-
-type claims struct {
-	AllowedResources allowedResources
-}
-
 var requirePartnerIDs bascule.ValidatorFunc = func(_ context.Context, token bascule.Token) error {
-	var claims claims
-
-	err := mapstructure.Decode(token.Attributes(), &claims)
-
-	if err != nil {
-		return fmt.Errorf("Unexpected JWT claim format for partnerIDs: %v", err)
+	ids, ok := token.Attributes().GetStringSlice(basculechecks.PartnerKey)
+	if !ok {
+		return fmt.Errorf("Couldn't get the partner IDs")
 	}
 
-	if len(claims.AllowedResources.AllowedPartners) < 1 {
+	if len(ids) < 1 {
 		return errors.New("JWT must provide claims for partnerIDs")
 	}
 

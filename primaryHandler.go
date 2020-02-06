@@ -31,7 +31,6 @@ import (
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
@@ -72,9 +71,11 @@ func GetLogger(ctx context.Context) bascule.Logger {
 func populateMessage(ctx context.Context, message *wrp.Message, logger log.Logger) {
 	if auth, ok := bascule.FromContext(ctx); ok {
 		if token := auth.Token; token != nil {
-			var claims claims
-			mapstructure.Decode(token.Attributes(), &claims)
-			message.PartnerIDs = claims.AllowedResources.AllowedPartners
+			partnerIDs, ok := token.Attributes().GetStringSlice(basculechecks.PartnerKey)
+			if !ok {
+				logging.Error(logger).Log(logging.MessageKey(), "couldn't get partner IDs", "principal", token.Principal())
+			}
+			message.PartnerIDs = partnerIDs
 		}
 	}
 }
@@ -137,12 +138,12 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	// only add capability check if the configuration is set
 	var capabilityCheck CapabilityConfig
 	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
-	if capabilityCheck.Type == "enforce" {
-		check, err := basculechecks.NewCapabilityChecker(capabilityCheckMeasures, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+	if capabilityCheck.Type == "enforce" || capabilityCheck.Type == "monitor" {
+		checker, err := basculechecks.NewCapabilityChecker(capabilityCheckMeasures, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
 		if err != nil {
 			return alice.Chain{}, emperror.With(err, "failed to create capability check")
 		}
-		bearerRules = append(bearerRules, check)
+		bearerRules = append(bearerRules, checker.CreateBasculeCheck(capabilityCheck.Type == "enforce"))
 	}
 
 	authEnforcer := basculehttp.NewEnforcer(
@@ -154,17 +155,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	constructors := []alice.Constructor{SetLogger(logger), authConstructor, authEnforcer}
-
-	if capabilityCheck.Type == "monitor" {
-		check, err := basculechecks.NewCapabilityChecker(capabilityCheckMeasures, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
-		if err != nil {
-			return alice.Chain{}, emperror.With(err, "failed to create capability check listener")
-		}
-		constructors = append(constructors, basculehttp.NewListenerDecorator(listener, check))
-	} else {
-		constructors = append(constructors, basculehttp.NewListenerDecorator(listener))
-	}
+	constructors := []alice.Constructor{SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
 
 	return alice.New(constructors...), nil
 }

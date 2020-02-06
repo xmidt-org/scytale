@@ -2,22 +2,23 @@ package main
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/webpa-common/logging"
 	"github.com/xmidt-org/wrp-go/wrp"
-	"testing"
 )
 
 func TestPopulateMessagePartners(t *testing.T) {
 	var tests = []struct {
 		name               string
-		attributes         bascule.Attributes
+		attrMap            map[string]interface{}
 		expectedPartnerIDs []string
 	}{
 		{
 			name: "partnerIDs",
-			attributes: map[string]interface{}{
+			attrMap: map[string]interface{}{
 				"allowedResources": map[string]interface{}{
 					"allowedPartners": []string{"partner0", "partner1"},
 				}},
@@ -29,8 +30,9 @@ func TestPopulateMessagePartners(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 
+			attrs := bascule.NewAttributesFromMap(test.attrMap)
 			auth := bascule.Authentication{
-				Token: bascule.NewToken("bearer", "client0", test.attributes),
+				Token: bascule.NewToken("bearer", "client0", attrs),
 			}
 
 			ctx := bascule.WithAuthentication(context.Background(), auth)

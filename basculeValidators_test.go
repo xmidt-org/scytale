@@ -11,12 +11,12 @@ import (
 func TestRequirePartnerIDs(t *testing.T) {
 	var tests = []struct {
 		name       string
-		attributes bascule.Attributes
+		attrMap    map[string]interface{}
 		shouldPass bool
 	}{
 		{
 			name: "partnerIDs",
-			attributes: map[string]interface{}{
+			attrMap: map[string]interface{}{
 				"allowedResources": map[string]interface{}{
 					"allowedPartners": []string{"partner0", "partner1"},
 				}},
@@ -24,14 +24,18 @@ func TestRequirePartnerIDs(t *testing.T) {
 		},
 
 		{
-			name:       "no partnerIDs",
-			attributes: nil,
+			name: "no partnerIDs",
+			attrMap: map[string]interface{}{
+				"allowedResources": map[string]interface{}{
+					"allowedPartners": []string{},
+				},
+			},
 		},
 		{
 			name: "malformed partnerIDs field",
-			attributes: map[string]interface{}{
+			attrMap: map[string]interface{}{
 				"allowedResources": map[string]interface{}{
-					"allowedPartners": "partner0",
+					"allowedPartners": []int{0, 1, 2},
 				}},
 		},
 	}
@@ -41,7 +45,8 @@ func TestRequirePartnerIDs(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
-			token := bascule.NewToken("bearer", "client0", test.attributes)
+			attrs := bascule.NewAttributesFromMap(test.attrMap)
+			token := bascule.NewToken("bearer", "client0", attrs)
 
 			err := requirePartnerIDs(ctx, token)
 			if test.shouldPass {

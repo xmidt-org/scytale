@@ -8,8 +8,10 @@ import (
 
 	"github.com/go-kit/kit/metrics"
 	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/wrp-go/wrp"
 )
 
+//Perhaps this should live in bascule as a utility struct
 type codedError struct {
 	error
 	code int
@@ -119,4 +121,12 @@ func isSubset(a, b []string) bool {
 
 	}
 	return true
+}
+
+//AuthorizeWRP runs the scytale partnerID checks against the incoming WRP message
+//It takes a pointer to the wrp message as it needs to perform changes to it in
+//some cases.
+//TODO:
+func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Message) (error, bool) {
+	return nil, false
 }

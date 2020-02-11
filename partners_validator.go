@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/go-kit/kit/metrics"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/webpa-common/basculechecks"
-	checks "github.com/xmidt-org/webpa-common/basculechecks"
 	"github.com/xmidt-org/webpa-common/xhttp"
 	"github.com/xmidt-org/wrp-go/wrp"
 )
@@ -27,7 +25,11 @@ type WRPCheckConfig struct {
 }
 
 type partnersAuthority interface {
-	authorizeWRP(context.Context, *wrp.Message) (error, bool)
+	//authorizeWRP should run the scytale partnerID checks against incoming WRP messages
+	//It takes a pointer to the wrp message as it may modify it in some cases. It returns
+	//true if such modification was made. An error is returned in cases the validator
+	//check failed and they are go-kit HTTP response error encoder friendly
+	authorizeWRP(context.Context, *wrp.Message) (bool, error)
 }
 
 type partnersValidator struct {
@@ -46,20 +48,7 @@ func (p *partnersValidator) withSuccess(labelValues ...string) metrics.Counter {
 	return p.receivedWRPMessageCount.With(append(labelValues, OutcomeLabel, Accepted)...)
 }
 
-//ensure the JWT token has a non-empty value for the allowedPartners claim
-func (p *partnersValidator) ensureJWTPartners(_ context.Context, token bascule.Token) error {
-	if partnerIDs, ok := token.Attributes().GetStringSlice(checks.PartnerKey); !ok || len(partnerIDs) < 1 {
-		p.withFailure(ClientIDLabel, token.Principal(), ReasonLabel, JWTPIDMissing).Add(1)
-		return fmt.Errorf("value of JWT claim '%s' was not a non-empty list of strings", checks.PartnerKey)
-	}
-	return nil
-}
-
-//AuthorizeWRP runs the scytale partnerID checks against the incoming WRP message
-//It takes a pointer to the wrp message as it needs to perform changes to it in
-//some cases.
-//TODO:
-func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Message) (error, bool) {
+func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Message) (bool, error) {
 	var (
 		auth, ok    = bascule.FromContext(ctx)
 		satClientID = "none"
@@ -69,9 +58,9 @@ func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Messa
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenMissing).Add(1)
 
 		if p.strict {
-			return ErrTokenMissing, false
+			return false, ErrTokenMissing
 		}
-		return nil, false
+		return false, nil
 	}
 
 	token := auth.Token
@@ -80,9 +69,9 @@ func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Messa
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenTypeMismatch).Add(1)
 
 		if p.strict {
-			return ErrTokenTypeMismatch, false
+			return false, ErrTokenTypeMismatch
 		}
-		return nil, false
+		return false, nil
 	}
 
 	attributes := token.Attributes()
@@ -97,40 +86,40 @@ func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Messa
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
 
 		if p.strict {
-			return ErrInvalidAllowedPartners, false
+			return false, ErrInvalidAllowedPartners
 		}
 
-		return nil, false
+		return false, nil
 	}
 
 	if len(message.PartnerIDs) < 1 {
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, WRPPIDMissing).Add(1)
 
 		if p.strict {
-			return ErrPIDMissing, false
+			return false, ErrPIDMissing
 		}
 
 		message.PartnerIDs = allowedPartners
-		return nil, true
+		return true, nil
 	}
 
 	if contains(allowedPartners, "*") {
 		p.withSuccess(ClientIDLabel, satClientID, ReasonLabel, JWTPIDWildcard).Add(1)
-		return nil, false
+		return false, nil
 	}
 
 	if isSubset(message.PartnerIDs, allowedPartners) {
 		p.withSuccess(ClientIDLabel, satClientID, ReasonLabel, WRPPIDMatch).Add(1)
-		return nil, false
+		return false, nil
 	}
 
 	p.withFailure(ClientIDLabel, satClientID, ReasonLabel, WRPPIDMismatch).Add(1)
 	if p.strict {
-		return ErrPIDMismatch, false
+		return false, ErrPIDMismatch
 	}
 
 	message.PartnerIDs = allowedPartners
-	return nil, true
+	return true, nil
 }
 
 //returns true if list contains str

@@ -37,8 +37,7 @@ func NewWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p partnersAutho
 			fanoutBody = []byte("stub")
 		)
 
-		//authorizeWRP returns an error with a status code when necessary
-		err, modified := p.authorizeWRP(ctx, &entity.Message)
+		modified, err := p.authorizeWRP(ctx, &entity.Message)
 
 		if err != nil {
 			encodeError(ctx, err, w)

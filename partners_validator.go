@@ -94,7 +94,7 @@ func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Messa
 	allowedPartners, ok := attributes.GetStringSlice(basculechecks.PartnerKey)
 
 	if !ok || len(allowedPartners) < 1 {
-		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenMissing).Add(1)
+		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
 
 		if p.strict {
 			return ErrInvalidAllowedPartners, false

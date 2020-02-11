@@ -261,17 +261,17 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	)
 
 	var (
-		WRPCheckConfig   WRPCheckConfig
+		wrpCheckConfig   WRPCheckConfig
 		WRPFanoutHandler wrphttp.Handler
 	)
 
-	v.UnmarshalKey("WRPCheck", WRPCheckConfig)
+	v.UnmarshalKey("WRPCheck", &wrpCheckConfig)
 
-	if WRPCheckConfig.Type == "enforce" || WRPCheckConfig.Type == "monitor" {
+	if wrpCheckConfig.Type == "enforce" || wrpCheckConfig.Type == "monitor" {
 		WRPFanoutHandler = NewWRPFanoutHandlerWithPIDCheck(
 			fanoutHandler,
 			&partnersValidator{
-				strict:                  WRPCheckConfig.Type == "enforce",
+				strict:                  wrpCheckConfig.Type == "enforce",
 				receivedWRPMessageCount: NewReceivedWRPCounter(registry),
 			})
 	} else {

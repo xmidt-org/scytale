@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.3.1]
+- Added fix to correctly parse URL for capability checking [#87](https://github.com/xmidt-org/scytale/pull/87)
+
 ## [v0.3.0]
 - added configurable way to check capabilities and put results into metrics, without rejecting requests [#80](https://github.com/xmidt-org/scytale/pull/80)
 
@@ -21,12 +24,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [v0.1.4]
 Switching to new build process
 
-
 ## [v0.1.1] Tue Mar 28 2017 Weston Schmidt - 0.1.1
 - initial creation
 
 
-[Unreleased]: https://github.com/Comcast/scytale/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Comcast/scytale/compare/v0.3.1...HEAD
+[v0.3.1]: https://github.com/Comcast/scytale/compare/v0.3.0...v0.3.1
 [v0.3.0]: https://github.com/Comcast/scytale/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/Comcast/scytale/compare/v0.1.5...v0.2.0
 [v0.1.5]: https://github.com/Comcast/scytale/compare/v0.1.4...v0.1.5

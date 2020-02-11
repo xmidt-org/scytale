@@ -2,32 +2,41 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/go-kit/kit/metrics"
 	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/webpa-common/basculechecks"
+	checks "github.com/xmidt-org/webpa-common/basculechecks"
+	"github.com/xmidt-org/webpa-common/xhttp"
 	"github.com/xmidt-org/wrp-go/wrp"
 )
 
-//Perhaps this should live in bascule as a utility struct
-type codedError struct {
-	error
-	code int
+//partnerAuthority errors
+var (
+	ErrTokenMissing           = &xhttp.Error{Code: http.StatusInternalServerError, Text: "No JWT Token was found in context"}
+	ErrTokenTypeMismatch      = &xhttp.Error{Code: http.StatusInternalServerError, Text: "Token must be a JWT"}
+	ErrPIDMissing             = &xhttp.Error{Code: http.StatusBadRequest, Text: "WRP PartnerIDs field must not be empty"}
+	ErrInvalidAllowedPartners = &xhttp.Error{Code: http.StatusForbidden, Text: "AllowedPartners JWT claim must be a non-empty list of strings"}
+	ErrPIDMismatch            = &xhttp.Error{Code: http.StatusForbidden, Text: "Unauthorized partners credentials in WRP message"}
+)
+
+type WRPCheckConfig struct {
+	Type string
 }
 
-func (e *codedError) StatusCode() int {
-	return e.code
+type partnersAuthority interface {
+	authorizeWRP(context.Context, *wrp.Message) (error, bool)
 }
 
 type partnersValidator struct {
-	Strict                  bool
+	strict                  bool
 	receivedWRPMessageCount metrics.Counter
 }
 
 func (p *partnersValidator) withFailure(labelValues ...string) metrics.Counter {
-	if !p.Strict {
+	if !p.strict {
 		return p.withSuccess(labelValues...)
 	}
 	return p.receivedWRPMessageCount.With(append(labelValues, OutcomeLabel, Rejected)...)
@@ -39,64 +48,92 @@ func (p *partnersValidator) withSuccess(labelValues ...string) metrics.Counter {
 
 //ensure the JWT token has a non-empty value for the allowedPartners claim
 func (p *partnersValidator) ensureJWTPartners(_ context.Context, token bascule.Token) error {
-	if partnerIDs, ok := token.Attributes().GetStringSlice(PartnerIDClaimsKey); !ok || len(partnerIDs) < 1 {
+	if partnerIDs, ok := token.Attributes().GetStringSlice(checks.PartnerKey); !ok || len(partnerIDs) < 1 {
 		p.withFailure(ClientIDLabel, token.Principal(), ReasonLabel, JWTPIDMissing).Add(1)
-		return fmt.Errorf("value of JWT claim '%s' was not a non-empty list of strings", PartnerIDClaimsKey)
+		return fmt.Errorf("value of JWT claim '%s' was not a non-empty list of strings", checks.PartnerKey)
 	}
 	return nil
 }
 
-func (p *partnersValidator) check(ctx context.Context, token bascule.Token) error {
-	entity, ok := FromContext(ctx)
+//AuthorizeWRP runs the scytale partnerID checks against the incoming WRP message
+//It takes a pointer to the wrp message as it needs to perform changes to it in
+//some cases.
+//TODO:
+func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Message) (error, bool) {
+	var (
+		auth, ok    = bascule.FromContext(ctx)
+		satClientID = "none"
+	)
+
 	if !ok {
-		return errors.New("Could not fetch WRP entity from context")
+		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenMissing).Add(1)
+
+		if p.strict {
+			return ErrTokenMissing, false
+		}
+		return nil, false
 	}
 
-	var (
-		message     = entity.Message
-		satClientID = "none"
-		attributes  = token.Attributes()
-	)
+	token := auth.Token
+
+	if token.Type() != "jwt" {
+		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenTypeMismatch).Add(1)
+
+		if p.strict {
+			return ErrTokenTypeMismatch, false
+		}
+		return nil, false
+	}
+
+	attributes := token.Attributes()
 
 	if principal := token.Principal(); len(principal) > 0 {
 		satClientID = principal
 	}
 
-	var JWTPartnerIDs []string
+	allowedPartners, ok := attributes.GetStringSlice(basculechecks.PartnerKey)
+
+	if !ok || len(allowedPartners) < 1 {
+		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenMissing).Add(1)
+
+		if p.strict {
+			return ErrInvalidAllowedPartners, false
+		}
+
+		return nil, false
+	}
 
 	if len(message.PartnerIDs) < 1 {
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, WRPPIDMissing).Add(1)
 
-		if p.Strict {
-			return &codedError{code: http.StatusBadRequest, error: errors.New("WRP PartnerIDs field must not be empty")}
+		if p.strict {
+			return ErrPIDMissing, false
 		}
 
-		if partnerIDs, ok := attributes.GetStringSlice(PartnerIDClaimsKey); ok && len(partnerIDs) > 0 {
-			message.PartnerIDs = partnerIDs
-			JWTPartnerIDs = partnerIDs
-		} else {
-			return errors.New("JWT allowedPartners could not be used to compensate for missing PID in WRP")
-		}
+		message.PartnerIDs = allowedPartners
+		return nil, true
 	}
 
-	if contains(JWTPartnerIDs, "*") {
+	if contains(allowedPartners, "*") {
 		p.withSuccess(ClientIDLabel, satClientID, ReasonLabel, JWTPIDWildcard).Add(1)
-		return nil
+		return nil, false
 	}
 
-	if isSubset(message.PartnerIDs, JWTPartnerIDs) {
+	if isSubset(message.PartnerIDs, allowedPartners) {
 		p.withSuccess(ClientIDLabel, satClientID, ReasonLabel, WRPPIDMatch).Add(1)
-		return nil
+		return nil, false
 	}
 
 	p.withFailure(ClientIDLabel, satClientID, ReasonLabel, WRPPIDMismatch).Add(1)
-	if p.Strict {
-		return errors.New("The JWT allowedPartners claim is not a superset of the non-empty WRP PartnerIDs field")
+	if p.strict {
+		return ErrPIDMismatch, false
 	}
 
-	return nil
+	message.PartnerIDs = allowedPartners
+	return nil, true
 }
 
+//returns true if list contains str
 func contains(list []string, str string) bool {
 	for _, e := range list {
 		if e == str {
@@ -118,15 +155,6 @@ func isSubset(a, b []string) bool {
 		if _, ok := m[e]; !ok {
 			return false
 		}
-
 	}
 	return true
-}
-
-//AuthorizeWRP runs the scytale partnerID checks against the incoming WRP message
-//It takes a pointer to the wrp message as it needs to perform changes to it in
-//some cases.
-//TODO:
-func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Message) (error, bool) {
-	return nil, false
 }

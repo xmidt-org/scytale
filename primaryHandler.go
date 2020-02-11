@@ -27,7 +27,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/go-kit/kit/metrics"
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
@@ -41,7 +40,6 @@ import (
 	"github.com/xmidt-org/webpa-common/logging/logginghttp"
 	"github.com/xmidt-org/webpa-common/service"
 	"github.com/xmidt-org/webpa-common/service/monitor"
-	"github.com/xmidt-org/webpa-common/xhttp"
 	"github.com/xmidt-org/webpa-common/xhttp/fanout"
 	"github.com/xmidt-org/webpa-common/xmetrics"
 	"github.com/xmidt-org/wrp-go/wrp"
@@ -68,18 +66,6 @@ func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
 func GetLogger(ctx context.Context) bascule.Logger {
 	logger := log.With(logging.GetLogger(ctx), "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 	return logger
-}
-
-func ensureWRPMessageIntegrity(ctx context.Context, m *wrp.Message, violatorsCount metrics.Counter) {
-	if auth, ok := bascule.FromContext(ctx); ok {
-		if token := auth.Token; token != nil {
-			partnerIDs, ok := token.Attributes().GetStringSlice(basculechecks.PartnerKey)
-			if !ok {
-				logging.Error(logger).Log(logging.MessageKey(), "couldn't get partner IDs", "principal", token.Principal())
-			}
-			message.PartnerIDs = partnerIDs
-		}
-	}
 }
 
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
@@ -138,7 +124,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		bascule.CreateNonEmptyPrincipalCheck(),
 		bascule.CreateNonEmptyTypeCheck(),
 		bascule.CreateValidTypeCheck([]string{"jwt"}),
-		requirePartnerIDs,
+		requirePartnersJWTClaim,
 	}
 
 	// only add capability check if the configuration is set
@@ -229,7 +215,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 								return append(kv, "deviceID", deviceID)
 							}
 						}
-
 						return kv
 					},
 				),
@@ -241,7 +226,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 			fanout.WithTransactor(transactor),
 		}
 	)
-
 	if len(cfg.Authorization) > 0 {
 		options = append(
 			options,
@@ -260,47 +244,46 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		response.WriteHeader(http.StatusBadRequest)
 	})
 
-	wrpDecorators := []alice.Constructor{WRPEntityDecorator}
-	//TODO: configure wrpDecorators with partnerID validator if applicable. Will need to break up authChain from above as well to ensure middleware ordering
-
-	sendSubrouter.Headers("Content-Type", wrp.Msgpack.ContentType(), "Content-Type", wrp.JSON.ContentType(), wrphttp.MessageTypeHeader, "").Handler(
-		handlerChain.Append(wrpDecorators...).Then(
-			fanout.New(
-				endpoints,
-				append(
-					options,
-					fanout.WithFanoutBefore(
-						fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
-						func(ctx context.Context, original, fanout *http.Request, _ []byte) (context.Context, error) {
-
-							entity, ok := FromContext(ctx)
-							if !ok {
-								return ctx, errors.New("WRP entity to fanount was not not found")
-							}
-
-							var buffer bytes.Buffer
-							if err := wrp.NewEncoder(&buffer, entity.Format).Encode(&entity.Message); err != nil {
-								return ctx, err
-							}
-
-							fanoutBody := buffer.Bytes()
-							fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(fanoutBody)
-							fanout.ContentLength = int64(len(fanoutBody))
-							fanout.Header.Set("Content-Type", entity.Format.ContentType())
-							fanout.Header.Set("X-Webpa-Device-Name", entity.Message.Destination)
-							return ctx, nil
-						},
-					),
-					fanout.WithFanoutFailure(
-						fanout.ReturnHeadersWithPrefix("X-"),
-					),
-					fanout.WithFanoutAfter(
-						fanout.ReturnHeadersWithPrefix("X-"),
-					),
-				)...,
+	fanoutHandler := fanout.New(
+		endpoints,
+		append(
+			options,
+			fanout.WithFanoutBefore(
+				fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
 			),
-		),
+			fanout.WithFanoutFailure(
+				fanout.ReturnHeadersWithPrefix("X-"),
+			),
+			fanout.WithFanoutAfter(
+				fanout.ReturnHeadersWithPrefix("X-"),
+			),
+		)...,
 	)
+
+	var (
+		WRPCheckConfig   WRPCheckConfig
+		WRPFanoutHandler wrphttp.Handler
+	)
+
+	v.UnmarshalKey("WRPCheck", WRPCheckConfig)
+
+	if WRPCheckConfig.Type == "enforce" || WRPCheckConfig.Type == "monitor" {
+		WRPFanoutHandler = NewWRPFanoutHandlerWithPIDCheck(
+			fanoutHandler,
+			&partnersValidator{
+				strict:                  WRPCheckConfig.Type == "enforce",
+				receivedWRPMessageCount: NewReceivedWRPCounter(registry),
+			})
+	} else {
+		WRPFanoutHandler = NewWRPFanoutHandler(fanoutHandler)
+	}
+
+	sendWRPHandler := wrphttp.NewHTTPHandler(WRPFanoutHandler)
+
+	sendSubrouter.Headers(
+		"Content-Type", wrp.Msgpack.ContentType(),
+		"Content-Type", wrp.JSON.ContentType(),
+		wrphttp.MessageTypeHeader, "").Handler(handlerChain.Then(sendWRPHandler))
 
 	router.Handle(
 		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),

@@ -258,6 +258,15 @@ jwtValidator:
 #   prefix: "prefix Here"
 #   acceptAllMethod: "all"
 
+# WRPCheck provides the details needed to authorize incoming WRP message
+# requests from partners against their credentials. The type can be "monitor" or "enforce".
+# If "monitor" is provided, requests are authorized even when the WRP message has invalid
+# credentials. If "enforce" is provided, such requests are rejected. For either type, transaction
+# metrics are collected. If no valid type is provided, no checks are provided.
+# (Optional)
+# WRPCheck:
+#   type: "enforce"
+
 ########################################
 #   Service Discovery Configuration
 ########################################
@@ -397,11 +406,3 @@ service:
   #       # (Optional) defaults to empty struct
   #       # queryOptions:
   #       #   useCache: true
-
-# # WRPIntegrity enables metrics to track users which do not populate the partnerIDs field
-# # in the WRP messages they send.
-# # If this config is not provided, no metrics are tracked
-# WRPIntegrity:
-#   # enforce should be set to true if scytale should no longer compensate for users
-#   # which do not populate the partnerIDs WRP field
-#   enforce: false

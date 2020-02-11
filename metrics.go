@@ -22,20 +22,19 @@ const (
 	Accepted = "accepted"
 	Rejected = "rejected"
 
+	TokenMissing      = "token_not_found"
+	TokenTypeMismatch = "token_type_mismatch"
+
 	WRPPIDMissing  = "wrp_pid_missing"
 	WRPPIDMismatch = "wrp_pid_mismatch"
-	JWTPIDMissing  = "jwt_pid_missing"
-
-	JWTPIDWildcard = "jwt_pid_wildcard"
 	WRPPIDMatch    = "wrp_pid_match"
+
+	JWTPIDMissing  = "jwt_pid_missing"
+	JWTPIDWildcard = "jwt_pid_wildcard"
+	JWTPIDInvalid  = "jwt_pid_invalid"
 )
 
-//received_wrp_message_count
-//outcome: [rejected,accepted]
-//reason: [ wrp_pid_missing, pid_wrp_mismatch, ]
-//*Logging
-
-//Metrics returns the Metrics relevant to this package
+//Metrics returns the metrics relevant to this package
 func Metrics() []xmetrics.Metric {
 	return []xmetrics.Metric{
 		xmetrics.Metric{

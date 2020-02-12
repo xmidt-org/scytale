@@ -5,8 +5,8 @@ import (
 
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/xmidt-org/webpa-common/xhttp"
-	"github.com/xmidt-org/wrp-go/wrp"
-	"github.com/xmidt-org/wrp-go/wrp/wrphttp"
+	"github.com/xmidt-org/wrp-go"
+	"github.com/xmidt-org/wrp-go/wrphttp"
 )
 
 func NewWRPFanoutHandler(fanoutHandler http.Handler) wrphttp.HandlerFunc {
@@ -14,27 +14,24 @@ func NewWRPFanoutHandler(fanoutHandler http.Handler) wrphttp.HandlerFunc {
 		panic("fanoutHandler must be defined")
 	}
 	return func(w wrphttp.ResponseWriter, r *wrphttp.Request) {
-		//TODO: uncomment once wrp-go/v2 release is out
-		//fanoutPrep(r.Original, r.Entity.Source, r.Entity)
-		fanoutPrep(r.Original, []byte("stub"), r.Entity)
+		fanoutPrep(r.Original, r.Entity.Source, r.Entity)
 		fanoutHandler.ServeHTTP(w, r.Original)
 	}
 }
 
-func NewWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p partnersAuthority) wrphttp.HandlerFunc {
+func NewWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p wrpAccessAuthority) wrphttp.HandlerFunc {
 	if fanoutHandler == nil || p == nil {
 		panic("fanoutHandler and partnersAuthority arguments must be defined")
 	}
+
 	encodeError := gokithttp.DefaultErrorEncoder
 
 	return func(w wrphttp.ResponseWriter, r *wrphttp.Request) {
 		var (
-			ctx    = r.Context()
-			entity = r.Entity
-			fanout = r.Original
-			//TODO: uncomment once wrp-go/v2 release is out
-			// fanoutBody = r.entity.source
-			fanoutBody = []byte("stub")
+			ctx        = r.Context()
+			entity     = r.Entity
+			fanout     = r.Original
+			fanoutBody = r.Entity.Source
 		)
 
 		modified, err := p.authorizeWRP(ctx, &entity.Message)

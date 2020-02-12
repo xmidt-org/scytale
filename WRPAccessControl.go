@@ -8,7 +8,7 @@ import (
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/webpa-common/basculechecks"
 	"github.com/xmidt-org/webpa-common/xhttp"
-	"github.com/xmidt-org/wrp-go/wrp"
+	"github.com/xmidt-org/wrp-go"
 )
 
 //partnerAuthority errors
@@ -24,31 +24,39 @@ type WRPCheckConfig struct {
 	Type string
 }
 
-type partnersAuthority interface {
-	//authorizeWRP should run the scytale partnerID checks against incoming WRP messages
-	//It takes a pointer to the wrp message as it may modify it in some cases. It returns
-	//true if such modification was made. An error is returned in cases the validator
-	//check failed and they are go-kit HTTP response error encoder friendly
+// wrpAccessAuthority describes behavior for authorizing WRP messages
+// against defined access policies.
+type wrpAccessAuthority interface {
 	authorizeWRP(context.Context, *wrp.Message) (bool, error)
 }
 
-type partnersValidator struct {
+//authorizeWRP should run the scytale partnerID checks against incoming WRP messages
+//It takes a pointer to the wrp message as it may modify it in some cases. It returns
+//true if such modification was made. An error is returned in cases the validator
+//check failed and they are go-kit HTTP response error encoder friendly
+
+// wrpPartnersAuthority defines the access policy for which WRP messages
+// are authorized against the partners credentials of the message creator
+type wrpPartnersAccess struct {
 	strict                  bool
 	receivedWRPMessageCount metrics.Counter
 }
 
-func (p *partnersValidator) withFailure(labelValues ...string) metrics.Counter {
+func (p *wrpPartnersAccess) withFailure(labelValues ...string) metrics.Counter {
 	if !p.strict {
 		return p.withSuccess(labelValues...)
 	}
 	return p.receivedWRPMessageCount.With(append(labelValues, OutcomeLabel, Rejected)...)
 }
 
-func (p *partnersValidator) withSuccess(labelValues ...string) metrics.Counter {
+func (p *wrpPartnersAccess) withSuccess(labelValues ...string) metrics.Counter {
 	return p.receivedWRPMessageCount.With(append(labelValues, OutcomeLabel, Accepted)...)
 }
 
-func (p *partnersValidator) authorizeWRP(ctx context.Context, message *wrp.Message) (bool, error) {
+//authorizeWRP runs the partners access policy against the WRP and returns an error if the check fails.
+//When the policy is not strictly enforced,
+// Additionally, when the policy is not a boolean is returned for failure cases where the policy autocorrects the WRP contents
+func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Message) (bool, error) {
 	var (
 		auth, ok    = bascule.FromContext(ctx)
 		satClientID = "none"

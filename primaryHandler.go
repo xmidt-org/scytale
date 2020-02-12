@@ -42,8 +42,8 @@ import (
 	"github.com/xmidt-org/webpa-common/service/monitor"
 	"github.com/xmidt-org/webpa-common/xhttp/fanout"
 	"github.com/xmidt-org/webpa-common/xmetrics"
-	"github.com/xmidt-org/wrp-go/wrp"
-	"github.com/xmidt-org/wrp-go/wrp/wrphttp"
+	"github.com/xmidt-org/wrp-go"
+	"github.com/xmidt-org/wrp-go/wrphttp"
 )
 
 const (
@@ -270,7 +270,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	if wrpCheckConfig.Type == "enforce" || wrpCheckConfig.Type == "monitor" {
 		WRPFanoutHandler = NewWRPFanoutHandlerWithPIDCheck(
 			fanoutHandler,
-			&partnersValidator{
+			&wrpPartnersAccess{
 				strict:                  wrpCheckConfig.Type == "enforce",
 				receivedWRPMessageCount: NewReceivedWRPCounter(registry),
 			})

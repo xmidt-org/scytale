@@ -278,7 +278,9 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		WRPFanoutHandler = newWRPFanoutHandler(fanoutHandler)
 	}
 
-	sendWRPHandler := wrphttp.NewHTTPHandler(WRPFanoutHandler)
+	sendWRPHandler := wrphttp.NewHTTPHandler(WRPFanoutHandler,
+		wrphttp.WithDecoder(wrphttp.DecodeEntityFromSources(wrp.Msgpack, true)),
+		wrphttp.WithNewResponseWriter(nonWRPResponseWriterFactory))
 
 	sendSubrouter.Headers(
 		wrphttp.MessageTypeHeader, "",

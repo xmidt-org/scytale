@@ -10,6 +10,22 @@ import (
 	"github.com/xmidt-org/wrp-go/v2/wrphttp"
 )
 
+type nonWRPResponseWriter struct {
+	http.ResponseWriter
+}
+
+func (o *nonWRPResponseWriter) WriteWRP(interface{}) (int, error) {
+	return 0, nil
+}
+
+//nonWRPResponseWriterFactory helps configure the WRP handler to fulfill scytale's use case of only consuming
+//WRP requests but not produce WRP responses
+func nonWRPResponseWriterFactory(w http.ResponseWriter, _ *wrphttp.Request) (wrphttp.ResponseWriter, error) {
+	return &nonWRPResponseWriter{
+		ResponseWriter: w,
+	}, nil
+}
+
 func newWRPFanoutHandler(fanoutHandler http.Handler) wrphttp.HandlerFunc {
 	if fanoutHandler == nil {
 		panic("fanoutHandler must be defined")

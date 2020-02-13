@@ -42,8 +42,8 @@ import (
 	"github.com/xmidt-org/webpa-common/service/monitor"
 	"github.com/xmidt-org/webpa-common/xhttp/fanout"
 	"github.com/xmidt-org/webpa-common/xmetrics"
-	"github.com/xmidt-org/wrp-go"
-	"github.com/xmidt-org/wrp-go/wrphttp"
+	"github.com/xmidt-org/wrp-go/v2"
+	"github.com/xmidt-org/wrp-go/v2/wrphttp"
 )
 
 const (

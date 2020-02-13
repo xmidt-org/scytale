@@ -8,7 +8,7 @@ import (
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/webpa-common/basculechecks"
 	"github.com/xmidt-org/webpa-common/xhttp"
-	"github.com/xmidt-org/wrp-go"
+	"github.com/xmidt-org/wrp-go/v2"
 )
 
 //partnerAuthority errors

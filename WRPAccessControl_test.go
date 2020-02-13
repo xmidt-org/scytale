@@ -7,7 +7,7 @@ import (
 	"github.com/go-kit/kit/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/wrp-go"
+	"github.com/xmidt-org/wrp-go/v2"
 )
 
 func TestAuthorizeWRP(t *testing.T) {

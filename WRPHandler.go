@@ -1,12 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/xmidt-org/webpa-common/xhttp"
-	"github.com/xmidt-org/wrp-go"
-	"github.com/xmidt-org/wrp-go/wrphttp"
+	"github.com/xmidt-org/wrp-go/v2"
+	"github.com/xmidt-org/wrp-go/v2/wrphttp"
 )
 
 func NewWRPFanoutHandler(fanoutHandler http.Handler) wrphttp.HandlerFunc {
@@ -35,6 +36,7 @@ func NewWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p wrpAccessAuth
 		)
 
 		modified, err := p.authorizeWRP(ctx, &entity.Message)
+		fmt.Println(err == nil)
 
 		if err != nil {
 			encodeError(ctx, err, w)
@@ -42,7 +44,7 @@ func NewWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p wrpAccessAuth
 		}
 
 		if modified {
-			if err := wrp.NewEncoderBytes(&fanoutBody, entity.Format).Encode(&entity.Message); err != nil {
+			if err := wrp.NewEncoderBytes(&fanoutBody, entity.Format).Encode(entity.Message); err != nil {
 				encodeError(ctx, err, w)
 				return
 			}

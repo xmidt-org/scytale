@@ -268,22 +268,23 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	v.UnmarshalKey("WRPCheck", &wrpCheckConfig)
 
 	if wrpCheckConfig.Type == "enforce" || wrpCheckConfig.Type == "monitor" {
-		WRPFanoutHandler = NewWRPFanoutHandlerWithPIDCheck(
+		WRPFanoutHandler = newWRPFanoutHandlerWithPIDCheck(
 			fanoutHandler,
 			&wrpPartnersAccess{
 				strict:                  wrpCheckConfig.Type == "enforce",
 				receivedWRPMessageCount: NewReceivedWRPCounter(registry),
 			})
 	} else {
-		WRPFanoutHandler = NewWRPFanoutHandler(fanoutHandler)
+		WRPFanoutHandler = newWRPFanoutHandler(fanoutHandler)
 	}
 
 	sendWRPHandler := wrphttp.NewHTTPHandler(WRPFanoutHandler)
 
 	sendSubrouter.Headers(
+		wrphttp.MessageTypeHeader, "",
 		"Content-Type", wrp.Msgpack.ContentType(),
-		"Content-Type", wrp.JSON.ContentType(),
-		wrphttp.MessageTypeHeader, "").Handler(handlerChain.Then(sendWRPHandler))
+		"Content-Type", wrp.JSON.ContentType()).
+		Handler(handlerChain.Then(sendWRPHandler))
 
 	router.Handle(
 		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),

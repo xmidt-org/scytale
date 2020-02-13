@@ -10,7 +10,7 @@ import (
 	"github.com/xmidt-org/wrp-go/v2/wrphttp"
 )
 
-func NewWRPFanoutHandler(fanoutHandler http.Handler) wrphttp.HandlerFunc {
+func newWRPFanoutHandler(fanoutHandler http.Handler) wrphttp.HandlerFunc {
 	if fanoutHandler == nil {
 		panic("fanoutHandler must be defined")
 	}
@@ -20,7 +20,7 @@ func NewWRPFanoutHandler(fanoutHandler http.Handler) wrphttp.HandlerFunc {
 	}
 }
 
-func NewWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p wrpAccessAuthority) wrphttp.HandlerFunc {
+func newWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p wrpAccessAuthority) wrphttp.HandlerFunc {
 	if fanoutHandler == nil || p == nil {
 		panic("fanoutHandler and partnersAuthority arguments must be defined")
 	}

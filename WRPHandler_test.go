@@ -15,11 +15,11 @@ func TestNewFanoutHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	assert.Panics(func() {
-		NewWRPFanoutHandler(nil)
+		newWRPFanoutHandler(nil)
 	})
 
 	assert.NotPanics(func() {
-		assert.NotNil(NewWRPFanoutHandler(http.NotFoundHandler()))
+		assert.NotNil(newWRPFanoutHandler(http.NotFoundHandler()))
 	})
 }
 
@@ -27,11 +27,11 @@ func TestNewWRPFanoutHandlerWithPIDCheck(t *testing.T) {
 	assert := assert.New(t)
 
 	assert.Panics(func() {
-		NewWRPFanoutHandlerWithPIDCheck(http.NotFoundHandler(), nil)
+		newWRPFanoutHandlerWithPIDCheck(http.NotFoundHandler(), nil)
 	})
 
 	assert.Panics(func() {
-		NewWRPFanoutHandlerWithPIDCheck(nil, &wrpPartnersAccess{})
+		newWRPFanoutHandlerWithPIDCheck(nil, &wrpPartnersAccess{})
 	})
 }
 
@@ -68,7 +68,7 @@ func TestFanoutRequest(t *testing.T) {
 		t.Run(testCase.Name, func(t *testing.T) {
 			assert := assert.New(t)
 			mockWRPAccessAuthority := new(mockWRPAccessAuthority)
-			wrpFanoutHandler := NewWRPFanoutHandlerWithPIDCheck(
+			wrpFanoutHandler := newWRPFanoutHandlerWithPIDCheck(
 				http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}), mockWRPAccessAuthority)
 
 			wrpResponseWriter := newTestWRPResponseWriter(testCase.Recorder)

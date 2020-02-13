@@ -20,6 +20,7 @@ var (
 	ErrPIDMismatch            = &xhttp.Error{Code: http.StatusForbidden, Text: "Unauthorized partners credentials in WRP message"}
 )
 
+//WRPCheckConfig drives the WRP Access control configuration when enabled
 type WRPCheckConfig struct {
 	Type string
 }

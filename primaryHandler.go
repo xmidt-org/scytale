@@ -50,6 +50,10 @@ const (
 	baseURI = "/api"
 	version = "v2"
 	apiBase = baseURI + "/" + version + "/"
+
+	basicAuthConfigKey = "authHeader"
+	jwtAuthConfigKey   = "jwtValidator"
+	wrpCheckConfigKey  = "WRPCheck"
 )
 
 func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
@@ -78,7 +82,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	listener := basculemetrics.NewMetricListener(basculeMeasures)
 
 	basicAllowed := make(map[string]string)
-	basicAuth := v.GetStringSlice("authHeader")
+	basicAuth := v.GetStringSlice(basicAuthConfigKey)
 	for _, a := range basicAuth {
 		decoded, err := base64.StdEncoding.DecodeString(a)
 		if err != nil {
@@ -265,7 +269,17 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		WRPFanoutHandler wrphttp.Handler
 	)
 
-	v.UnmarshalKey("WRPCheck", &wrpCheckConfig)
+	if v.IsSet(wrpCheckConfigKey) {
+		if v.IsSet(basicAuthConfigKey) {
+			return nil, errors.New("WRP PartnerID checks cannot be enabled with basic authentication")
+		}
+
+		if !v.IsSet(jwtAuthConfigKey) {
+			return nil, errors.New("WRP PartnerID checks require JWT authentication to be enabled")
+		}
+	}
+
+	v.UnmarshalKey(wrpCheckConfigKey, &wrpCheckConfig)
 
 	if wrpCheckConfig.Type == "enforce" || wrpCheckConfig.Type == "monitor" {
 		WRPFanoutHandler = newWRPFanoutHandlerWithPIDCheck(

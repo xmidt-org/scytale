@@ -48,7 +48,7 @@ func TestRequirePartnerIDs(t *testing.T) {
 			attrs := bascule.NewAttributesFromMap(test.attrMap)
 			token := bascule.NewToken("bearer", "client0", attrs)
 
-			err := requirePartnerIDs(ctx, token)
+			err := requirePartnersJWTClaim(ctx, token)
 			if test.shouldPass {
 				assert.Nil(err)
 			} else {

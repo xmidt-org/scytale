@@ -258,6 +258,17 @@ jwtValidator:
 #   prefix: "prefix Here"
 #   acceptAllMethod: "all"
 
+# WRPCheck provides the details needed to authorize incoming WRP message
+# requests from partners against their credentials. The type can be "monitor" or "enforce".
+# If "monitor" is provided, requests are authorized even when the WRP message has invalid
+# credentials. If "enforce" is provided, such requests are rejected. For either type, transaction
+# metrics are collected. If no valid type is provided, no checks are provided.
+# Note: Enabling this check requires that only JWT Authentication is enabled as the source of
+# truth for the authorization comes from the JWT claims allowedResources.allowedPartners
+# (Optional)
+# WRPCheck:
+#   type: "enforce"
+
 ########################################
 #   Service Discovery Configuration
 ########################################

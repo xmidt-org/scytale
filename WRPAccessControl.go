@@ -143,14 +143,14 @@ func contains(list []string, str string) bool {
 
 //returns true if a is a subset of b
 func isSubset(a, b []string) bool {
-	m := make(map[string]struct{})
+	m := make(map[string]bool)
 
 	for _, e := range b {
-		m[e] = struct{}{}
+		m[e] = true
 	}
 
 	for _, e := range a {
-		if _, ok := m[e]; !ok {
+		if !m[e] {
 			return false
 		}
 	}

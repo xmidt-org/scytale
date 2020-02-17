@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	gokithttp "github.com/go-kit/kit/transport/http"
@@ -31,7 +30,7 @@ func newWRPFanoutHandler(fanoutHandler http.Handler) wrphttp.HandlerFunc {
 		panic("fanoutHandler must be defined")
 	}
 	return func(w wrphttp.ResponseWriter, r *wrphttp.Request) {
-		fanoutPrep(r.Original, r.Entity.Source, r.Entity)
+		fanoutPrep(r.Original, r.Entity.Bytes, r.Entity)
 		fanoutHandler.ServeHTTP(w, r.Original)
 	}
 }
@@ -48,11 +47,10 @@ func newWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p wrpAccessAuth
 			ctx        = r.Context()
 			entity     = r.Entity
 			fanout     = r.Original
-			fanoutBody = r.Entity.Source
+			fanoutBody = r.Entity.Bytes
 		)
 
 		modified, err := p.authorizeWRP(ctx, &entity.Message)
-		fmt.Println(err == nil)
 
 		if err != nil {
 			encodeError(ctx, err, w)

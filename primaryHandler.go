@@ -40,6 +40,7 @@ import (
 	"github.com/xmidt-org/webpa-common/logging/logginghttp"
 	"github.com/xmidt-org/webpa-common/service"
 	"github.com/xmidt-org/webpa-common/service/monitor"
+	"github.com/xmidt-org/webpa-common/xhttp"
 	"github.com/xmidt-org/webpa-common/xhttp/fanout"
 	"github.com/xmidt-org/webpa-common/xmetrics"
 	"github.com/xmidt-org/wrp-go/v2"
@@ -201,35 +202,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	}
 
 	var (
-		handlerChain = authChain.Extend(
-			fanout.NewChain(
-				cfg,
-				logginghttp.SetLogger(
-					logger,
-					logginghttp.RequestInfo,
-
-					// custom logger func that extracts the intended destination of requests
-					func(kv []interface{}, request *http.Request) []interface{} {
-						if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
-							return append(kv, "X-Webpa-Device-Name", deviceName)
-						}
-
-						if variables := mux.Vars(request); len(variables) > 0 {
-							if deviceID := variables["deviceID"]; len(deviceID) > 0 {
-								return append(kv, "deviceID", deviceID)
-							}
-						}
-						return kv
-					},
-				),
-			),
-		)
-
 		transactor = fanout.NewTransactor(cfg)
 		options    = []fanout.Option{
 			fanout.WithTransactor(transactor),
 		}
 	)
+
 	if len(cfg.Authorization) > 0 {
 		options = append(
 			options,
@@ -245,24 +223,54 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	)
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
-		response.WriteHeader(http.StatusBadRequest)
+		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
 	})
 
-	fanoutHandler := fanout.New(
-		endpoints,
-		append(
-			options,
-			fanout.WithFanoutBefore(
-				fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
-			),
-			fanout.WithFanoutFailure(
-				fanout.ReturnHeadersWithPrefix("X-"),
-			),
-			fanout.WithFanoutAfter(
-				fanout.ReturnHeadersWithPrefix("X-"),
-			),
-		)...,
+	fanoutChain := fanout.NewChain(
+		cfg,
+		logginghttp.SetLogger(
+			logger,
+			logginghttp.RequestInfo,
+
+			// custom logger func that extracts the intended destination of requests
+			func(kv []interface{}, request *http.Request) []interface{} {
+				if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
+					return append(kv, "X-Webpa-Device-Name", deviceName)
+				}
+
+				if variables := mux.Vars(request); len(variables) > 0 {
+					if deviceID := variables["deviceID"]; len(deviceID) > 0 {
+						return append(kv, "deviceID", deviceID)
+					}
+				}
+				return kv
+			},
+		),
 	)
+
+	HTTPFanoutHandler := fanoutChain.Then(
+		fanout.New(
+			endpoints,
+			append(
+				options,
+				fanout.WithFanoutBefore(
+					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),
+					fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
+
+					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
+						fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(body)
+						fanout.ContentLength = int64(len(body))
+						return ctx, nil
+					},
+				),
+				fanout.WithFanoutFailure(
+					fanout.ReturnHeadersWithPrefix("X-"),
+				),
+				fanout.WithFanoutAfter(
+					fanout.ReturnHeadersWithPrefix("X-"),
+				),
+			)...,
+		))
 
 	var (
 		wrpCheckConfig   WRPCheckConfig
@@ -283,13 +291,13 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 
 	if wrpCheckConfig.Type == "enforce" || wrpCheckConfig.Type == "monitor" {
 		WRPFanoutHandler = newWRPFanoutHandlerWithPIDCheck(
-			fanoutHandler,
+			HTTPFanoutHandler,
 			&wrpPartnersAccess{
 				strict:                  wrpCheckConfig.Type == "enforce",
 				receivedWRPMessageCount: NewReceivedWRPCounter(registry),
 			})
 	} else {
-		WRPFanoutHandler = newWRPFanoutHandler(fanoutHandler)
+		WRPFanoutHandler = newWRPFanoutHandler(HTTPFanoutHandler)
 	}
 
 	sendWRPHandler := wrphttp.NewHTTPHandler(WRPFanoutHandler,
@@ -297,14 +305,18 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		wrphttp.WithNewResponseWriter(nonWRPResponseWriterFactory))
 
 	sendSubrouter.Headers(
-		wrphttp.MessageTypeHeader, "",
-		"Content-Type", wrp.Msgpack.ContentType(),
-		"Content-Type", wrp.JSON.ContentType()).
-		Handler(handlerChain.Then(sendWRPHandler))
+		wrphttp.MessageTypeHeader, "").
+		Handler(authChain.Then(sendWRPHandler))
+
+	sendSubrouter.Headers("Content-Type", wrp.Msgpack.ContentType()).
+		Handler(authChain.Then(sendWRPHandler))
+
+	sendSubrouter.Headers("Content-Type", wrp.JSON.ContentType()).
+		Handler(authChain.Then(sendWRPHandler))
 
 	router.Handle(
 		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),
-		handlerChain.Then(
+		authChain.Extend(fanoutChain).Then(
 			fanout.New(
 				endpoints,
 				append(

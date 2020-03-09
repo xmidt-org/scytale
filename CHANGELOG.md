@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- add docker automation [#91](https://github.com/xmidt-org/scytale/pull/91)
 
 ## [v0.4.1]
 - fix bug in wiring of WRP and Fanout handler chains [#89](https://github.com/xmidt-org/scytale/pull/89)

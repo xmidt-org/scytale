@@ -322,7 +322,7 @@ service:
           - (( concat "flavor=" $FLAVOR || "flavor=mint" ))
 
         # address tells consul where to contact the service.
-        address: "https://scytale"
+        address: (( concat "http://" $HOSTNAME || "http://scytale" ))
 
         # scheme tells consul what scheme to use to contact the service.
         # This is used with the address for calls to this server.

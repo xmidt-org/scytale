@@ -172,7 +172,7 @@ fanout:
   # if this is set, it overrides the service.fixed values.
   # (Optional) if empty, endpoints are driven by service discovery
   endpoints:
-    - (( grab $PETASOS_ENDPOINT || "https://petasos:6400/api/v2/device/send")
+    - (( grab $PETASOS_ENDPOINT || "https://petasos:6400/api/v2/device/send" ))
 
   # Authorization is the Basic Auth token to use for each request.
   # (Optional) defaults to no auth token

@@ -31,12 +31,12 @@ Scytale has two API endpoints to interact with the devices: 1) get the statistic
 a device and 2) send a [WRP Message](https://github.com/xmidt-org/wrp-c/wiki/Web-Routing-Protocol)
 to the device.  If the device isn't connected, a 404 is returned.
 
-#### Device Statistics - `/device/{deviceID}/stat` endpoint
+#### Device Statistics - `/api/v2/device/{deviceID}/stat` endpoint
 This will return the statistics of the connected device,
 including information such as uptime and bytes sent.
 This information is retrieved from the talaria that the device is connected to.
 
-#### Send WRP to Device - `/device/send` endpoint
+#### Send WRP to Device - `/api/v2/device/send` endpoint
 This will send a WRP message to the device.
 Scytale will accept a WRP message encoded in a valid WRP representation - generally `msgpack` or `json`
 and will forward the request to the correct talaria.

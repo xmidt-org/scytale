@@ -222,7 +222,7 @@ fanout:
 # authHeader provides the list of basic auth headers that scytale will accept
 # as authorization. Note: This is an example authHeader. Do not use this in production.
 # (Optional)
-authHeader: ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=","dXNlcjpwYXNzCg=="]
+authHeader: ["dXNlcjpwYXNz"]
 
 # jwtValidator provides the details about where to get the keys for JWT
 # kid values and their associated information (expiration, etc) for JWTs

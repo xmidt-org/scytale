@@ -143,7 +143,7 @@ log:
 
   # level is the logging level to use - INFO, DEBUG, WARN, ERROR
   # (Optional) defaults to ERROR
-  level: "DEBUG"
+  level: (( grab $LOG_LEVEL || "INFO" ))
 
   # maxsize is the maximum file size in MB
   # (Optional) defaults to max 100MB
@@ -164,6 +164,8 @@ log:
 ########################################
 #   Fanout Related Configuration
 ########################################
+fallback_endpoints:
+  - https://petasos:6400/api/v2/device/send
 
 # fanout describes the endpoints to fanout to and the http configuration to use for each fanout connection.
 # defined https://godoc.org/github.com/xmidt-org/webpa-common/xhttp/fanout#Configuration
@@ -171,13 +173,12 @@ fanout:
   # endpoints are the URLs for each endpoint to fan out to.
   # if this is set, it overrides the service.fixed values.
   # (Optional) if empty, endpoints are driven by service discovery
-  endpoints:
-    - (( grab $PETASOS_ENDPOINT || "https://petasos:6400/api/v2/device/send" ))
+  endpoints: (( grab $PETASOS_ENDPOINTS || fallback_endpoints ))
 
   # Authorization is the Basic Auth token to use for each request.
   # (Optional) defaults to no auth token
   # WARNING: This is an example auth token. DO NOT use this in production.
-  authorization: (( grab $AUTH_TOKEN || "YXV0aEhlYWRlcg==" ))
+  authorization: (( grab $AUTH_TOKEN || "dXNlcjpwYXNz" ))
 
   # transport is a way to overwrite the default golang http.Transport configuration.
   # defined  https://golang.org/pkg/net/http/#Transport
@@ -227,7 +228,7 @@ fanout:
 # as authorization. Note: This is an example authHeader. Do not use this in production.
 # (Optional)
 authHeader:
-  - (( grab $AUTH_HEADER || "dXNlcjpwYXNzCg==" ))
+  - (( grab $AUTH_HEADER || "dXNlcjpwYXNz" ))
 
 # jwtValidator provides the details about where to get the keys for JWT
 # kid values and their associated information (expiration, etc) for JWTs

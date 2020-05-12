@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -32,6 +33,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
+	"github.com/xmidt-org/argus/webhookclient"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/webpa-common/basculechecks"
@@ -40,6 +42,7 @@ import (
 	"github.com/xmidt-org/webpa-common/logging/logginghttp"
 	"github.com/xmidt-org/webpa-common/service"
 	"github.com/xmidt-org/webpa-common/service/monitor"
+	"github.com/xmidt-org/webpa-common/webhook"
 	"github.com/xmidt-org/webpa-common/xhttp"
 	"github.com/xmidt-org/webpa-common/xhttp/fanout"
 	"github.com/xmidt-org/webpa-common/xmetrics"
@@ -136,9 +139,18 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	var capabilityCheck CapabilityConfig
 	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
 	if capabilityCheck.Type == "enforce" || capabilityCheck.Type == "monitor" {
-		checker, err := basculechecks.NewCapabilityChecker(capabilityCheckMeasures, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+		var endpoints []*regexp.Regexp
+		for _, e := range capabilityCheck.EndpointBuckets {
+			r, err := regexp.Compile(e)
+			if err != nil {
+				logging.Error(logger).Log(logging.MessageKey(), "failed to compile regular expression", "regex", e, logging.ErrorKey(), err.Error())
+				continue
+			}
+			endpoints = append(endpoints, r)
+		}
+		checker, err := basculechecks.NewCapabilityChecker(capabilityCheckMeasures, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod, endpoints)
 		if err != nil {
-			return alice.Chain{}, emperror.With(err, "failed to create capability check")
+			return alice.New(), emperror.With(err, "failed to create capability check")
 		}
 		bearerRules = append(bearerRules, checker.CreateBasculeCheck(capabilityCheck.Type == "enforce"))
 	}
@@ -314,6 +326,38 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	sendSubrouter.Headers("Content-Type", wrp.JSON.ContentType()).
 		Handler(authChain.Then(sendWRPHandler))
 
+	webhookListSize := NewWebhookListSizeGauge(registry)
+
+	var updatewebhookListSize webhookclient.ListenerFunc = func(hooks []webhook.W) {
+		webhookListSize.Set(float64(len(hooks)))
+	}
+
+	webhookConfig, err := readWebhookConfig(v)
+	if err != nil {
+		logging.Error(logger).Log(logging.ErrorKey(), err, logging.MessageKey(), "could not read webhook config successfully")
+		return nil, err
+	}
+
+	webhookRegistry, err := NewRegistry(RegistryConfig{
+		Logger:      logger,
+		CacheConfig: webhookConfig.CacheConfig,
+		ArgusConfig: webhookConfig.ArgusConfig,
+	}, updatewebhookListSize)
+
+	if err != nil {
+		return nil, err
+	}
+
+	router.Handle(
+		fmt.Sprintf("%s/%s/hook", baseURI, version),
+		authChain.ThenFunc(webhookRegistry.UpdateRegistry),
+	).Methods(http.MethodPost)
+
+	router.Handle(
+		fmt.Sprintf("%s/%s/hooks", baseURI, version),
+		authChain.ThenFunc(webhookRegistry.GetRegistry),
+	).Methods(http.MethodGet)
+
 	router.Handle(
 		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),
 		authChain.Extend(fanoutChain).Then(
@@ -336,4 +380,13 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	).Methods("GET")
 
 	return router, nil
+}
+
+func readWebhookConfig(v *viper.Viper) (*webhookConfig, error) {
+	config := new(webhookConfig)
+	err := v.UnmarshalKey("webhook", config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
 }

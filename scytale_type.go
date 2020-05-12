@@ -18,6 +18,7 @@
 package main
 
 import (
+	"github.com/xmidt-org/argus/webhookclient"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/key"
 )
@@ -30,4 +31,9 @@ type JWTValidator struct {
 	// Leeway is used to set the amount of time buffer should be given to JWT
 	// time values, such as nbf
 	Leeway bascule.Leeway
+}
+
+type webhookConfig struct {
+	CacheConfig webhookclient.CacheConfig
+	ArgusConfig webhookclient.ArgusConfig
 }

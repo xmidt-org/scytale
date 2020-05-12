@@ -57,6 +57,7 @@ type CapabilityConfig struct {
 	Type            string
 	Prefix          string
 	AcceptAllMethod string
+	EndpointBuckets []string
 }
 
 // scytale is the driver function for Scytale.  It performs everything main() would do,

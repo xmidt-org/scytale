@@ -35,7 +35,6 @@ import (
 	"github.com/xmidt-org/webpa-common/server"
 	"github.com/xmidt-org/webpa-common/service"
 	"github.com/xmidt-org/webpa-common/service/servicecfg"
-	"github.com/xmidt-org/webpa-common/webhook"
 	"github.com/xmidt-org/webpa-common/webhook/aws"
 )
 
@@ -71,7 +70,7 @@ func scytale(arguments []string) int {
 		f = pflag.NewFlagSet(applicationName, pflag.ContinueOnError)
 		v = viper.New()
 
-		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, basculechecks.Metrics, basculemetrics.Metrics, Metrics)
+		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, aws.Metrics, basculechecks.Metrics, basculemetrics.Metrics, Metrics)
 	)
 
 	if parseErr, done := printVersion(f, arguments); done {

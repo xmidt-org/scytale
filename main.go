@@ -123,17 +123,12 @@ func scytale(arguments []string) int {
 		return 4
 	}
 
-	signal.Notify(signals)
+	signal.Notify(signals, os.Kill, os.Interrupt)
 	for exit := false; !exit; {
 		select {
 		case s := <-signals:
-			if s != os.Kill && s != os.Interrupt {
-				logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "ignoring signal", "signal", s)
-			} else {
-				logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "exiting due to signal", "signal", s)
-				exit = true
-			}
-
+			logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "exiting due to signal", "signal", s)
+			exit = true
 		case <-done:
 			logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "one or more servers exited")
 			exit = true

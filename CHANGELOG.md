@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 
+## [v0.4.3]
+### Changed
+- Updated webpa-common version to 1.10.3. [#104](https://github.com/xmidt-org/scytale/pull/104)
+
+
 ## [v0.4.2]
 ### Added 
 - Docker automation. [#91](https://github.com/xmidt-org/scytale/pull/91)
@@ -45,7 +50,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/Comcast/scytale/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/Comcast/scytale/compare/v0.4.3...HEAD
+[v0.4.3]: https://github.com/Comcast/scytale/compare/v0.4.2...v0.4.3
 [v0.4.2]: https://github.com/Comcast/scytale/compare/v0.4.1...v0.4.2
 [v0.4.1]: https://github.com/Comcast/scytale/compare/v0.4.0...v0.4.1
 [v0.4.0]: https://github.com/Comcast/scytale/compare/v0.3.1...v0.4.0

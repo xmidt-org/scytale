@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -136,7 +137,16 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	var capabilityCheck CapabilityConfig
 	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
 	if capabilityCheck.Type == "enforce" || capabilityCheck.Type == "monitor" {
-		checker, err := basculechecks.NewCapabilityChecker(capabilityCheckMeasures, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+		var endpoints []*regexp.Regexp
+		for _, e := range capabilityCheck.EndpointBuckets {
+			r, err := regexp.Compile(e)
+			if err != nil {
+				logging.Error(logger).Log(logging.MessageKey(), "failed to compile regular expression", "regex", e, logging.ErrorKey(), err.Error())
+				continue
+			}
+			endpoints = append(endpoints, r)
+		}
+		checker, err := basculechecks.NewCapabilityChecker(capabilityCheckMeasures, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod, endpoints)
 		if err != nil {
 			return alice.Chain{}, emperror.With(err, "failed to create capability check")
 		}

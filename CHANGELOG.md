@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.4.4]
+### Fixed
+- Fix scytale fannout via service discovery [#105](https://github.com/xmidt-org/scytale/pull/105)
 
 ## [v0.4.3]
 ### Changed
@@ -50,14 +53,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/Comcast/scytale/compare/v0.4.3...HEAD
-[v0.4.3]: https://github.com/Comcast/scytale/compare/v0.4.2...v0.4.3
-[v0.4.2]: https://github.com/Comcast/scytale/compare/v0.4.1...v0.4.2
-[v0.4.1]: https://github.com/Comcast/scytale/compare/v0.4.0...v0.4.1
-[v0.4.0]: https://github.com/Comcast/scytale/compare/v0.3.1...v0.4.0
-[v0.3.1]: https://github.com/Comcast/scytale/compare/v0.3.0...v0.3.1
-[v0.3.0]: https://github.com/Comcast/scytale/compare/v0.2.0...v0.3.0
-[v0.2.0]: https://github.com/Comcast/scytale/compare/v0.1.5...v0.2.0
-[v0.1.5]: https://github.com/Comcast/scytale/compare/v0.1.4...v0.1.5
-[v0.1.4]: https://github.com/Comcast/scytale/compare/v0.1.1...v0.1.4
-[v0.1.1]: https://github.com/Comcast/scytale/compare/v0.1.0...v0.1.1
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.4...HEAD
+[v0.4.4]: https://github.com/xmidt-org/scytale/compare/v0.4.3...v0.4.4
+[v0.4.3]: https://github.com/xmidt-org/scytale/compare/v0.4.2...v0.4.3
+[v0.4.2]: https://github.com/xmidt-org/scytale/compare/v0.4.1...v0.4.2
+[v0.4.1]: https://github.com/xmidt-org/scytale/compare/v0.4.0...v0.4.1
+[v0.4.0]: https://github.com/xmidt-org/scytale/compare/v0.3.1...v0.4.0
+[v0.3.1]: https://github.com/xmidt-org/scytale/compare/v0.3.0...v0.3.1
+[v0.3.0]: https://github.com/xmidt-org/scytale/compare/v0.2.0...v0.3.0
+[v0.2.0]: https://github.com/xmidt-org/scytale/compare/v0.1.5...v0.2.0
+[v0.1.5]: https://github.com/xmidt-org/scytale/compare/v0.1.4...v0.1.5
+[v0.1.4]: https://github.com/xmidt-org/scytale/compare/v0.1.1...v0.1.4
+[v0.1.1]: https://github.com/xmidt-org/scytale/compare/v0.1.0...v0.1.1

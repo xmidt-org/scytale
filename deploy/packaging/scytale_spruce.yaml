@@ -379,11 +379,9 @@ service:
         # (Optional) defaults to false
         passingOnly: true
 
-        # crossDatacenter determines if there is a watch for all datacenter changes, and key by datacenter
-        # change this to have the fannout hash across all datacenters instead of
-        # the single datacenter.
-        # (Optional) defaults to false, aka only watch for services in the
-        # current datacenter.
+        # crossDatacenter determines if a watch should be created for each known datacenter which allows
+        # scytale's fannout hash to work across all datacenters.
+        # (Optional) defaults to false meaning a single watch is setup with the current datacenter.
         crossDatacenter: true
 
         # queryOptions are options for the consul query, used in conjunction

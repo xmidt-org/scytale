@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.4.5]
+### Fixed
+- Fixed scytale fannout error when a datacenter was empty by bumping webpa-common to 1.10.6 [#106](https://github.com/xmidt-org/scytale/pull/106)
+
 ## [v0.4.4]
 ### Fixed
 - Fix scytale fannout via service discovery [#105](https://github.com/xmidt-org/scytale/pull/105)
@@ -13,7 +17,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [v0.4.3]
 ### Changed
 - Updated webpa-common version to 1.10.3. [#104](https://github.com/xmidt-org/scytale/pull/104)
-
 
 ## [v0.4.2]
 ### Added 
@@ -53,7 +56,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.5...HEAD
+[v0.4.5]: https://github.com/xmidt-org/scytale/compare/v0.4.4...v0.4.5
 [v0.4.4]: https://github.com/xmidt-org/scytale/compare/v0.4.3...v0.4.4
 [v0.4.3]: https://github.com/xmidt-org/scytale/compare/v0.4.2...v0.4.3
 [v0.4.2]: https://github.com/xmidt-org/scytale/compare/v0.4.1...v0.4.2

@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/xmidt-org/webpa-common/device"
 	"net/http"
 	"regexp"
 
@@ -57,6 +58,8 @@ const (
 	jwtAuthConfigKey   = "jwtValidator"
 	wrpCheckConfigKey  = "WRPCheck"
 )
+
+var errNoDeviceName = errors.New("no device name")
 
 func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
 	return func(delegate http.Handler) http.Handler {
@@ -176,7 +179,29 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 		return fanout.ParseURLs(cfg.Endpoints...)
 	} else if e != nil {
 		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using service discovery for fanout")
-		endpoints := fanout.NewServiceEndpoints(fanout.WithAccessorFactory(e.AccessorFactory()))
+		endpoints := fanout.NewServiceEndpoints(
+			fanout.WithAccessorFactory(e.AccessorFactory()),
+			fanout.WithKeyFunc(func(request *http.Request) ([]byte, error) {
+				deviceName := request.Header.Get(device.DeviceNameHeader)
+				if len(deviceName) == 0 {
+					if variables := mux.Vars(request); len(variables) > 0 {
+						if deviceID := variables["deviceID"]; len(deviceID) > 0 {
+							deviceName = deviceID
+						}
+					}
+				}
+				if len(deviceName) == 0 {
+					return nil, errNoDeviceName
+				}
+
+				id, err := device.ParseID(deviceName)
+				if err != nil {
+					return nil, err
+				}
+
+				return id.Bytes(), nil
+			}),
+		)
 
 		_, err := monitor.New(
 			monitor.WithLogger(logger),
@@ -215,6 +240,42 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		transactor = fanout.NewTransactor(cfg)
 		options    = []fanout.Option{
 			fanout.WithTransactor(transactor),
+			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {
+				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				w.Header().Set("X-Midt-Error", err.Error())
+				if headerer, ok := err.(gokithttp.Headerer); ok {
+					for k, values := range headerer.Headers() {
+						for _, v := range values {
+							w.Header().Add(k, v)
+						}
+					}
+				}
+				code := http.StatusInternalServerError
+				switch err {
+				case device.ErrorInvalidDeviceName:
+					code = http.StatusBadRequest
+				case device.ErrorDeviceNotFound:
+					code = http.StatusNotFound
+				case device.ErrorNonUniqueID:
+					code = http.StatusBadRequest
+				case device.ErrorInvalidTransactionKey:
+					code = http.StatusBadRequest
+				case device.ErrorTransactionAlreadyRegistered:
+					code = http.StatusBadRequest
+				case device.ErrorMissingPathVars:
+					code = http.StatusBadRequest
+				case device.ErrorNoSuchTransactionKey:
+					code = http.StatusBadGateway
+				case device.ErrorMissingDeviceNameHeader:
+					code = http.StatusBadRequest
+				case errNoDeviceName:
+					code = http.StatusBadRequest
+				}
+				if sc, ok := err.(gokithttp.StatusCoder); ok {
+					code = sc.StatusCode()
+				}
+				w.WriteHeader(code)
+			}),
 		}
 	)
 
@@ -332,7 +393,11 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				append(
 					options,
 					fanout.WithFanoutBefore(
-						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
+						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
+							fanout.URL.Path = original.URL.Path
+							fanout.URL.RawPath = ""
+							return ctx, nil
+						},
 					),
 					fanout.WithFanoutFailure(
 						fanout.ReturnHeadersWithPrefix("X-"),

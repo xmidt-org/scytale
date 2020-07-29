@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Added Error Encoder [#107](https://github.com/xmidt-org/scytale/pull/107)
+- Fixed 500 error when device header is not set to be 400 [#107](https://github.com/xmidt-org/scytale/pull/107)
+- Fixed stat endpoint fanout to wrong endpoint [#107](https://github.com/xmidt-org/scytale/pull/107)
 
 ## [v0.4.5]
 ### Fixed

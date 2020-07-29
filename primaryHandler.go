@@ -181,6 +181,7 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using service discovery for fanout")
 		endpoints := fanout.NewServiceEndpoints(
 			fanout.WithAccessorFactory(e.AccessorFactory()),
+			// required to get deviceID from either the header or the path
 			fanout.WithKeyFunc(func(request *http.Request) ([]byte, error) {
 				deviceName := request.Header.Get(device.DeviceNameHeader)
 				if len(deviceName) == 0 {
@@ -393,6 +394,9 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				append(
 					options,
 					fanout.WithFanoutBefore(
+						// required for petasos
+						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
+						// required for consul fanout
 						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 							fanout.URL.Path = original.URL.Path
 							fanout.URL.RawPath = ""

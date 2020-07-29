@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.4.7]
+- Fixed error where path would override deviceID in stat path. [#108](https://github.com/xmidt-org/scytale/pull/108)
+
 ## [v0.4.6]
 - Added Error Encoder [#107](https://github.com/xmidt-org/scytale/pull/107)
 - Fixed 500 error when device header is not set to be 400 [#107](https://github.com/xmidt-org/scytale/pull/107)
@@ -61,7 +64,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.6...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.7...HEAD
+[v0.4.7]: https://github.com/xmidt-org/scytale/compare/v0.4.6...v0.4.7
 [v0.4.6]: https://github.com/xmidt-org/scytale/compare/v0.4.5...v0.4.6
 [v0.4.5]: https://github.com/xmidt-org/scytale/compare/v0.4.4...v0.4.5
 [v0.4.4]: https://github.com/xmidt-org/scytale/compare/v0.4.3...v0.4.4

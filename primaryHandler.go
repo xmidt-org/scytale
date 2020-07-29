@@ -184,11 +184,11 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 			// required to get deviceID from either the header or the path
 			fanout.WithKeyFunc(func(request *http.Request) ([]byte, error) {
 				deviceName := request.Header.Get(device.DeviceNameHeader)
-				if len(deviceName) == 0 {
-					if variables := mux.Vars(request); len(variables) > 0 {
-						if deviceID := variables["deviceID"]; len(deviceID) > 0 {
-							deviceName = deviceID
-						}
+				// If deviceID is present in url us it instead.
+				// This is important for routing to the correct talaria.
+				if variables := mux.Vars(request); len(variables) > 0 {
+					if deviceID := variables["deviceID"]; len(deviceID) > 0 {
+						deviceName = deviceID
 					}
 				}
 				if len(deviceName) == 0 {

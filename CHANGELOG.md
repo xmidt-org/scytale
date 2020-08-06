@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.4.8]
+- Add eventKey to service discovery metric [#110](https://github.com/xmidt-org/scytale/pull/110)
+
 ## [v0.4.7]
 - Fixed error where path would override deviceID in stat path. [#108](https://github.com/xmidt-org/scytale/pull/108)
 
@@ -64,7 +67,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.7...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.8...HEAD
+[v0.4.8]: https://github.com/xmidt-org/scytale/compare/v0.4.7...v0.4.8
 [v0.4.7]: https://github.com/xmidt-org/scytale/compare/v0.4.6...v0.4.7
 [v0.4.6]: https://github.com/xmidt-org/scytale/compare/v0.4.5...v0.4.6
 [v0.4.5]: https://github.com/xmidt-org/scytale/compare/v0.4.4...v0.4.5

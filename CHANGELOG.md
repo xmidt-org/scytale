@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Update mentions of the default branch from 'master' to 'main'. [#111](https://github.com/xmidt-org/scytale/pull/111)
 
 ## [v0.4.8]
 - Add eventKey to service discovery metric [#110](https://github.com/xmidt-org/scytale/pull/110)

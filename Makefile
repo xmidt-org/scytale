@@ -68,12 +68,13 @@ style: vendor
 	! $(GOFMT) -d $$(find . -path ./vendor -prune -o -name '*.go' -print) | grep '^'
 
 .PHONY: test
-test: vendor
-	$(GO) test -v -race  -coverprofile=cover.out ./...
+test: go-mod-vendor
+	$(GO) test -v -race  -coverprofile=coverage.txt ./...
+	$(GO) test -v -race  -json ./... > report.json
 
 .PHONY: test-cover
 test-cover: test
-	$(GO) tool cover -html=cover.out
+	$(GO) tool cover -html=coverage.txt
 
 .PHONY: codecov
 codecov: test
@@ -85,4 +86,4 @@ it:
 
 .PHONY: clean
 clean:
-	rm -rf ./$(APP) ./.ignore ./coverage.txt ./vendor
+	rm -rf ./$(APP) ./.ignore ./coverage.txt ./vendor report.json

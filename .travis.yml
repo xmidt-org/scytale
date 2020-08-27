@@ -15,8 +15,18 @@ branches:
     - main
     - /^v[0-9]+\.[0-9]+\.[0-9]+$/
 
+addons:
+  sonarcloud:
+    organization: "xmidt-org"
+    token:
+      secure: "B0VgLGYBOvAUSPc0BlJXikWiGR67mQTgScHoMQQeFTXLFnYXOJII3syqn1jFd3wTDcm1lLNgQQ2hcjcxt3M4lpJqOWLiXBrRr1/8uwuYyaw8MRlSKPM5Vf+QmCVrKRsoll7dp7E3SutEgl/mVaqdcmMrAsTOpi6aXgM4HGAwEMzSYk7Ns5ynuVgRHU6lSGKeYb4UYUexRzhNvyH3OCC/gzeCRg9CfYLH3u+TJuES1CnH0yvQGQ9qsvsb5zQm/KQ/nFxH/zetCAIJukYQtEwVs4wchC1cOooJKrQnkVo9CcaYBaGKZJXfx3Y/fCnU1fkfmU9PlZC7VrFLe1i6wd/Rb7dNckNve0t67yA3Iut9+JF1uJQarADvqmRcIcbGNJQsTygJTINiIS5fZ8aKj2DeffosWgIZdtH/EMz2RSJoJ69SkfY+m2ffgcDILZNLbbqmTYryZIwXPZmBLOtRsIMRmIK1H8l0MWOZVPDTiExLj3pK4MsAle9gcHATXDc7NnqX5DGTMPiWJMr1lIBuMQHwNiX2bUkT/pifVvgw2WT7Naf8+0HWirruysjDwfIr6H3WlQIOu2xE3ydn0+L7EEi9HVEtbEBYyipnxnB4mJpo7+toQpO6LFNt4vGIQT4Op1wt5pYawRuxlptIvzCdKdjjTTJV5K7L5cSh/yMeJxRbdPU="
+
+
 script:
   - make style codecov
+
+after_success:
+  - sonar-scanner -Dproject.settings=./.sonar-project.properties
 
 jobs:
   fast_finish: true
@@ -41,6 +51,8 @@ jobs:
         - export TODAY=`date +'%m/%d/%Y'`
         - export NOTES=$(cat CHANGELOG.md | perl -0777 -ne 'print "$ENV{TODAY}\n\n$1\n" if /.*## \[$ENV{TAG}\]\s(.*?)\s+## \[(v\d+.\d+.\d+)\].*/s')
         - if [[ "$TAG" != "" && "$TAG" != "$OLD_VERSION" ]]; then git tag -a "$TAG" -m "$NOTES"; git push origin --tags; echo $?; fi
+      after_success: skip
+
     - stage: release
       name: "Make a Release"
       if: branch != main

@@ -23,9 +23,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/xmidt-org/webpa-common/device"
 	"net/http"
 	"regexp"
+
+	"github.com/xmidt-org/webpa-common/device"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -141,6 +142,10 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
 	if capabilityCheck.Type == "enforce" || capabilityCheck.Type == "monitor" {
 		var endpoints []*regexp.Regexp
+		c, err := basculechecks.NewEndpointRegexCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+		if err != nil {
+			return alice.Chain{}, emperror.With(err, "failed to create capability check")
+		}
 		for _, e := range capabilityCheck.EndpointBuckets {
 			r, err := regexp.Compile(e)
 			if err != nil {
@@ -149,11 +154,12 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 			}
 			endpoints = append(endpoints, r)
 		}
-		checker, err := basculechecks.NewCapabilityChecker(capabilityCheckMeasures, capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod, endpoints)
-		if err != nil {
-			return alice.Chain{}, emperror.With(err, "failed to create capability check")
+		m := basculechecks.MetricValidator{
+			C:         basculechecks.CapabilitiesValidator{Checker: c},
+			Measures:  capabilityCheckMeasures,
+			Endpoints: endpoints,
 		}
-		bearerRules = append(bearerRules, checker.CreateBasculeCheck(capabilityCheck.Type == "enforce"))
+		bearerRules = append(bearerRules, m.CreateValidator(capabilityCheck.Type == "enforce"))
 	}
 
 	authEnforcer := basculehttp.NewEnforcer(

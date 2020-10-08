@@ -56,6 +56,18 @@ func TestAuthorizeWRP(t *testing.T) {
 		},
 
 		{
+			Name:                "No AllowedPartners",
+			Error:               ErrAllowedPartnersNotFound,
+			InjectSecurityToken: true,
+			TokenType:           "jwt",
+			AllowedPartners:     nil,
+			BaseLabelPairs: map[string]string{
+				ReasonLabel:   JWTPIDInvalid,
+				ClientIDLabel: "tester",
+			},
+		},
+
+		{
 			Name:                "PartnerIDs missing from WRP",
 			Error:               ErrPIDMissing,
 			InjectSecurityToken: true,
@@ -178,11 +190,16 @@ func createLabelMaps(rejected bool, baseLabelPairs map[string]string) (strict ma
 }
 
 func enrichWithBasculeToken(ctx context.Context, tokenType string, allowedPartners []string) context.Context {
-	return bascule.WithAuthentication(ctx, bascule.Authentication{
-		Token: bascule.NewToken(tokenType, "tester", bascule.NewAttributesFromMap(map[string]interface{}{
-			"allowedResources": map[string]interface{}{"allowedPartners": allowedPartners},
-		})),
-	})
+	attrs := map[string]interface{}{
+		"allowedResources": map[string]interface{}{"allowedPartners": allowedPartners},
+	}
+	if allowedPartners == nil {
+		attrs = map[string]interface{}{"allowedResources": map[string]interface{}{}}
+	}
+	auth := bascule.Authentication{
+		Token: bascule.NewToken(tokenType, "tester", bascule.NewAttributes(attrs)),
+	}
+	return bascule.WithAuthentication(ctx, auth)
 }
 
 type testCounter struct {

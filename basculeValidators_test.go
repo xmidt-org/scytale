@@ -24,6 +24,12 @@ func TestRequirePartnerIDs(t *testing.T) {
 		},
 
 		{
+			name: "missing partnerIDs key",
+			attrMap: map[string]interface{}{
+				"allowedResources": map[string]interface{}{},
+			},
+		},
+		{
 			name: "no partnerIDs",
 			attrMap: map[string]interface{}{
 				"allowedResources": map[string]interface{}{
@@ -45,7 +51,7 @@ func TestRequirePartnerIDs(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
-			attrs := bascule.NewAttributesFromMap(test.attrMap)
+			attrs := bascule.NewAttributes(test.attrMap)
 			token := bascule.NewToken("bearer", "client0", attrs)
 
 			err := requirePartnersJWTClaim(ctx, token)

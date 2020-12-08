@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Changed
 - Update mentions of the default branch from 'master' to 'main'. [#111](https://github.com/xmidt-org/scytale/pull/111)
-- Bumped bascule and webpa-common versions. [#118](https://github.com/xmidt-org/scytale/pull/118)
+- Bumped bascule and webpa-common versions. [#118](https://github.com/xmidt-org/scytale/pull/124)
+- simplified Makefile. [#124](https://github.com/xmidt-org/scytale/pull/124)
+- prep for github actions. [#124](https://github.com/xmidt-org/scytale/pull/124)
 
 ## [v0.4.8]
 - Add eventKey to service discovery metric [#110](https://github.com/xmidt-org/scytale/pull/110)

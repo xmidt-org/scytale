@@ -50,6 +50,11 @@ _testmain.go
 
 scytale
 .ignore
+errors.txt
+
 
 !deploy/helm/scytale
 deploy/helm/scytale/rendered.*
+
+#ide
+.idea/

@@ -1,4 +1,4 @@
-.PHONY: default build test style docker deps binaries
+.PHONY: default build test style docker binaries clean
 
 
 DOCKER       ?= docker
@@ -47,5 +47,8 @@ binaries: generate
 
 	upx ./.ignore/$(APP)-$(PROGVER).darwin-amd64
 	upx ./.ignore/$(APP)-$(PROGVER).linux-amd64
+
+clean:
+	-rm -r .ignore/ $(APP) errors.txt report.json coverage.txt
 
 

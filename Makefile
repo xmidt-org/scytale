@@ -19,7 +19,7 @@ generate:
 	$(GO) generate ./...
 	$(GO) install ./...
 
-test:  generate
+test:
 	$(GO) test -v -race  -coverprofile=coverage.txt ./...
 	$(GO) test -v -race  -json ./... > report.json
 
@@ -29,10 +29,10 @@ style:
 check:
 	golangci-lint run -n | tee errors.txt
 
-build:  generate
+build:
 	CGO_ENABLED=0 $(GO) build $(GOBUILDFLAGS)
 
-release: generate build
+release: build
 	upx $(APP)
 
 docker:

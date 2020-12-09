@@ -2,7 +2,7 @@ FROM docker.io/library/golang:1.15-alpine as builder
 
 MAINTAINER Jack Murdock <jack_murdock@comcast.com>
 
-WORKDIR /go/src/github.com/xmidt-org/scytale
+WORKDIR /src
 
 ARG VERSION
 ARG GITCOMMIT
@@ -18,19 +18,15 @@ RUN apk add --no-cache --no-progress \
     libc-dev \
     upx
 
+RUN go get github.com/geofffranks/spruce/cmd/spruce && chmod +x /go/bin/spruce
 COPY . .
 RUN make test release
 
 FROM alpine:3.12.1
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /go/src/github.com/xmidt-org/scytale/scytale.yaml /scytale.yaml
-COPY --from=builder /go/src/github.com/xmidt-org/scytale/scytale /scytale
-COPY --from=builder /go/src/github.com/xmidt-org/scytale/Dockerfile /go/src/github.com/xmidt-org/scytale/NOTICE /go/src/github.com/xmidt-org/scytale/LICENSE /go/src/github.com/xmidt-org/scytale/CHANGELOG.md /
-COPY --from=builder /go/src/github.com/xmidt-org/scytale/deploy/packaging/entrypoint.sh /entrypoint.sh
-COPY --from=builder /go/src/github.com/xmidt-org/scytale/deploy/packaging/scytale_spruce.yaml /tmp/scytale_spruce.yaml
-ADD https://github.com/geofffranks/spruce/releases/download/v1.26.0/spruce-linux-amd64 /spruce
-RUN chmod +x /spruce
+COPY --from=builder /src/scytale /src/scytale.yaml /src/deploy/packaging/entrypoint.sh /go/bin/spruce /src/Dockerfile /src/NOTICE /src/LICENSE /src/CHANGELOG.md /
+COPY --from=builder /src/deploy/packaging/scytale_spruce.yaml /tmp/scytale_spruce.yaml
 
 RUN mkdir /etc/scytale/ && touch /etc/scytale/scytale.yaml && chmod 666 /etc/scytale/scytale.yaml
 

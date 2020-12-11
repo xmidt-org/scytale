@@ -61,7 +61,8 @@ jobs:
           only-new-issues: true
 
   goreportcard:
-    runs-on: ubuntu-lateest
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     steps:
       - name: Go report card
         uses: creekorful/goreportcard-action@v1.0

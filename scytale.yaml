@@ -165,10 +165,10 @@ log:
 # fanout describes the endpoints to fanout to and the http configuration to use for each fanout connection.
 # defined https://godoc.org/github.com/xmidt-org/webpa-common/xhttp/fanout#Configuration
 fanout:
-  # endpoints are the URLs for each endpoint to fan out to.
-  # if this is set, it overrides the service.fixed values.
-  # (Optional) if empty, endpoints are driven by service discovery
-  endpoints: ["http://localhost:6400/api/v2/device/send"]
+#  # endpoints are the URLs for each endpoint to fan out to.
+#  # if this is set, it overrides the service.fixed values.
+#  # (Optional) if empty, endpoints are driven by service discovery
+#  endpoints: ["http://petasos:6400/api/v2/device/send"]
 
   # Authorization is the Basic Auth token to use for each request.
   # (Optional) defaults to no auth token

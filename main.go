@@ -28,6 +28,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/xmidt-org/argus/chrysom"
 	"github.com/xmidt-org/webpa-common/basculechecks"
 	"github.com/xmidt-org/webpa-common/basculemetrics"
 	"github.com/xmidt-org/webpa-common/concurrent"
@@ -71,7 +72,7 @@ func scytale(arguments []string) int {
 		f = pflag.NewFlagSet(applicationName, pflag.ContinueOnError)
 		v = viper.New()
 
-		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, basculechecks.Metrics, basculemetrics.Metrics, Metrics, service.Metrics)
+		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, basculechecks.Metrics, basculemetrics.Metrics, chrysom.Metrics, Metrics, service.Metrics)
 	)
 
 	if parseErr, done := printVersion(f, arguments); done {
@@ -96,7 +97,7 @@ func scytale(arguments []string) int {
 	var e service.Environment
 	if v.IsSet("service") {
 		var err error
-		e, err = servicecfg.NewEnvironment(logger, v.Sub("service"))
+		e, err = servicecfg.NewEnvironment(logger, v.Sub("service"), service.WithProvider(metricsRegistry))
 		if err != nil {
 			logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "Unable to initialize service discovery environment", logging.ErrorKey(), err)
 			return 4

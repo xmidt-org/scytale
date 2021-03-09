@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/xmidt-org/candlelight"
 	"net/http"
 	"regexp"
 
@@ -62,12 +63,14 @@ const (
 
 var errNoDeviceName = errors.New("no device name")
 
-func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
+func SetLogger(logger log.Logger, headerConfig candlelight.HeaderConfig) func(delegate http.Handler) http.Handler {
+	spanIDHeaderName, traceIDHeaderName := candlelight.ExtractSpanIDAndTraceIDHeaderName(headerConfig)
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
+				traceId, spanId := candlelight.ExtractTraceInformation(r.Context())
 				ctx := r.WithContext(logging.WithLogger(r.Context(),
-					log.With(logger, "requestHeaders", r.Header, "requestURL", r.URL.EscapedPath(), "method", r.Method)))
+					log.With(logger, "requestHeaders", r.Header, "requestURL", r.URL.EscapedPath(), "method", r.Method, spanIDHeaderName, spanId, traceIDHeaderName, traceId)))
 				delegate.ServeHTTP(w, ctx)
 			})
 	}
@@ -78,7 +81,7 @@ func GetLogger(ctx context.Context) bascule.Logger {
 	return logger
 }
 
-func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
+func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry, traceConfig candlelight.TraceConfig) (alice.Chain, error) {
 	if registry == nil {
 		return alice.Chain{}, errors.New("nil registry")
 	}
@@ -171,7 +174,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	constructors := []alice.Constructor{SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
+	constructors := []alice.Constructor{traceConfig.TraceMiddleware, SetLogger(logger, traceConfig.HeaderConfig), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
 
 	return alice.New(constructors...), nil
 }
@@ -226,7 +229,7 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 	return nil, errors.New("Unable to create endpoints")
 }
 
-func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment) (http.Handler, error) {
+func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, traceConfig candlelight.TraceConfig) (http.Handler, error) {
 	var cfg fanout.Configuration
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
@@ -238,7 +241,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		return nil, err
 	}
 
-	authChain, err := authChain(v, logger, registry)
+	authChain, err := authChain(v, logger, registry, traceConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +286,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				}
 				w.WriteHeader(code)
 			}),
+			fanout.WithClientBefore(forwardTraceInformation()),
 		}
 	)
 
@@ -322,7 +326,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					}
 				}
 				return kv
-			},
+			}, candlelight.InjectTraceInformationInLogger(traceConfig.HeaderConfig),
 		),
 	)
 
@@ -421,4 +425,11 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	).Methods("GET")
 
 	return router, nil
+}
+
+func forwardTraceInformation() gokithttp.RequestFunc {
+	return func(ctx context.Context, r *http.Request) context.Context {
+		candlelight.InjectTraceInformation(ctx, r.Header)
+		return ctx
+	}
 }

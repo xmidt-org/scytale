@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/argus/chrysom"
+	"github.com/xmidt-org/candlelight"
 	"github.com/xmidt-org/webpa-common/basculechecks"
 	"github.com/xmidt-org/webpa-common/basculemetrics"
 	"github.com/xmidt-org/webpa-common/concurrent"
@@ -44,8 +45,9 @@ const (
 	//DefaultKeyID is used to build JWT validators
 	DefaultKeyID = "current"
 
-	applicationName = "scytale"
-	release         = "Developer"
+	applicationName  = "scytale"
+	release          = "Developer"
+	traceProviderKey = "traceProvider"
 )
 
 var (
@@ -94,6 +96,24 @@ func scytale(arguments []string) int {
 
 	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
 
+	u := v.Sub(traceProviderKey)
+	if u == nil {
+		fmt.Fprintf(os.Stderr, "traceProvider configuration is missing.\n")
+		return 1
+	}
+	config := &candlelight.Config{
+		ApplicationName: applicationName,
+	}
+	headerConfig := &candlelight.HeaderConfig{}
+	u.Unmarshal(headerConfig)
+	u.Unmarshal(config)
+	traceProvider, err := candlelight.ConfigureTracerProvider(*config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to build traceProvider: %s\n", err.Error())
+		return 1
+	}
+	traceConfig := candlelight.TraceConfig{*headerConfig, traceProvider}
+
 	var e service.Environment
 	if v.IsSet("service") {
 		var err error
@@ -104,7 +124,7 @@ func scytale(arguments []string) int {
 		}
 	}
 
-	primaryHandler, err := NewPrimaryHandler(logger, v, metricsRegistry, e)
+	primaryHandler, err := NewPrimaryHandler(logger, v, metricsRegistry, e, traceConfig)
 	if err != nil {
 		logger.Log(level.Key(), level.ErrorValue(), logging.ErrorKey(), err, logging.MessageKey(), "unable to create primary handler")
 		return 2

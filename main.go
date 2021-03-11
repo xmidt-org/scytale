@@ -112,7 +112,7 @@ func scytale(arguments []string) int {
 		fmt.Fprintf(os.Stderr, "Unable to build traceProvider: %s\n", err.Error())
 		return 1
 	}
-	traceConfig := candlelight.TraceConfig{*headerConfig, traceProvider}
+	traceConfig := candlelight.TraceConfig{HeaderConfig:*headerConfig, TraceProvider:traceProvider}
 
 	var e service.Environment
 	if v.IsSet("service") {

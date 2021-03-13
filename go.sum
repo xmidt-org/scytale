@@ -719,6 +719,8 @@ github.com/xmidt-org/bascule v0.9.0 h1:CsMtwiDO4jjoOIh4pWe2U9tXA9A73CfohDsSvwzXm
 github.com/xmidt-org/bascule v0.9.0/go.mod h1:C64nSBtUTTK/f2/mCvvp/qJhav5raD0T+by68DCp/gU=
 github.com/xmidt-org/candlelight v0.0.2 h1:vTk8nIW652At7Biw1K/IvftDQDCctuTDt1MXYpYP308=
 github.com/xmidt-org/candlelight v0.0.2/go.mod h1:gtXflnkL8urTPIjG+krbA90dN4tBpyAHZO5IxuWGcCk=
+github.com/xmidt-org/candlelight v0.0.3-0.20210312201217-3f71a15ad64f h1:v91ZXNRRRzsFihnEPy59xWu/ulcVsaoQidu1xygs4tc=
+github.com/xmidt-org/candlelight v0.0.3-0.20210312201217-3f71a15ad64f/go.mod h1:gtXflnkL8urTPIjG+krbA90dN4tBpyAHZO5IxuWGcCk=
 github.com/xmidt-org/themis v0.4.4 h1:KewitRxStW1xOehDBi0YyGZyRv3PjFdYUEDvQFf1Nmk=
 github.com/xmidt-org/themis v0.4.4/go.mod h1:0qRYFvKdrQhwjxH/1nAiTgBGT4cegJR76gfEYF5P7so=
 github.com/xmidt-org/webpa-common v1.1.0/go.mod h1:oCpKzOC+9h2vYHVzAU/06tDTQuBN4RZz+rhgIXptpOI=

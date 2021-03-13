@@ -101,18 +101,19 @@ func scytale(arguments []string) int {
 		fmt.Fprintf(os.Stderr, "traceProvider configuration is missing.\n")
 		return 1
 	}
-	config := &candlelight.Config{
-		ApplicationName: applicationName,
+
+	tracingConfig := &candlelight.TracingConfig{
+		Provider: candlelight.Config{
+			ApplicationName: applicationName,
+		},
 	}
-	headerConfig := &candlelight.HeaderConfig{}
-	u.Unmarshal(headerConfig)
-	u.Unmarshal(config)
-	traceProvider, err := candlelight.ConfigureTracerProvider(*config)
+	u.Unmarshal(tracingConfig)
+	traceProvider, err := candlelight.ConfigureTracerProvider(tracingConfig.Provider)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to build traceProvider: %s\n", err.Error())
 		return 1
 	}
-	traceConfig := candlelight.TraceConfig{HeaderConfig:*headerConfig, TraceProvider:traceProvider}
+	traceConfig := candlelight.TraceConfig{HeaderConfig: tracingConfig.Headers, TraceProvider: traceProvider}
 
 	var e service.Environment
 	if v.IsSet("service") {

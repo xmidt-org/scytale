@@ -47,7 +47,7 @@ const (
 
 	applicationName  = "scytale"
 	release          = "Developer"
-	traceProviderKey = "traceProvider"
+	tracingConfigKey = "tracing"
 )
 
 var (
@@ -96,9 +96,9 @@ func scytale(arguments []string) int {
 
 	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
 
-	u := v.Sub(traceProviderKey)
+	u := v.Sub(tracingConfigKey)
 	if u == nil {
-		fmt.Fprintf(os.Stderr, "traceProvider configuration is missing.\n")
+		fmt.Fprintf(os.Stderr, "tracing configuration is missing.\n")
 		return 1
 	}
 

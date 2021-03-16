@@ -63,14 +63,13 @@ const (
 
 var errNoDeviceName = errors.New("no device name")
 
-func SetLogger(logger log.Logger, headerConfig candlelight.HeaderConfig) func(delegate http.Handler) http.Handler {
-	spanIDHeaderName, traceIDHeaderName := candlelight.ExtractSpanIDAndTraceIDHeaderName(headerConfig)
+func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				traceId, spanId := candlelight.ExtractTraceInformation(r.Context())
 				ctx := r.WithContext(logging.WithLogger(r.Context(),
-					log.With(logger, "requestHeaders", r.Header, "requestURL", r.URL.EscapedPath(), "method", r.Method, spanIDHeaderName, spanId, traceIDHeaderName, traceId)))
+					log.With(logger, "requestHeaders", r.Header, "requestURL", r.URL.EscapedPath(), "method", r.Method, candlelight.SpanIDLogKeyName, spanId, candlelight.TraceIdLogKeyName, traceId)))
 				delegate.ServeHTTP(w, ctx)
 			})
 	}
@@ -174,7 +173,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry, tr
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	constructors := []alice.Constructor{traceConfig.TraceMiddleware, SetLogger(logger, traceConfig.HeaderConfig), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
+	constructors := []alice.Constructor{traceConfig.TraceMiddleware, SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
 
 	return alice.New(constructors...), nil
 }
@@ -326,7 +325,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					}
 				}
 				return kv
-			}, candlelight.InjectTraceInformationInLogger(traceConfig.HeaderConfig),
+			}, candlelight.InjectTraceInformationInLogger(),
 		),
 	)
 

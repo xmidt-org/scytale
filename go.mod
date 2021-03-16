@@ -15,7 +15,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/xmidt-org/argus v0.3.10-0.20201105190057-402fede05764
 	github.com/xmidt-org/bascule v0.9.0
-	github.com/xmidt-org/candlelight v0.0.3-0.20210312201217-3f71a15ad64f
+	github.com/xmidt-org/candlelight v0.0.3-0.20210316194605-87e0ead2a9f2
 	github.com/xmidt-org/webpa-common v1.11.4
 	github.com/xmidt-org/wrp-go/v2 v2.0.1
 )

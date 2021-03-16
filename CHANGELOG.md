@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - prep for github actions. [#124](https://github.com/xmidt-org/scytale/pull/124)
 - Update buildtime format in Makefile to match RPM spec file. [#125](https://github.com/xmidt-org/scytale/pull/125)
 - Update service discovery environment creation to include datacenter watch feature [#120](https://github.com/xmidt-org/scytale/pull/120)
+- Add initial OpenTelemetry integration. [#129](https://github.com/xmidt-org/scytale/pull/129) thanks to Sachin4403
+
 
 ## [v0.4.8]
 - Add eventKey to service discovery metric [#110](https://github.com/xmidt-org/scytale/pull/110)

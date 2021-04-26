@@ -39,6 +39,8 @@ import (
 	"github.com/xmidt-org/webpa-common/service/servicecfg"
 	"github.com/xmidt-org/webpa-common/webhook"
 	"github.com/xmidt-org/webpa-common/webhook/aws"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -96,22 +98,12 @@ func scytale(arguments []string) int {
 
 	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
 
-	u := v.Sub(tracingConfigKey)
-	if u == nil {
-		fmt.Fprintf(os.Stderr, "tracing configuration is missing.\n")
-		return 1
-	}
-	config := &candlelight.Config{
-		ApplicationName: applicationName,
-	}
-
-	u.Unmarshal(config)
-	traceProvider, err := candlelight.ConfigureTracerProvider(*config)
+	tracing, err := loadTracing(v, applicationName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to build traceProvider: %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "Unable to build tracing component: %v \n", err)
 		return 1
 	}
-	traceConfig := candlelight.TraceConfig{TraceProvider: traceProvider}
+	level.Info(logger).Log(logging.MessageKey(), "tracing status", "enabled", tracing.Enabled)
 
 	var e service.Environment
 	if v.IsSet("service") {
@@ -123,7 +115,7 @@ func scytale(arguments []string) int {
 		}
 	}
 
-	primaryHandler, err := NewPrimaryHandler(logger, v, metricsRegistry, e, traceConfig)
+	primaryHandler, err := NewPrimaryHandler(logger, v, metricsRegistry, e, tracing)
 	if err != nil {
 		logger.Log(level.Key(), level.ErrorValue(), logging.ErrorKey(), err, logging.MessageKey(), "unable to create primary handler")
 		return 2
@@ -159,6 +151,31 @@ func scytale(arguments []string) int {
 	close(shutdown)
 	waitGroup.Wait()
 	return 0
+}
+
+func loadTracing(v *viper.Viper, appName string) (candlelight.Tracing, error) {
+	var tracing = candlelight.Tracing{
+		Enabled:        false,
+		Propagator:     propagation.TraceContext{},
+		TracerProvider: trace.NewNoopTracerProvider(),
+	}
+	if v.IsSet(tracingConfigKey) {
+		var traceConfig candlelight.Config
+		err := v.UnmarshalKey(tracingConfigKey, &traceConfig)
+		if err != nil {
+			return candlelight.Tracing{}, err
+		}
+		traceConfig.ApplicationName = appName
+		tracerProvider, err := candlelight.ConfigureTracerProvider(traceConfig)
+		if err != nil {
+			return candlelight.Tracing{}, err
+		}
+		if len(traceConfig.Provider) != 0 && traceConfig.Provider != candlelight.DefaultTracerProvider {
+			tracing.Enabled = true
+		}
+		tracing.TracerProvider = tracerProvider
+	}
+	return tracing, nil
 }
 
 func printVersion(f *pflag.FlagSet, arguments []string) (error, bool) {

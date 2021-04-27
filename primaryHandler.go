@@ -23,9 +23,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/xmidt-org/candlelight"
 	"net/http"
 	"regexp"
+
+	"github.com/xmidt-org/candlelight"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 
 	"github.com/xmidt-org/webpa-common/device"
 
@@ -67,9 +69,9 @@ func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
-				traceId, spanId := candlelight.ExtractTraceInformation(r.Context())
-				ctx := r.WithContext(logging.WithLogger(r.Context(),
-					log.With(logger, "requestHeaders", r.Header, "requestURL", r.URL.EscapedPath(), "method", r.Method, candlelight.SpanIDLogKeyName, spanId, candlelight.TraceIdLogKeyName, traceId)))
+				kvs := []interface{}{"requestHeaders", r.Header, "requestURL", r.URL.EscapedPath(), "method", r.Method}
+				kvs, _ = candlelight.AppendTraceInfo(r.Context(), kvs)
+				ctx := r.WithContext(logging.WithLogger(r.Context(), log.With(logger, kvs...)))
 				delegate.ServeHTTP(w, ctx)
 			})
 	}
@@ -80,7 +82,7 @@ func GetLogger(ctx context.Context) bascule.Logger {
 	return logger
 }
 
-func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry, traceConfig candlelight.TraceConfig) (alice.Chain, error) {
+func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	if registry == nil {
 		return alice.Chain{}, errors.New("nil registry")
 	}
@@ -173,7 +175,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry, tr
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	constructors := []alice.Constructor{traceConfig.TraceMiddleware, SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
+	constructors := []alice.Constructor{SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
 
 	return alice.New(constructors...), nil
 }
@@ -228,19 +230,19 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 	return nil, errors.New("Unable to create endpoints")
 }
 
-func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, traceConfig candlelight.TraceConfig) (http.Handler, error) {
+func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, tracing candlelight.Tracing) (http.Handler, error) {
 	var cfg fanout.Configuration
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
 	}
 	logging.Error(logger).Log(logging.MessageKey(), "creating primary handler")
-
+	cfg.Tracing = tracing
 	endpoints, err := createEndpoints(logger, cfg, registry, e)
 	if err != nil {
 		return nil, err
 	}
 
-	authChain, err := authChain(v, logger, registry, traceConfig)
+	authChain, err := authChain(v, logger, registry)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +287,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				}
 				w.WriteHeader(code)
 			}),
-			fanout.WithClientBefore(forwardTraceInformation()),
 		}
 	)
 
@@ -302,6 +303,12 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		router        = mux.NewRouter()
 		sendSubrouter = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
 	)
+
+	otelMuxOptions := []otelmux.Option{
+		otelmux.WithPropagators(tracing.Propagator),
+		otelmux.WithTracerProvider(tracing.TracerProvider),
+	}
+	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator))
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
@@ -325,7 +332,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					}
 				}
 				return kv
-			}, candlelight.InjectTraceInformationInLogger(),
+			}, candlelight.InjectTraceInfoInLogger(),
 		),
 	)
 
@@ -424,11 +431,4 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	).Methods("GET")
 
 	return router, nil
-}
-
-func forwardTraceInformation() gokithttp.RequestFunc {
-	return func(ctx context.Context, r *http.Request) context.Context {
-		candlelight.InjectTraceInformation(ctx, r.Header)
-		return ctx
-	}
 }

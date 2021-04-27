@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v0.4.9]
 ### Changed
 - Update mentions of the default branch from 'master' to 'main'. [#111](https://github.com/xmidt-org/scytale/pull/111)
 - Bumped bascule and webpa-common versions. [#118](https://github.com/xmidt-org/scytale/pull/118)
@@ -77,7 +79,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.8...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.9...HEAD
+[v0.4.9]: https://github.com/xmidt-org/scytale/compare/v0.4.8...v0.4.9
 [v0.4.8]: https://github.com/xmidt-org/scytale/compare/v0.4.7...v0.4.8
 [v0.4.7]: https://github.com/xmidt-org/scytale/compare/v0.4.6...v0.4.7
 [v0.4.6]: https://github.com/xmidt-org/scytale/compare/v0.4.5...v0.4.6

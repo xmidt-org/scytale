@@ -159,22 +159,20 @@ func loadTracing(v *viper.Viper, appName string) (candlelight.Tracing, error) {
 		Propagator:     propagation.TraceContext{},
 		TracerProvider: trace.NewNoopTracerProvider(),
 	}
-	if v.IsSet(tracingConfigKey) {
-		var traceConfig candlelight.Config
-		err := v.UnmarshalKey(tracingConfigKey, &traceConfig)
-		if err != nil {
-			return candlelight.Tracing{}, err
-		}
-		traceConfig.ApplicationName = appName
-		tracerProvider, err := candlelight.ConfigureTracerProvider(traceConfig)
-		if err != nil {
-			return candlelight.Tracing{}, err
-		}
-		if len(traceConfig.Provider) != 0 && traceConfig.Provider != candlelight.DefaultTracerProvider {
-			tracing.Enabled = true
-		}
-		tracing.TracerProvider = tracerProvider
+	var traceConfig candlelight.Config
+	err := v.UnmarshalKey(tracingConfigKey, &traceConfig)
+	if err != nil {
+		return candlelight.Tracing{}, err
 	}
+	traceConfig.ApplicationName = appName
+	tracerProvider, err := candlelight.ConfigureTracerProvider(traceConfig)
+	if err != nil {
+		return candlelight.Tracing{}, err
+	}
+	if len(traceConfig.Provider) != 0 && traceConfig.Provider != candlelight.DefaultTracerProvider {
+		tracing.Enabled = true
+	}
+	tracing.TracerProvider = tracerProvider
 	return tracing, nil
 }
 

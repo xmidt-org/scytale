@@ -65,23 +65,6 @@ const (
 
 var errNoDeviceName = errors.New("no device name")
 
-func SetLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
-	return func(delegate http.Handler) http.Handler {
-		return http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				kvs := []interface{}{"requestHeaders", r.Header, "requestURL", r.URL.EscapedPath(), "method", r.Method}
-				kvs, _ = candlelight.AppendTraceInfo(r.Context(), kvs)
-				ctx := r.WithContext(logging.WithLogger(r.Context(), log.With(logger, kvs...)))
-				delegate.ServeHTTP(w, ctx)
-			})
-	}
-}
-
-func GetLogger(ctx context.Context) bascule.Logger {
-	logger := log.With(logging.GetLogger(ctx), "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
-	return logger
-}
-
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	if registry == nil {
 		return alice.Chain{}, errors.New("nil registry")
@@ -108,7 +91,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	logging.Debug(logger).Log(logging.MessageKey(), "Created list of allowed basic auths", "allowed", basicAllowed, "config", basicAuth)
 
 	options := []basculehttp.COption{
-		basculehttp.WithCLogger(GetLogger),
+		basculehttp.WithCLogger(getLogger),
 		basculehttp.WithCErrorResponseFunc(listener.OnErrorResponse),
 		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc(apiBase, basculehttp.DefaultParseURLFunc)),
 	}
@@ -167,7 +150,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	}
 
 	authEnforcer := basculehttp.NewEnforcer(
-		basculehttp.WithELogger(GetLogger),
+		basculehttp.WithELogger(getLogger),
 		basculehttp.WithRules("Basic", bascule.Validators{
 			bascule.CreateAllowAllCheck(),
 		}),
@@ -175,7 +158,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	constructors := []alice.Constructor{SetLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
+	constructors := []alice.Constructor{setLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
 
 	return alice.New(constructors...), nil
 }

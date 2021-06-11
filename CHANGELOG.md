@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
+- Prevent Authorization header from getting logged. [#136](https://github.com/xmidt-org/scytale/pull/136)
 ## [v0.4.9]
 ### Changed
 - Update mentions of the default branch from 'master' to 'main'. [#111](https://github.com/xmidt-org/scytale/pull/111)

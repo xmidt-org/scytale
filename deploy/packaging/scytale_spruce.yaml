@@ -143,7 +143,7 @@ log:
 
   # level is the logging level to use - INFO, DEBUG, WARN, ERROR
   # (Optional) defaults to ERROR
-  level: (( grab $LOG_LEVEL || "INFO" ))
+  level: (( grab $LOG_LEVEL || "DEBUG" ))
 
   # maxsize is the maximum file size in MB
   # (Optional) defaults to max 100MB
@@ -301,6 +301,41 @@ service:
       # (Optional) defaults to 0s, aka wait forever before update
       waitTime: 30s
 
+    chrysom:
+      listen:
+        # pullInterval is how often to call argus to update the list of 
+        # inactive datacenters.
+        pullInterval:  (( grab $ARGUS_PULL_INTERVAL || "5s" ))
+
+      # bucket to store and retrieve inactive datacenters.
+      bucket: (( grab $ARGUS_BUCKET || "inactivedcs" ))
+
+      # address is the location to talk to argus.
+      address: (( grab  $ARGUS_ENDPOINT || "http://argus:6600" ))
+
+      # auth the authentication method for argus.
+      auth:
+        # basic configures basic authentication for argus.
+        # Must be of form: 'Basic xyz=='
+        basic: (( concat "Basic " authToken ))
+
+        # jwt configures jwt style authentication for argus.
+        jwt:
+          # requestHeaders are added to the request for the token.
+          # (Optional)
+          # requestHeaders:
+          #   "": ""
+
+          # authURL is the URL to access for the token.
+          authURL: (( grab $ARGUS_ACQUIRE_JWT_URL || "http://themis:6501/issue" ))
+
+          # timeout is how long the request to get the token will take before
+          # timing out.
+          timeout: (( grab $ARGUS_ACQUIRE_TIMEOUT || "1m" ))
+
+          # buffer is the length of time before a token expires to get a new token.
+          buffer: (( grab $ARGUS_ACQUIRE_BUFFER || "2m" ))
+
     # DisableGenerateID disables consul from generating the id.
     # (Optional) defaults to false
     disableGenerateID: true
@@ -308,6 +343,10 @@ service:
     # DatacenterRetries is the number of attempts to get the datacenters
     # (Optional) defaults to 10
     datacenterRetries: 3
+
+    # DatacenterWatchInterval is the interval at which scytale checks for a change 
+    # in active datacenters.
+    datacenterWatchInterval: 10s
 
     # Registrations is a list of service(s) to register with consul.
     # defined https://godoc.org/github.com/hashicorp/consul/api#AgentServiceRegistration
@@ -404,3 +443,6 @@ tracing:
 
   # endpoint is where trace information should be routed. Applies to zipkin and jaegar.
   endpoint: (( grab $TRACING_PROVIDER_ENDPOINT || "http://localhost:9411/api/v2/spans" ))
+
+#authtoken used to make spruce work better for authAcquirer
+authToken: (( grab $AUTH_TOKEN || "dXNlcjpwYXNz" ))

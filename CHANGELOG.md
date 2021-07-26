@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 - Prevent Authorization header from getting logged. [#136](https://github.com/xmidt-org/scytale/pull/136)
+- Bumped webpa-common version. [#137](https://github.com/xmidt-org/scytale/pull/137)
+
 ## [v0.4.9]
 ### Changed
 - Update mentions of the default branch from 'master' to 'main'. [#111](https://github.com/xmidt-org/scytale/pull/111)

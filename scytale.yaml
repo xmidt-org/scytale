@@ -327,6 +327,40 @@ service:
   #     # (Optional) defaults to 0s, aka wait forever before update
   #     waitTime: 30s
   #
+  #   chrysom:
+  #     listen:
+  #       # pullInterval is how often to call argus to update the list of 
+  #       # inactive datacenters.
+  #       pullInterval: "5s"
+  #
+  #     # bucket to store and retrieve inactive datacenters.
+  #     bucket: "inactive-dcs"
+  #
+  #     # address is the location to talk to argus.
+  #     address: "http://localhost:6600"
+  #
+  #     # auth the authentication method for argus.
+  #     auth:
+  #       # basic configures basic authentication for argus.
+  #       # Must be of form: 'Basic xyz=='
+  #       basic: ""
+  #
+  #       # jwt configures jwt style authentication for argus.
+  #       jwt:
+  #         # requestHeaders are added to the request for the token.
+  #         # (Optional)
+  #         # requestHeaders:
+  #         #   "": ""
+  #
+  #         # authURL is the URL to access for the token.
+  #         authURL: 
+  #
+  #         # timeout is how long the request to get the token will take before
+  #         # timing out.
+  #         timeout: "1m"
+  #
+  #         # buffer is the length of time before a token expires to get a new token.
+  #         buffer: "2m"
   #   # DisableGenerateID disables consul from generating the id.
   #   # (Optional) defaults to false
   #   disableGenerateID: true
@@ -334,6 +368,10 @@ service:
   #   # DatacenterRetries is the number of attempts to get the datacenters
   #   # (Optional) defaults to 10
   #   datacenterRetries: 3
+  #
+  #   # DatacenterWatchInterval is the interval at which scytale checks for a change 
+  #   # in active datacenters.
+  #   datacenterWatchInterval: 10s
   #
   #   # Registrations is a list of service(s) to register with consul.
   #   # defined https://godoc.org/github.com/hashicorp/consul/api#AgentServiceRegistration

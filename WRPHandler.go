@@ -5,16 +5,24 @@ import (
 
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/xmidt-org/webpa-common/xhttp"
-	"github.com/xmidt-org/wrp-go/v2"
-	"github.com/xmidt-org/wrp-go/v2/wrphttp"
+	"github.com/xmidt-org/wrp-go/v3"
+	"github.com/xmidt-org/wrp-go/v3/wrphttp"
 )
 
 type nonWRPResponseWriter struct {
 	http.ResponseWriter
 }
 
-func (o *nonWRPResponseWriter) WriteWRP(interface{}) (int, error) {
+func (o *nonWRPResponseWriter) WriteWRP(_ *wrphttp.Entity) (int, error) {
 	return 0, nil
+}
+
+func (o *nonWRPResponseWriter) WriteWRPBytes(_ wrp.Format, _ []byte) (int, error) {
+	return 0, nil
+}
+
+func (o *nonWRPResponseWriter) WRPFormat() wrp.Format {
+	return wrp.Msgpack
 }
 
 //nonWRPResponseWriterFactory helps configure the WRP handler to fulfill scytale's use case of only consuming

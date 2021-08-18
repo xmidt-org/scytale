@@ -111,5 +111,4 @@ func TestNonWRPResponseWriterFactory(t *testing.T) {
 	assert.Zero(b)
 	c := w.WRPFormat()
 	assert.Equal(wrp.Msgpack, c)
-
 }

@@ -7,8 +7,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xmidt-org/wrp-go/v2"
-	"github.com/xmidt-org/wrp-go/v2/wrphttp"
+	"github.com/stretchr/testify/require"
+	"github.com/xmidt-org/wrp-go/v3"
+	"github.com/xmidt-org/wrp-go/v3/wrphttp"
 )
 
 func TestNewFanoutHandler(t *testing.T) {
@@ -97,16 +98,17 @@ func TestFanoutRequest(t *testing.T) {
 	}
 }
 
-type testWRPResponseWriter struct {
-	http.ResponseWriter
-}
-
-func (t *testWRPResponseWriter) WriteWRP(i interface{}) (int, error) {
-	return 0, nil
-}
-
-func newTestWRPResponseWriter(w *httptest.ResponseRecorder) *testWRPResponseWriter {
-	return &testWRPResponseWriter{
-		ResponseWriter: w,
-	}
+func TestNonWRPResponseWriterFactory(t *testing.T) {
+	assert := assert.New(t)
+	w, err := nonWRPResponseWriterFactory(nil, nil)
+	assert.NoError(err)
+	require.NotNil(t, w)
+	a, err := w.WriteWRP(nil)
+	assert.NoError(err)
+	assert.Zero(a)
+	b, err := w.WriteWRPBytes(wrp.Msgpack, nil)
+	assert.NoError(err)
+	assert.Zero(b)
+	c := w.WRPFormat()
+	assert.Equal(wrp.Msgpack, c)
 }

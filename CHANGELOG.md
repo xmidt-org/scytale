@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Bumped wrp version from v2 to v3.[#138](https://github.com/xmidt-org/scytale/pull/138)
 
 ## [v0.4.10]
 - Prevent Authorization header from getting logged. [#136](https://github.com/xmidt-org/scytale/pull/136)

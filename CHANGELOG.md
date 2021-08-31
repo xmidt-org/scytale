@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 - Bumped wrp version from v2 to v3.[#138](https://github.com/xmidt-org/scytale/pull/138)
+- Bump bascule version for a security vulnerability fix and other required upgrades. [#140](https://github.com/xmidt-org/scytale/pull/140)
 
 ## [v0.4.10]
 - Prevent Authorization header from getting logged. [#136](https://github.com/xmidt-org/scytale/pull/136)

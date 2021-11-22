@@ -5,8 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v0.4.11]
 - Bumped wrp version from v2 to v3.[#138](https://github.com/xmidt-org/scytale/pull/138)
 - Bump bascule version for a security vulnerability fix and other required upgrades. [#140](https://github.com/xmidt-org/scytale/pull/140)
+- Fixed string slice casting issue in an auth check. [#141](https://github.com/xmidt-org/scytale/pull/141)
 
 ## [v0.4.10]
 - Prevent Authorization header from getting logged. [#136](https://github.com/xmidt-org/scytale/pull/136)
@@ -85,7 +88,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.10...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.11...HEAD
+[v0.4.11]: https://github.com/xmidt-org/scytale/compare/v0.4.10...v0.4.11
 [v0.4.10]: https://github.com/xmidt-org/scytale/compare/v0.4.9...v0.4.10
 [v0.4.9]: https://github.com/xmidt-org/scytale/compare/v0.4.8...v0.4.9
 [v0.4.8]: https://github.com/xmidt-org/scytale/compare/v0.4.7...v0.4.8

@@ -81,6 +81,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		decoded, err := base64.StdEncoding.DecodeString(a)
 		if err != nil {
 			logging.Info(logger).Log(logging.MessageKey(), "failed to decode auth header", "authHeader", a, logging.ErrorKey(), err.Error())
+			continue
 		}
 
 		i := bytes.IndexByte(decoded, ':')

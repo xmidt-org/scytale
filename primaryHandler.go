@@ -56,7 +56,7 @@ import (
 
 const (
 	baseURI = "/api"
-	version = "v2"
+	version = "v3"
 	apiBase = baseURI + "/" + version + "/"
 
 	basicAuthConfigKey = "authHeader"

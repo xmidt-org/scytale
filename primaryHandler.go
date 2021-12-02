@@ -55,9 +55,7 @@ import (
 )
 
 const (
-	baseURI = "/api"
-	version = "v3"
-	apiBase = baseURI + "/" + version + "/"
+	apiBase = "/api/v3"
 
 	basicAuthConfigKey = "authHeader"
 	jwtAuthConfigKey   = "jwtValidator"
@@ -220,6 +218,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
 	}
+	fanoutPrefix := v.GetString("fanout.pathPrefix")
 	logging.Error(logger).Log(logging.MessageKey(), "creating primary handler")
 	cfg.Tracing = tracing
 	endpoints, err := createEndpoints(logger, cfg, registry, e)
@@ -286,7 +285,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 
 	var (
 		router        = mux.NewRouter()
-		sendSubrouter = router.Path(fmt.Sprintf("%s/%s/device", baseURI, version)).Methods("POST", "PUT").Subrouter()
+		sendSubrouter = router.Path(fmt.Sprintf("%s/device", apiBase)).Methods("POST", "PUT").Subrouter()
 	)
 
 	otelMuxOptions := []otelmux.Option{
@@ -328,7 +327,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				options,
 				fanout.WithFanoutBefore(
 					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),
-					fanout.UsePath(fmt.Sprintf("%s/%s/device/send", baseURI, version)),
+					fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),
 
 					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
 						fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(body)
@@ -388,7 +387,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		Handler(authChain.Then(sendWRPHandler))
 
 	router.Handle(
-		fmt.Sprintf("%s/%s/device/{deviceID}/stat", baseURI, version),
+		fmt.Sprintf("%s/device/{deviceID}/stat", apiBase),
 		authChain.Extend(fanoutChain).Then(
 			fanout.New(
 				endpoints,

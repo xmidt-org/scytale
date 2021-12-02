@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v0.5.0]
 - Updated api version in url to v3 to indicate breaking changes in response codes when an invalid auth is sent.  This change was made in an earlier release (v0.4.10). [#159](https://github.com/xmidt-org/scytale/pull/159)
 - Decoupled fanout api version from scytale's api version. [#159](https://github.com/xmidt-org/scytale/pull/159)
 
@@ -90,7 +92,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.11...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.5.0...HEAD
+[v0.5.0]: https://github.com/xmidt-org/scytale/compare/v0.4.11...v0.5.0
 [v0.4.11]: https://github.com/xmidt-org/scytale/compare/v0.4.10...v0.4.11
 [v0.4.10]: https://github.com/xmidt-org/scytale/compare/v0.4.9...v0.4.10
 [v0.4.9]: https://github.com/xmidt-org/scytale/compare/v0.4.8...v0.4.9

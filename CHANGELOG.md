@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.5.0]
+- Updated api version in url to v3 to indicate breaking changes in response codes when an invalid auth is sent.  This change was made in an earlier release (v0.4.10). [#159](https://github.com/xmidt-org/scytale/pull/159)
+- Decoupled fanout api version from scytale's api version. [#159](https://github.com/xmidt-org/scytale/pull/159)
+
 ## [v0.4.11]
 - Bumped wrp version from v2 to v3.[#138](https://github.com/xmidt-org/scytale/pull/138)
 - Bump bascule version for a security vulnerability fix and other required upgrades. [#140](https://github.com/xmidt-org/scytale/pull/140)
@@ -88,7 +92,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.4.11...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.5.0...HEAD
+[v0.5.0]: https://github.com/xmidt-org/scytale/compare/v0.4.11...v0.5.0
 [v0.4.11]: https://github.com/xmidt-org/scytale/compare/v0.4.10...v0.4.11
 [v0.4.10]: https://github.com/xmidt-org/scytale/compare/v0.4.9...v0.4.10
 [v0.4.9]: https://github.com/xmidt-org/scytale/compare/v0.4.8...v0.4.9

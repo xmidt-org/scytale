@@ -170,6 +170,10 @@ fanout:
 #  # (Optional) if empty, endpoints are driven by service discovery
 #  endpoints: ["http://petasos:6400/api/v2/device/send"]
 
+  # pathPrefix is a string prepended to the beginning of the path being used for
+  # fanout.
+  pathPrefix: "/api/v3"
+
   # Authorization is the Basic Auth token to use for each request.
   # (Optional) defaults to no auth token
   # WARNING: This is an example auth token. DO NOT use this in production.

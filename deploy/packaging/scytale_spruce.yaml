@@ -175,6 +175,10 @@ fanout:
 #  # (Optional) if empty, endpoints are driven by service discovery
 #  endpoints: (( grab $PETASOS_ENDPOINTS || fallback_endpoints ))
 
+  # pathPrefix is a string prepended to the beginning of the path being used for
+  # fanout.
+  pathPrefix: (( grab $FANOUT_API_BASE || "/api/v3" ))
+
   # Authorization is the Basic Auth token to use for each request.
   # (Optional) defaults to no auth token
   # WARNING: This is an example auth token. DO NOT use this in production.

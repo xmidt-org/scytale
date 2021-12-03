@@ -111,6 +111,8 @@ func scytale(arguments []string) int {
 			logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "Unable to initialize service discovery environment", logging.ErrorKey(), err)
 			return 4
 		}
+		defer e.Close()
+		e.Register()
 	}
 
 	primaryHandler, err := NewPrimaryHandler(logger, v, metricsRegistry, e, tracing)

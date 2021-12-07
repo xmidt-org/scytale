@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.6.1]
+- Fixed url parsing bug where we were leaving a '/'. [#161](https://github.com/xmidt-org/scytale/pull/161)
+
 ## [v0.6.0]
 - Add consul registration. [#160](https://github.com/xmidt-org/scytale/pull/160)
 
@@ -95,7 +98,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.1...HEAD
+[v0.6.1]: https://github.com/xmidt-org/scytale/compare/v0.6.0...v0.6.1
 [v0.6.0]: https://github.com/xmidt-org/scytale/compare/v0.5.0...v0.6.0
 [v0.5.0]: https://github.com/xmidt-org/scytale/compare/v0.4.11...v0.5.0
 [v0.4.11]: https://github.com/xmidt-org/scytale/compare/v0.4.10...v0.4.11

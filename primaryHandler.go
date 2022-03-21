@@ -44,7 +44,6 @@ import (
 	"github.com/xmidt-org/webpa-common/v2/basculechecks"
 	"github.com/xmidt-org/webpa-common/v2/basculemetrics"
 	"github.com/xmidt-org/webpa-common/v2/logging"
-	"github.com/xmidt-org/webpa-common/v2/logging/logginghttp"
 	"github.com/xmidt-org/webpa-common/v2/service"
 	"github.com/xmidt-org/webpa-common/v2/service/monitor"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
@@ -158,7 +157,22 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	constructors := []alice.Constructor{setLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
+	constructors := []alice.Constructor{setLogger(logger,
+
+		// custom logger func that extracts the intended destination of requests
+		func(kv []interface{}, request *http.Request) []interface{} {
+			if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
+				return append(kv, "X-Webpa-Device-Name", deviceName)
+			}
+
+			if variables := mux.Vars(request); len(variables) > 0 {
+				if deviceID := variables["deviceID"]; len(deviceID) > 0 {
+					return append(kv, "deviceID", deviceID)
+				}
+			}
+			return kv
+		},
+	), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
 
 	return alice.New(constructors...), nil
 }
@@ -298,27 +312,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
 	})
 
-	fanoutChain := fanout.NewChain(
-		cfg,
-		logginghttp.SetLogger(
-			logger,
-			logginghttp.RequestInfo,
-
-			// custom logger func that extracts the intended destination of requests
-			func(kv []interface{}, request *http.Request) []interface{} {
-				if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
-					return append(kv, "X-Webpa-Device-Name", deviceName)
-				}
-
-				if variables := mux.Vars(request); len(variables) > 0 {
-					if deviceID := variables["deviceID"]; len(deviceID) > 0 {
-						return append(kv, "deviceID", deviceID)
-					}
-				}
-				return kv
-			}, candlelight.InjectTraceInfoInLogger(),
-		),
-	)
+	fanoutChain := fanout.NewChain(cfg)
 
 	HTTPFanoutHandler := fanoutChain.Then(
 		fanout.New(

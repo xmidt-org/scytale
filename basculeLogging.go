@@ -37,8 +37,8 @@ func setLogger(logger log.Logger, lf ...LoggerFunc) func(delegate http.Handler) 
 		return http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				kvs := []interface{}{"requestHeaders", sanitizeHeaders(r.Header), "requestURL", r.URL.EscapedPath(), "method", r.Method}
-				if len(lf) > 0 {
-					for _, f := range lf {
+				for _, f := range lf {
+					if f != nil {
 						kvs = f(kvs, r)
 					}
 				}

@@ -10,6 +10,11 @@ import (
 	"github.com/xmidt-org/webpa-common/v2/logging"
 )
 
+// LoggerFunc is a strategy for adding key/value pairs (possibly) based on an HTTP request.
+// Functions of this type must append key/value pairs to the supplied slice and then return
+// the new slice.
+type LoggerFunc func([]interface{}, *http.Request) []interface{}
+
 func sanitizeHeaders(headers http.Header) (filtered http.Header) {
 	filtered = headers.Clone()
 	if authHeader := filtered.Get("Authorization"); authHeader != "" {
@@ -22,11 +27,21 @@ func sanitizeHeaders(headers http.Header) (filtered http.Header) {
 	return
 }
 
-func setLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
+func setLogger(logger log.Logger, lf ...LoggerFunc) func(delegate http.Handler) http.Handler {
+
+	if logger == nil {
+		panic("The base Logger cannot be nil")
+	}
+
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				kvs := []interface{}{"requestHeaders", sanitizeHeaders(r.Header), "requestURL", r.URL.EscapedPath(), "method", r.Method}
+				for _, f := range lf {
+					if f != nil {
+						kvs = f(kvs, r)
+					}
+				}
 				kvs, _ = candlelight.AppendTraceInfo(r.Context(), kvs)
 				ctx := r.WithContext(logging.WithLogger(r.Context(), log.With(logger, kvs...)))
 				delegate.ServeHTTP(w, ctx)

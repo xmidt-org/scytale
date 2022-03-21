@@ -27,18 +27,6 @@ func sanitizeHeaders(headers http.Header) (filtered http.Header) {
 	return
 }
 
-// func setLogger(logger log.Logger) func(delegate http.Handler) http.Handler {
-// 	return func(delegate http.Handler) http.Handler {
-// 		return http.HandlerFunc(
-// 			func(w http.ResponseWriter, r *http.Request) {
-// 				kvs := []interface{}{"requestHeaders", sanitizeHeaders(r.Header), "requestURL", r.URL.EscapedPath(), "method", r.Method}
-// 				kvs, _ = candlelight.AppendTraceInfo(r.Context(), kvs)
-// 				ctx := r.WithContext(logging.WithLogger(r.Context(), log.With(logger, kvs...)))
-// 				delegate.ServeHTTP(w, ctx)
-// 			})
-// 	}
-// }
-
 func setLogger(logger log.Logger, lf ...LoggerFunc) func(delegate http.Handler) http.Handler {
 
 	if logger == nil {

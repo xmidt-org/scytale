@@ -157,24 +157,23 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	constructors := []alice.Constructor{setLogger(logger,
-
-		// custom logger func that extracts the intended destination of requests
-		func(kv []interface{}, request *http.Request) []interface{} {
-			if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
-				return append(kv, "X-Webpa-Device-Name", deviceName)
-			}
-
-			if variables := mux.Vars(request); len(variables) > 0 {
-				if deviceID := variables["deviceID"]; len(deviceID) > 0 {
-					return append(kv, "deviceID", deviceID)
-				}
-			}
-			return kv
-		},
-	), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
+	constructors := []alice.Constructor{setLogger(logger, extractIntendedDestination), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
 
 	return alice.New(constructors...), nil
+}
+
+// custom logger func that extracts the intended destination of requests
+func extractIntendedDestination(kv []interface{}, request *http.Request) []interface{} {
+	if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
+		return append(kv, "X-Webpa-Device-Name", deviceName)
+	}
+
+	if variables := mux.Vars(request); len(variables) > 0 {
+		if deviceID := variables["deviceID"]; len(deviceID) > 0 {
+			return append(kv, "deviceID", deviceID)
+		}
+	}
+	return kv
 }
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured

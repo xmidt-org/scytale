@@ -450,3 +450,9 @@ tracing:
 
 #authtoken used to make spruce work better for authAcquirer
 authToken: (( grab $AUTH_TOKEN || "dXNlcjpwYXNz" ))
+
+# previousVersionSupport allows us to support two different major versions of
+# the API at the same time from the same application.  When this is true,
+# scytale will support both "/v2" and "/v3" endpoints.  When false, only "/v3"
+# endpoints will be supported.
+previousVersionSupport: (( grab $PREV_VERSION_SUPPORT || true ))

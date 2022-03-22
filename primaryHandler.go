@@ -54,7 +54,10 @@ import (
 )
 
 const (
-	apiBase = "/api/v3"
+	apiVersion         = "v3"
+	prevAPIVersion     = "v2"
+	apiBase            = "api/" + apiVersion
+	apiBaseDualVersion = "api/{version:" + apiVersion + "|" + prevAPIVersion + "}"
 
 	basicAuthConfigKey = "authHeader"
 	jwtAuthConfigKey   = "jwtValidator"
@@ -113,8 +116,13 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 			Leeway:       jwtVal.Leeway,
 		}))
 	}
-
-	authConstructor := basculehttp.NewConstructor(options...)
+	authConstructor := basculehttp.NewConstructor(append([]basculehttp.COption{
+		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc("/"+apiBase+"/", basculehttp.DefaultParseURLFunc)),
+	}, options...)...)
+	authConstructorLegacy := basculehttp.NewConstructor(append([]basculehttp.COption{
+		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc("/api/"+prevAPIVersion+"/", basculehttp.DefaultParseURLFunc)),
+		basculehttp.WithCErrorHTTPResponseFunc(basculehttp.LegacyOnErrorHTTPResponse),
+	}, options...)...)
 
 	bearerRules := bascule.Validators{
 		bchecks.NonEmptyPrincipal(),
@@ -157,23 +165,22 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
 	)
 
-	constructors := []alice.Constructor{setLogger(logger, extractIntendedDestination), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener)}
+	authChain := alice.New(setLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener))
+	authChainLegacy := alice.New(setLogger(logger), authConstructorLegacy, authEnforcer, basculehttp.NewListenerDecorator(listener))
 
-	return alice.New(constructors...), nil
-}
-
-// custom logger func that extracts the intended destination of requests
-func extractIntendedDestination(kv []interface{}, request *http.Request) []interface{} {
-	if deviceName := request.Header.Get("X-Webpa-Device-Name"); len(deviceName) > 0 {
-		return append(kv, "X-Webpa-Device-Name", deviceName)
-	}
-
-	if variables := mux.Vars(request); len(variables) > 0 {
-		if deviceID := variables["deviceID"]; len(deviceID) > 0 {
-			return append(kv, "deviceID", deviceID)
-		}
-	}
-	return kv
+	versionCompatibleAuth := alice.New(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(r http.ResponseWriter, req *http.Request) {
+			vars := mux.Vars(req)
+			if vars != nil {
+				if vars["version"] == prevAPIVersion {
+					authChainLegacy.Then(next).ServeHTTP(r, req)
+					return
+				}
+			}
+			authChain.Then(next).ServeHTTP(r, req)
+		})
+	})
+	return versionCompatibleAuth, nil
 }
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
@@ -296,10 +303,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		)
 	}
 
-	var (
-		router        = mux.NewRouter()
-		sendSubrouter = router.Path(fmt.Sprintf("%s/device", apiBase)).Methods("POST", "PUT").Subrouter()
-	)
+	router := mux.NewRouter()
+	// if we want to support the previous API version, then include it in the
+	// api base.
+	urlPrefix := fmt.Sprintf("/%s/", apiBase)
+	if v.GetBool("previousVersionSupport") {
+		urlPrefix = fmt.Sprintf("/%s/", apiBaseDualVersion)
+	}
+	sendSubrouter := router.Path(fmt.Sprintf("%s/device", urlPrefix)).Methods("POST", "PUT").Subrouter()
 
 	otelMuxOptions := []otelmux.Option{
 		otelmux.WithPropagators(tracing.Propagator()),
@@ -380,7 +391,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		Handler(authChain.Then(sendWRPHandler))
 
 	router.Handle(
-		fmt.Sprintf("%s/device/{deviceID}/stat", apiBase),
+		fmt.Sprintf("%s/device/{deviceID}/stat", urlPrefix),
 		authChain.Extend(fanoutChain).Then(
 			fanout.New(
 				endpoints,

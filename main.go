@@ -46,7 +46,6 @@ const (
 	DefaultKeyID = "current"
 
 	applicationName  = "scytale"
-	release          = "Developer"
 	tracingConfigKey = "tracing"
 )
 

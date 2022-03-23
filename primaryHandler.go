@@ -95,7 +95,6 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	options := []basculehttp.COption{
 		basculehttp.WithCLogger(getLogger),
 		basculehttp.WithCErrorResponseFunc(listener.OnErrorResponse),
-		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc(apiBase+"/", basculehttp.DefaultParseURLFunc)),
 	}
 	if len(basicAllowed) > 0 {
 		options = append(options, basculehttp.WithTokenFactory("Basic", basculehttp.BasicTokenFactory(basicAllowed)))
@@ -306,9 +305,9 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	router := mux.NewRouter()
 	// if we want to support the previous API version, then include it in the
 	// api base.
-	urlPrefix := fmt.Sprintf("/%s/", apiBase)
+	urlPrefix := fmt.Sprintf("/%s", apiBase)
 	if v.GetBool("previousVersionSupport") {
-		urlPrefix = fmt.Sprintf("/%s/", apiBaseDualVersion)
+		urlPrefix = fmt.Sprintf("/%s", apiBaseDualVersion)
 	}
 	sendSubrouter := router.Path(fmt.Sprintf("%s/device", urlPrefix)).Methods("POST", "PUT").Subrouter()
 

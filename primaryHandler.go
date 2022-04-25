@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/xmidt-org/candlelight"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
@@ -57,6 +58,7 @@ const (
 	apiVersion         = "v3"
 	prevAPIVersion     = "v2"
 	apiBase            = "api/" + apiVersion
+	prevAPIBase        = "api/" + prevAPIVersion
 	apiBaseDualVersion = "api/{version:" + apiVersion + "|" + prevAPIVersion + "}"
 
 	basicAuthConfigKey = "authHeader"
@@ -331,7 +333,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				fanout.WithFanoutBefore(
 					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),
 					fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),
-
 					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
 						fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(body)
 						fanout.ContentLength = int64(len(body))
@@ -401,10 +402,13 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
 						// required for consul fanout
 						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-							fanout.URL.Path = original.URL.Path
+							// strip the initial path and provide the configured one instead.
+							urlToUse := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(original.URL.Path, "/"), apiBase), prevAPIBase)
+							fanout.URL.Path = fmt.Sprintf("%s/%s", fanoutPrefix, urlToUse)
 							fanout.URL.RawPath = ""
 							return ctx, nil
 						},
+						fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),
 					),
 					fanout.WithFanoutFailure(
 						fanout.ReturnHeadersWithPrefix("X-"),

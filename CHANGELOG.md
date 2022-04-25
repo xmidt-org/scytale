@@ -6,10 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.6.3]
+- Fixed stat endpoint to use fanout prefix configuration. [#170](https://github.com/xmidt-org/scytale/pull/170)
+
 ## [v0.6.2]
 - Updated spec file and rpkg version macro to be able to choose when the 'v' is included in the version. [#163](https://github.com/xmidt-org/scytale/pull/163)
 - Reconfigured the Bascule Logger settings so that the logger isn't overwritten [#166](https://github.com/xmidt-org/scytale/pull/166)
-- Added configurable v2 endpoint support. []()
+- Added configurable v2 endpoint support. [#167](https://github.com/xmidt-org/scytale/pull/167)
 
 ## [v0.6.1]
 - Fixed url parsing bug where we were leaving a '/'. [#161](https://github.com/xmidt-org/scytale/pull/161)
@@ -103,7 +106,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.3...HEAD
+[v0.6.3]: https://github.com/xmidt-org/scytale/compare/v0.6.2...v0.6.3
 [v0.6.2]: https://github.com/xmidt-org/scytale/compare/v0.6.1...v0.6.2
 [v0.6.1]: https://github.com/xmidt-org/scytale/compare/v0.6.0...v0.6.1
 [v0.6.0]: https://github.com/xmidt-org/scytale/compare/v0.5.0...v0.6.0

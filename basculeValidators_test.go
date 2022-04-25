@@ -9,6 +9,7 @@ import (
 )
 
 func TestRequirePartnerIDs(t *testing.T) {
+	type badType int
 	var tests = []struct {
 		name       string
 		attrMap    map[string]interface{}
@@ -41,7 +42,7 @@ func TestRequirePartnerIDs(t *testing.T) {
 			name: "malformed partnerIDs field",
 			attrMap: map[string]interface{}{
 				"allowedResources": map[string]interface{}{
-					"allowedPartners": []int{0, 1, 2},
+					"allowedPartners": []badType{0, 1, 2},
 				}},
 		},
 	}

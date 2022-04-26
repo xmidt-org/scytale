@@ -404,11 +404,10 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 							// strip the initial path and provide the configured one instead.
 							urlToUse := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(original.URL.Path, "/"), apiBase), prevAPIBase)
-							fanout.URL.Path = fmt.Sprintf("%s/%s", fanoutPrefix, urlToUse)
+							fanout.URL.Path = fmt.Sprintf("%s%s", fanoutPrefix, urlToUse)
 							fanout.URL.RawPath = ""
 							return ctx, nil
 						},
-						fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),
 					),
 					fanout.WithFanoutFailure(
 						fanout.ReturnHeadersWithPrefix("X-"),

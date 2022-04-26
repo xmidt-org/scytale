@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.6.4]
+- Fixed stat fanout to not try to hit send endpoint. [#174](https://github.com/xmidt-org/scytale/pull/174)
+
 ## [v0.6.3]
 - Fixed stat endpoint to use fanout prefix configuration. [#170](https://github.com/xmidt-org/scytale/pull/170)
 
@@ -106,7 +109,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.4...HEAD
+[v0.6.4]: https://github.com/xmidt-org/scytale/compare/v0.6.3...v0.6.4
 [v0.6.3]: https://github.com/xmidt-org/scytale/compare/v0.6.2...v0.6.3
 [v0.6.2]: https://github.com/xmidt-org/scytale/compare/v0.6.1...v0.6.2
 [v0.6.1]: https://github.com/xmidt-org/scytale/compare/v0.6.0...v0.6.1

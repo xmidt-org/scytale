@@ -408,7 +408,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 							fanout.URL.RawPath = ""
 							return ctx, nil
 						},
-						fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),
 					),
 					fanout.WithFanoutFailure(
 						fanout.ReturnHeadersWithPrefix("X-"),

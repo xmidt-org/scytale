@@ -64,6 +64,8 @@ const (
 	basicAuthConfigKey = "authHeader"
 	jwtAuthConfigKey   = "jwtValidator"
 	wrpCheckConfigKey  = "WRPCheck"
+
+	deviceID = "deviceID"
 )
 
 var errNoDeviceName = errors.New("no device name")
@@ -391,15 +393,15 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 		Handler(authChain.Then(sendWRPHandler))
 
 	router.Handle(
-		fmt.Sprintf("%s/device/{deviceID}/stat", urlPrefix),
-		authChain.Extend(fanoutChain).Then(
+		fmt.Sprintf("%s/device/{%s}/stat", urlPrefix, deviceID),
+		authChain.Extend(fanoutChain.Extend(validateDeviceID())).Then(
 			fanout.New(
 				endpoints,
 				append(
 					options,
 					fanout.WithFanoutBefore(
 						// required for petasos
-						fanout.ForwardVariableAsHeader("deviceID", "X-Webpa-Device-Name"),
+						fanout.ForwardVariableAsHeader(deviceID, "X-Webpa-Device-Name"),
 						// required for consul fanout
 						func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 							// strip the initial path and provide the configured one instead.
@@ -421,4 +423,27 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	).Methods("GET")
 
 	return router, nil
+}
+
+// validateDeviceID checks the device ID in the URL to make sure it is good before fanout.
+func validateDeviceID() alice.Chain {
+	return alice.New(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			vars := mux.Vars(r)
+			_, err := device.ParseID(vars[deviceID])
+			if err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+
+				fmt.Fprintf(
+					w,
+					`{"code": %d, "message": "%s"}`,
+					http.StatusBadRequest,
+					fmt.Sprintf("failed to extract device ID: %s", err),
+				)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
 }

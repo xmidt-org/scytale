@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.6.5]
+- Added validation of device ID in url for stat endpoint. [#175](https://github.com/xmidt-org/scytale/pull/175)
+
 ## [v0.6.4]
 - Fixed stat fanout to not try to hit send endpoint. [#174](https://github.com/xmidt-org/scytale/pull/174)
 
@@ -109,7 +112,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.4...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.5...HEAD
+[v0.6.5]: https://github.com/xmidt-org/scytale/compare/v0.6.4...v0.6.5
 [v0.6.4]: https://github.com/xmidt-org/scytale/compare/v0.6.3...v0.6.4
 [v0.6.3]: https://github.com/xmidt-org/scytale/compare/v0.6.2...v0.6.3
 [v0.6.2]: https://github.com/xmidt-org/scytale/compare/v0.6.1...v0.6.2

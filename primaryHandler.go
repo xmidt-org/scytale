@@ -70,8 +70,6 @@ const (
 
 var errNoDeviceName = errors.New("no device name")
 
-type DecodeFunc func(*http.Request) (*wrp.Message, error)
-
 func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	if registry == nil {
 		return alice.Chain{}, errors.New("nil registry")
@@ -258,6 +256,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 
 	var (
 		transactor = fanout.NewTransactor(cfg)
+		decoder    = wrphttp.DefaultDecoder()
 		options    = []fanout.Option{
 			fanout.WithTransactor(transactor),
 			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {
@@ -336,11 +335,11 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				options,
 				fanout.WithFanoutBefore(
 					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
-						wrp, err := DecodeFunc(fanout)
+						entity, err := decoder(ctx, fanout)
 						if err != nil {
 							return nil, err
 						}
-						return context.WithValue(ctx, "wrp", wrp), nil
+						return context.WithValue(ctx, ContextKeyWRP, entity.Message), nil
 					},
 					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),
 					fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),

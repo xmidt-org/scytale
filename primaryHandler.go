@@ -106,19 +106,14 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	var jwtVal JWTValidator
 
 	v.UnmarshalKey("jwtValidator", &jwtVal)
-	if jwtVal.Keys.URI != "" {
-		resolver, err := jwtVal.Keys.NewResolver()
-		if err != nil {
-			return alice.Chain{}, emperror.With(err, "failed to create resolver")
-		}
 
-		options = append(options, basculehttp.WithTokenFactory("Bearer", basculehttp.BearerTokenFactory{
-			DefaultKeyID: DefaultKeyID,
-			Resolver:     resolver,
-			Parser:       bascule.DefaultJWTParser,
-			Leeway:       jwtVal.Leeway,
-		}))
-	}
+	options = append(options, basculehttp.WithTokenFactory("Bearer", basculehttp.BearerTokenFactory{
+		DefaultKeyID: DefaultKeyID,
+		Resolver:     jwtVal.Resolver,
+		Parser:       bascule.DefaultJWTParser,
+		Leeway:       jwtVal.Leeway,
+	}))
+
 	authConstructor := basculehttp.NewConstructor(append([]basculehttp.COption{
 		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc("/"+apiBase+"/", basculehttp.DefaultParseURLFunc)),
 	}, options...)...)

@@ -19,13 +19,13 @@ package main
 
 import (
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/bascule/key"
+	"github.com/xmidt-org/clortho"
 )
 
 //JWTValidator provides a convenient way to define jwt validator through config files
 type JWTValidator struct {
 	// JWTKeys is used to create the key.Resolver for JWT verification keys
-	Keys key.ResolverFactory
+	Resolver clortho.Resolver
 
 	// Leeway is used to set the amount of time buffer should be given to JWT
 	// time values, such as nbf

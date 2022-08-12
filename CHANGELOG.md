@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- JWT Migration [183](https://github.com/xmidt-org/scytale/issues/183)
 - Dependency update
   - Introduces new vuln https://www.mend.io/vulnerability-database/CVE-2022-29526
   - [github.com/hashicorp/consul/api v1.13.1 CVE-2022-29153 patched versions 1.9.17 1.10.10 1.11.5](https://github.com/advisories/GHSA-q6h7-4qgw-2j9p)

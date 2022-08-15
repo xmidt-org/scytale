@@ -111,32 +111,51 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	var jwtVal JWTValidator
 	v.UnmarshalKey("jwtValidator", &jwtVal)
 	kr := clortho.NewKeyRing()
-
-	refresher, err := clortho.NewRefresher(
-		clortho.WithConfig(jwtVal.Config),
+	p, err := clortho.NewParser(
+		clortho.WithFormats(
+			clortho.JWKSetParser{},
+			clortho.MediaTypeJSON,
+			"application/json;charset=UTF-8",
+			"application/json;charset=utf-8",
+		),
 	)
 	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create refresher")
+		return alice.Chain{}, emperror.With(err, "failed to create clorth parser")
+	}
+
+	f, err := clortho.NewFetcher(
+		clortho.WithParser(p),
+	)
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create clorth fetcher")
+	}
+
+	ref, err := clortho.NewRefresher(
+		clortho.WithConfig(jwtVal.Config),
+		clortho.WithFetcher(f),
+	)
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create clorth refresher")
 	}
 
 	resolver, err := clortho.NewResolver(
 		clortho.WithConfig(jwtVal.Config),
 		clortho.WithKeyRing(kr),
+		clortho.WithFetcher(f),
 	)
 	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create resolver")
+		return alice.Chain{}, emperror.With(err, "failed to create clorth resolver")
 	}
 
-	refresher.AddListener(kr)
-	// refresher.Start(_)
+	ref.AddListener(kr)
 	// context.Background() is for the unused `context.Context` argument in refresher.Start
-	refresher.Start(context.Background())
+	ref.Start(context.Background())
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM)
 	go func() {
 		<-sigs
 		// context.Background() is for the unused `context.Context` argument in refresher.Stop
-		refresher.Stop(context.Background())
+		ref.Stop(context.Background())
 	}()
 
 	options = append(options, basculehttp.WithTokenFactory("Bearer", basculehttp.BearerTokenFactory{

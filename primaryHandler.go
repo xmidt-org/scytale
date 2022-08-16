@@ -34,6 +34,7 @@ import (
 	"github.com/xmidt-org/candlelight"
 	"github.com/xmidt-org/clortho"
 	"github.com/xmidt-org/clortho/clorthometrics"
+	"github.com/xmidt-org/clortho/clorthozap"
 	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
@@ -156,17 +157,31 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		return alice.Chain{}, errors.New("failed to create fetch prometheus registerer")
 	}
 
-	var tsConfig touchstone.Config
+	var (
+		tsConfig touchstone.Config
+		zConfig  zap.Config
+	)
+	v.UnmarshalKey("zap", &zConfig)
 	v.UnmarshalKey("touchstone", &tsConfig)
-	tf := touchstone.NewFactory(tsConfig, &zap.Logger{}, promReg)
+	zlogger := zap.Must(zConfig.Build())
+	tf := touchstone.NewFactory(tsConfig, zlogger, promReg)
 	cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))
 	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create clorth refreshTotal metric")
+		return alice.Chain{}, emperror.With(err, "failed to create clorth metrics listener")
+	}
+
+	czl, err := clorthozap.NewListener(
+		clorthozap.WithLogger(zlogger),
+	)
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create clorth zap logger listener")
 	}
 
 	resolver.AddListener(cml)
+	resolver.AddListener(czl)
 	ref.AddListener(cml)
 	ref.AddListener(kr)
+	ref.AddListener(czl)
 	// context.Background() is for the unused `context.Context` argument in refresher.Start
 	ref.Start(context.Background())
 	sigs := make(chan os.Signal, 1)

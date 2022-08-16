@@ -35,6 +35,7 @@ import (
 	"github.com/xmidt-org/clortho"
 	"github.com/xmidt-org/clortho/clorthometrics"
 	"github.com/xmidt-org/clortho/clorthozap"
+	"github.com/xmidt-org/sallust"
 	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
@@ -159,10 +160,10 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 
 	var (
 		tsConfig touchstone.Config
-		zConfig  zap.Config
+		zConfig  sallust.Config
 	)
-	v.UnmarshalKey("zap", &zConfig)
 	v.UnmarshalKey("touchstone", &tsConfig)
+	v.UnmarshalKey("zap", &zConfig)
 	zlogger := zap.Must(zConfig.Build())
 	tf := touchstone.NewFactory(tsConfig, zlogger, promReg)
 	cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))

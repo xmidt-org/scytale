@@ -18,6 +18,7 @@ require (
 	github.com/xmidt-org/bascule v0.10.3-0.20220812183557-0b9b46b94ce6
 	github.com/xmidt-org/candlelight v0.0.10
 	github.com/xmidt-org/clortho v0.0.3
+	github.com/xmidt-org/sallust v0.1.6
 	github.com/xmidt-org/touchstone v0.1.1
 	github.com/xmidt-org/webpa-common/v2 v2.0.7-dev.1.0.20220812042614-fd00ca624e4f
 	github.com/xmidt-org/wrp-go/v3 v3.1.3

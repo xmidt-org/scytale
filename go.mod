@@ -13,7 +13,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.8.0
-	github.com/xmidt-org/bascule v0.10.3-0.20220811224643-77b97a7dbbdc
+	github.com/xmidt-org/bascule v0.10.3-0.20220812183557-0b9b46b94ce6
 	github.com/xmidt-org/candlelight v0.0.10
 	github.com/xmidt-org/clortho v0.0.3
 	github.com/xmidt-org/webpa-common/v2 v2.0.7-dev.1.0.20220812042614-fd00ca624e4f

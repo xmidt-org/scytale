@@ -30,9 +30,13 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/xmidt-org/candlelight"
 	"github.com/xmidt-org/clortho"
+	"github.com/xmidt-org/clortho/clorthometrics"
+	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.uber.org/zap"
 
 	"github.com/xmidt-org/webpa-common/v2/device"
 
@@ -147,6 +151,21 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		return alice.Chain{}, emperror.With(err, "failed to create clorth resolver")
 	}
 
+	promReg, ok := registry.(prometheus.Registerer)
+	if !ok {
+		return alice.Chain{}, errors.New("failed to create fetch prometheus registerer")
+	}
+
+	var tsConfig touchstone.Config
+	v.UnmarshalKey("touchstone", &tsConfig)
+	tf := touchstone.NewFactory(tsConfig, &zap.Logger{}, promReg)
+	cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create clorth refreshTotal metric")
+	}
+
+	resolver.AddListener(cml)
+	ref.AddListener(cml)
 	ref.AddListener(kr)
 	// context.Background() is for the unused `context.Context` argument in refresher.Start
 	ref.Start(context.Background())
@@ -164,7 +183,6 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		Parser:       bascule.DefaultJWTParser,
 		Leeway:       jwtVal.Leeway,
 	}))
-
 	authConstructor := basculehttp.NewConstructor(append([]basculehttp.COption{
 		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc("/"+apiBase+"/", basculehttp.DefaultParseURLFunc)),
 	}, options...)...)
@@ -172,7 +190,6 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc("/api/"+prevAPIVersion+"/", basculehttp.DefaultParseURLFunc)),
 		basculehttp.WithCErrorHTTPResponseFunc(basculehttp.LegacyOnErrorHTTPResponse),
 	}, options...)...)
-
 	bearerRules := bascule.Validators{
 		bchecks.NonEmptyPrincipal(),
 		bchecks.NonEmptyType(),

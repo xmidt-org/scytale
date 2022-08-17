@@ -155,7 +155,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 
 	promReg, ok := registry.(prometheus.Registerer)
 	if !ok {
-		return alice.Chain{}, errors.New("failed to create fetch prometheus registerer")
+		return alice.Chain{}, errors.New("failed to get prometheus registerer")
 	}
 
 	var (
@@ -181,8 +181,8 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	resolver.AddListener(cml)
 	resolver.AddListener(czl)
 	ref.AddListener(cml)
-	ref.AddListener(kr)
 	ref.AddListener(czl)
+	ref.AddListener(kr)
 	// context.Background() is for the unused `context.Context` argument in refresher.Start
 	ref.Start(context.Background())
 	sigs := make(chan os.Signal, 1)

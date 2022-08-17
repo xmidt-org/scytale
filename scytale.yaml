@@ -127,7 +127,7 @@ metric:
     subsystem: "scytale"
 
 touchstone:
-  #  DefaultNamespace is the prometheus namespace to apply when a metric has no namespace
+  # DefaultNamespace is the prometheus namespace to apply when a metric has no namespace
   defaultNamespace: "xmidt"
   # DefaultSubsystem is the prometheus subsystem to apply when a metric has no subsystem
   defaultSubsystem: "scytale"

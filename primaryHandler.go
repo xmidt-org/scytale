@@ -114,10 +114,13 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		options = append(options, basculehttp.WithTokenFactory("Basic", basculehttp.BasicTokenFactory(basicAllowed)))
 	}
 
+	// Get jwt configuration, including clortho's configuration
 	var jwtVal JWTValidator
 	v.UnmarshalKey("jwtValidator", &jwtVal)
+	// Instantiate a keyring for refresher and resolver to share
 	kr := clortho.NewKeyRing()
 
+	// Instantiate a fetcher for refresher and resolver to share
 	f, err := clortho.NewFetcher()
 	if err != nil {
 		return alice.Chain{}, emperror.With(err, "failed to create clorth fetcher")
@@ -149,15 +152,18 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		tsConfig touchstone.Config
 		zConfig  sallust.Config
 	)
+	// Get touchstone & zap configurations
 	v.UnmarshalKey("touchstone", &tsConfig)
 	v.UnmarshalKey("zap", &zConfig)
 	zlogger := zap.Must(zConfig.Build())
 	tf := touchstone.NewFactory(tsConfig, zlogger, promReg)
+	// Instantiate a metric listener for refresher and resolver to share
 	cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))
 	if err != nil {
 		return alice.Chain{}, emperror.With(err, "failed to create clorth metrics listener")
 	}
 
+	// Instantiate a logging listener for refresher and resolver to share
 	czl, err := clorthozap.NewListener(
 		clorthozap.WithLogger(zlogger),
 	)
@@ -172,6 +178,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	ref.AddListener(kr)
 	// context.Background() is for the unused `context.Context` argument in refresher.Start
 	ref.Start(context.Background())
+	// Shutdown refresher's goroutines when SIGTERM
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM)
 	go func() {

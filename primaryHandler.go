@@ -114,8 +114,8 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		options = append(options, basculehttp.WithTokenFactory("Basic", basculehttp.BasicTokenFactory(basicAllowed)))
 	}
 
-	// Get jwt configuration, including clortho's configuration
 	var jwtVal JWTValidator
+	// Get jwt configuration, including clortho's configuration
 	v.UnmarshalKey("jwtValidator", &jwtVal)
 	// Instantiate a keyring for refresher and resolver to share
 	kr := clortho.NewKeyRing()

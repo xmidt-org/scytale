@@ -391,6 +391,8 @@ github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1/go.mod h1:kpwsk12EmLe
 github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm40UhjYkI=
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/googleapis/gax-go/v2 v2.0.4/go.mod h1:0Wqv26UfaUD9n4G6kQubkQ+KchISgw+vpHVxEJEs9eg=
 github.com/googleapis/gax-go/v2 v2.0.5/go.mod h1:DWXyrwAJ9X0FpwwEdw+IPEYBICEFu5mhpdKc/us6bOk=
 github.com/googleapis/gax-go/v2 v2.1.0/go.mod h1:Q3nei7sK6ybPYH7twZdmQpAd1MKb7pfu6SK+H1/DsU0=
@@ -1013,8 +1015,9 @@ github.com/xmidt-org/wrp-go v1.3.4 h1:7kj+1VXRNNEI7G0Z3z7C58QpIXrWzTw/eI79FdAhyP
 github.com/xmidt-org/wrp-go v1.3.4/go.mod h1:EWC9BgcYYO1hKgLzz6VFPpg3LU6ZWSDV/uNiWC7zP+o=
 github.com/xmidt-org/wrp-go/v2 v2.0.1/go.mod h1:v0HK0go/7OSVDvKbnXsUn6c+M987p0yyxWEs8/Fmf60=
 github.com/xmidt-org/wrp-go/v3 v3.0.1/go.mod h1:08zAEevd+fM81/asCgsMJdgO8sfKLvqclqJGX1pphnE=
-github.com/xmidt-org/wrp-go/v3 v3.1.3 h1:ciys2v5P5EUbSHoidyybSwKmcrMnZ/jaFSmggnZO4Hg=
 github.com/xmidt-org/wrp-go/v3 v3.1.3/go.mod h1:2x7G0QSLYPEUfe8y2gO5NmfYcPgWGw5ui0G24vr4w7o=
+github.com/xmidt-org/wrp-go/v3 v3.1.4-dev.1.0.20220810013123-ab0be6064c8c h1:Dw/H5krT2zqlo41TM9HyTYd3ym3lzeUMij/gmvSx8+o=
+github.com/xmidt-org/wrp-go/v3 v3.1.4-dev.1.0.20220810013123-ab0be6064c8c/go.mod h1:ZJmcF+K7oKYivfTVlqi4njph+PxQj3WNWL1AqN2bdCw=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

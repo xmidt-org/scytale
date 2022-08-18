@@ -22,4 +22,5 @@ jobs:
     with:
       lint-skip: true
       license-skip: true
-    secrets: inherit
+      style-skip: true
+      secrets: inherit

@@ -23,4 +23,4 @@ jobs:
       lint-skip: true
       license-skip: true
       style-skip: true
-      secrets: inherit
+    secrets: inherit

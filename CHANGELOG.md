@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [v0.6.7]
+## [v0.6.8]
 - JWT Migration [183](https://github.com/xmidt-org/scytale/issues/183)
   - updated to use clortho `Resolver` & `Refresher`
   - updated to use clortho `metrics` & `logging`
@@ -125,8 +125,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.7...HEAD
-[v0.6.5]: https://github.com/xmidt-org/scytale/compare/v0.6.5...v0.6.7
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.8...HEAD
+[v0.6.8]: https://github.com/xmidt-org/scytale/compare/v0.6.5...v0.6.8
 [v0.6.5]: https://github.com/xmidt-org/scytale/compare/v0.6.4...v0.6.5
 [v0.6.4]: https://github.com/xmidt-org/scytale/compare/v0.6.3...v0.6.4
 [v0.6.3]: https://github.com/xmidt-org/scytale/compare/v0.6.2...v0.6.3

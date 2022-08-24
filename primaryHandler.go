@@ -24,11 +24,21 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/xmidt-org/candlelight"
+	"github.com/xmidt-org/clortho"
+	"github.com/xmidt-org/clortho/clorthometrics"
+	"github.com/xmidt-org/clortho/clorthozap"
+	"github.com/xmidt-org/sallust"
+	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.uber.org/zap"
 
 	"github.com/xmidt-org/webpa-common/v2/device"
 
@@ -103,22 +113,86 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	if len(basicAllowed) > 0 {
 		options = append(options, basculehttp.WithTokenFactory("Basic", basculehttp.BasicTokenFactory(basicAllowed)))
 	}
+
 	var jwtVal JWTValidator
-
+	// Get jwt configuration, including clortho's configuration
 	v.UnmarshalKey("jwtValidator", &jwtVal)
-	if jwtVal.Keys.URI != "" {
-		resolver, err := jwtVal.Keys.NewResolver()
-		if err != nil {
-			return alice.Chain{}, emperror.With(err, "failed to create resolver")
-		}
+	// Instantiate a keyring for refresher and resolver to share
+	kr := clortho.NewKeyRing()
 
-		options = append(options, basculehttp.WithTokenFactory("Bearer", basculehttp.BearerTokenFactory{
-			DefaultKeyID: DefaultKeyID,
-			Resolver:     resolver,
-			Parser:       bascule.DefaultJWTParser,
-			Leeway:       jwtVal.Leeway,
-		}))
+	// Instantiate a fetcher for refresher and resolver to share
+	f, err := clortho.NewFetcher()
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create clortho fetcher")
 	}
+
+	ref, err := clortho.NewRefresher(
+		clortho.WithConfig(jwtVal.Config),
+		clortho.WithFetcher(f),
+	)
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create clortho refresher")
+	}
+
+	resolver, err := clortho.NewResolver(
+		clortho.WithConfig(jwtVal.Config),
+		clortho.WithKeyRing(kr),
+		clortho.WithFetcher(f),
+	)
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create clortho resolver")
+	}
+
+	promReg, ok := registry.(prometheus.Registerer)
+	if !ok {
+		return alice.Chain{}, errors.New("failed to get prometheus registerer")
+	}
+
+	var (
+		tsConfig touchstone.Config
+		zConfig  sallust.Config
+	)
+	// Get touchstone & zap configurations
+	v.UnmarshalKey("touchstone", &tsConfig)
+	v.UnmarshalKey("zap", &zConfig)
+	zlogger := zap.Must(zConfig.Build())
+	tf := touchstone.NewFactory(tsConfig, zlogger, promReg)
+	// Instantiate a metric listener for refresher and resolver to share
+	cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create clortho metrics listener")
+	}
+
+	// Instantiate a logging listener for refresher and resolver to share
+	czl, err := clorthozap.NewListener(
+		clorthozap.WithLogger(zlogger),
+	)
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create clortho zap logger listener")
+	}
+
+	resolver.AddListener(cml)
+	resolver.AddListener(czl)
+	ref.AddListener(cml)
+	ref.AddListener(czl)
+	ref.AddListener(kr)
+	// context.Background() is for the unused `context.Context` argument in refresher.Start
+	ref.Start(context.Background())
+	// Shutdown refresher's goroutines when SIGTERM
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		// context.Background() is for the unused `context.Context` argument in refresher.Stop
+		ref.Stop(context.Background())
+	}()
+
+	options = append(options, basculehttp.WithTokenFactory("Bearer", basculehttp.BearerTokenFactory{
+		DefaultKeyID: DefaultKeyID,
+		Resolver:     resolver,
+		Parser:       bascule.DefaultJWTParser,
+		Leeway:       jwtVal.Leeway,
+	}))
 	authConstructor := basculehttp.NewConstructor(append([]basculehttp.COption{
 		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc("/"+apiBase+"/", basculehttp.DefaultParseURLFunc)),
 	}, options...)...)
@@ -126,7 +200,6 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc("/api/"+prevAPIVersion+"/", basculehttp.DefaultParseURLFunc)),
 		basculehttp.WithCErrorHTTPResponseFunc(basculehttp.LegacyOnErrorHTTPResponse),
 	}, options...)...)
-
 	bearerRules := bascule.Validators{
 		bchecks.NonEmptyPrincipal(),
 		bchecks.NonEmptyType(),

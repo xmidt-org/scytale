@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -88,7 +88,7 @@ func TestFanoutRequest(t *testing.T) {
 			if testCase.Err != nil {
 				assert.Equal(testCase.ExpectedCode, testCase.Recorder.Code)
 			} else {
-				outgoingBody, err := ioutil.ReadAll(r.Body)
+				outgoingBody, err := io.ReadAll(r.Body)
 				assert.Nil(err)
 				assert.Equal(int64(len(outgoingBody)), r.ContentLength)
 				assert.Equal(testCase.Entity.Format.ContentType(), r.Header.Get("Content-Type"))

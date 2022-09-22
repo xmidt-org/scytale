@@ -42,8 +42,9 @@ import (
 
 	"github.com/xmidt-org/webpa-common/v2/device"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
+
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
@@ -54,11 +55,16 @@ import (
 	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/webpa-common/v2/basculechecks"
 	"github.com/xmidt-org/webpa-common/v2/basculemetrics"
+
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/logging"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service"
 	"github.com/xmidt-org/webpa-common/v2/service/monitor"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
 	"github.com/xmidt-org/webpa-common/v2/xhttp/fanout"
+
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
 	"github.com/xmidt-org/wrp-go/v3"
 	"github.com/xmidt-org/wrp-go/v3/wrphttp"
@@ -76,6 +82,8 @@ const (
 	wrpCheckConfigKey  = "WRPCheck"
 
 	deviceID = "deviceID"
+
+	enforceCheck = "enforce"
 )
 
 var errNoDeviceName = errors.New("no device name")
@@ -210,7 +218,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	// only add capability check if the configuration is set
 	var capabilityCheck CapabilityConfig
 	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
-	if capabilityCheck.Type == "enforce" || capabilityCheck.Type == "monitor" {
+	if capabilityCheck.Type == enforceCheck || capabilityCheck.Type == "monitor" {
 		var endpoints []*regexp.Regexp
 		c, err := basculechecks.NewEndpointRegexCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
 		if err != nil {
@@ -229,7 +237,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 			Measures:  capabilityCheckMeasures,
 			Endpoints: endpoints,
 		}
-		bearerRules = append(bearerRules, m.CreateValidator(capabilityCheck.Type == "enforce"))
+		bearerRules = append(bearerRules, m.CreateValidator(capabilityCheck.Type == enforceCheck))
 	}
 
 	authEnforcer := basculehttp.NewEnforcer(
@@ -261,8 +269,8 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
 // endpoints or service discovery.
+// nolint:govet
 func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
-
 	if len(cfg.Endpoints) > 0 {
 		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using configured endpoints for fanout", "endpoints", cfg.Endpoints)
 		return fanout.ParseURLs(cfg.Endpoints...)
@@ -306,7 +314,7 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 		return endpoints, err
 	}
 
-	return nil, errors.New("Unable to create endpoints")
+	return nil, fmt.Errorf("unable to create endpoints")
 }
 
 func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, tracing candlelight.Tracing) (http.Handler, error) {
@@ -317,6 +325,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	fanoutPrefix := v.GetString("fanout.pathPrefix")
 	logging.Error(logger).Log(logging.MessageKey(), "creating primary handler")
 	cfg.Tracing = tracing
+	// nolint:govet
 	endpoints, err := createEndpoints(logger, cfg, registry, e)
 	if err != nil {
 		return nil, err
@@ -328,12 +337,14 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	}
 
 	var (
+		// nolint:govet,bodyclose
 		transactor = fanout.NewTransactor(cfg)
 		options    = []fanout.Option{
 			fanout.WithTransactor(transactor),
 			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				w.Header().Set("X-Midt-Error", err.Error())
+				// nolint:errorlint
 				if headerer, ok := err.(gokithttp.Headerer); ok {
 					for k, values := range headerer.Headers() {
 						for _, v := range values {
@@ -342,6 +353,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					}
 				}
 				code := http.StatusInternalServerError
+				// nolint:errorlint
 				switch err {
 				case device.ErrorInvalidDeviceName:
 					code = http.StatusBadRequest
@@ -362,6 +374,8 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				case errNoDeviceName:
 					code = http.StatusBadRequest
 				}
+
+				// nolint:errorlint
 				if sc, ok := err.(gokithttp.StatusCoder); ok {
 					code = sc.StatusCode()
 				}
@@ -397,7 +411,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
 	})
-
+	// nolint:govet
 	fanoutChain := fanout.NewChain(cfg)
 
 	HTTPFanoutHandler := fanoutChain.Then(
@@ -440,11 +454,11 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 
 	v.UnmarshalKey(wrpCheckConfigKey, &wrpCheckConfig)
 
-	if wrpCheckConfig.Type == "enforce" || wrpCheckConfig.Type == "monitor" {
+	if wrpCheckConfig.Type == enforceCheck || wrpCheckConfig.Type == "monitor" {
 		WRPFanoutHandler = newWRPFanoutHandlerWithPIDCheck(
 			HTTPFanoutHandler,
 			&wrpPartnersAccess{
-				strict:                  wrpCheckConfig.Type == "enforce",
+				strict:                  wrpCheckConfig.Type == enforceCheck,
 				receivedWRPMessageCount: NewReceivedWRPCounter(registry),
 			})
 	} else {

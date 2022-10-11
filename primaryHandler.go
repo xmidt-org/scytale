@@ -43,10 +43,9 @@ import (
 	"github.com/xmidt-org/webpa-common/secure/handler"
 	"github.com/xmidt-org/webpa-common/v2/device"
 
+	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-
-	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"

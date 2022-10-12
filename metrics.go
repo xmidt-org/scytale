@@ -2,10 +2,11 @@ package main
 
 import (
 	"github.com/go-kit/kit/metrics"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
 )
 
-//Names for our metrics
+// Names for our metrics
 const (
 	ReceivedWRPMessageCount = "received_wrp_message_total"
 )
@@ -22,19 +23,19 @@ const (
 	Accepted = "accepted"
 	Rejected = "rejected"
 
-	TokenMissing      = "token_not_found"
+	TokenMissing = "token_not_found"
+	// nolint:gosec
 	TokenTypeMismatch = "token_type_mismatch"
 
 	WRPPIDMissing  = "wrp_pid_missing"
 	WRPPIDMismatch = "wrp_pid_mismatch"
 	WRPPIDMatch    = "wrp_pid_match"
 
-	JWTPIDMissing  = "jwt_pid_missing"
 	JWTPIDWildcard = "jwt_pid_wildcard"
 	JWTPIDInvalid  = "jwt_pid_invalid"
 )
 
-//Metrics returns the metrics relevant to this package
+// Metrics returns the metrics relevant to this package
 func Metrics() []xmetrics.Metric {
 	return []xmetrics.Metric{
 		xmetrics.Metric{
@@ -46,8 +47,8 @@ func Metrics() []xmetrics.Metric {
 	}
 }
 
-//NewReceivedWRPCounter initializes a counter to keep track of
-//scytale users which do not populate the partnerIDs field in their WRP messages
+// NewReceivedWRPCounter initializes a counter to keep track of
+// scytale users which do not populate the partnerIDs field in their WRP messages
 func NewReceivedWRPCounter(r xmetrics.Registry) metrics.Counter {
 	return r.NewCounter(ReceivedWRPMessageCount)
 }

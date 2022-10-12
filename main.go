@@ -20,24 +20,36 @@ package main
 import (
 	"fmt"
 	"io"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
+	"syscall"
 
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log/level"
+
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/candlelight"
+
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/basculechecks"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/basculemetrics"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/concurrent"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/logging"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/server"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service/consul"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service/servicecfg"
 	"github.com/xmidt-org/webpa-common/v2/webhook"
+
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/webhook/aws"
 )
 
@@ -135,7 +147,7 @@ func scytale(arguments []string) int {
 		return 4
 	}
 
-	signal.Notify(signals, os.Kill, os.Interrupt)
+	signal.Notify(signals, syscall.SIGTERM, os.Interrupt)
 	for exit := false; !exit; {
 		select {
 		case s := <-signals:

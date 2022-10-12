@@ -40,6 +40,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
 
+	"github.com/xmidt-org/webpa-common/secure/handler"
 	"github.com/xmidt-org/webpa-common/v2/device"
 
 	"github.com/go-kit/log"
@@ -339,6 +340,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	var (
 		// nolint:govet,bodyclose
 		transactor = fanout.NewTransactor(cfg)
+		decoder    = wrphttp.DefaultDecoder()
 		options    = []fanout.Option{
 			fanout.WithTransactor(transactor),
 			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {
@@ -420,6 +422,13 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 			append(
 				options,
 				fanout.WithFanoutBefore(
+					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
+						entity, err := decoder(ctx, fanout)
+						if err != nil {
+							return nil, err
+						}
+						return context.WithValue(ctx, ContextKeyWRP, entity.Message), nil
+					},
 					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),
 					fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),
 					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
@@ -433,6 +442,34 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				),
 				fanout.WithFanoutAfter(
 					fanout.ReturnHeadersWithPrefix("X-"),
+					func(ctx context.Context, response http.ResponseWriter, result fanout.Result) context.Context {
+						var satClientID = "N/A"
+						reqContextValues, ok := handler.FromContext(result.Request.Context())
+						if ok {
+							satClientID = reqContextValues.SatClientID
+						}
+
+						wrpFromCtx, ok := ctx.Value("wrp").(wrp.Message)
+						if ok {
+							logging.Info(logger).Log(
+								logging.MessageKey(), "Bookkeeping response",
+								"messageType", wrpFromCtx.Type,
+								"destination", wrpFromCtx.Destination,
+								"source", wrpFromCtx.Source,
+								"transactionUUID", wrpFromCtx.TransactionUUID,
+								"status", wrpFromCtx.Status,
+								"partnerIDs", wrpFromCtx.PartnerIDs,
+								"satClientID", satClientID,
+							)
+						} else {
+							logging.Error(logger).Log(logging.MessageKey(), "no wrp found")
+							logging.Info(logger).Log(
+								logging.MessageKey(), "Bookkeeping response",
+								"satClientID", satClientID,
+							)
+						}
+						return ctx
+					},
 				),
 			)...,
 		))

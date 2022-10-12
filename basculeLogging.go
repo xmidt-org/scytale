@@ -3,14 +3,16 @@ package main
 import (
 	"context"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/go-kit/log"
 	"github.com/xmidt-org/candlelight"
-
-	// nolint:staticcheck
-	"github.com/xmidt-org/webpa-common/v2/logging"
 )
+
+type contextKey uint32
+
+const loggerKey contextKey = 1
 
 // LoggerFunc is a strategy for adding key/value pairs (possibly) based on an HTTP request.
 // Functions of this type must append key/value pairs to the supplied slice and then return
@@ -45,13 +47,17 @@ func setLogger(logger log.Logger, lf ...LoggerFunc) func(delegate http.Handler) 
 					}
 				}
 				kvs, _ = candlelight.AppendTraceInfo(r.Context(), kvs)
-				ctx := r.WithContext(logging.WithLogger(r.Context(), log.With(logger, kvs...)))
+				ctx := r.WithContext(context.WithValue(r.Context(), loggerKey, log.With(logger, kvs...)))
 				delegate.ServeHTTP(w, ctx)
 			})
 	}
 }
 
 func getLogger(ctx context.Context) log.Logger {
-	logger := log.With(logging.GetLogger(ctx), "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
-	return logger
+	logger, ok := ctx.Value(loggerKey).(log.Logger)
+	if !ok {
+		logger = log.NewJSONLogger(log.NewSyncWriter(os.Stdout))
+	}
+
+	return log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 }

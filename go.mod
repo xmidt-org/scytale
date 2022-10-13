@@ -23,9 +23,10 @@ require (
 	github.com/xmidt-org/clortho v0.0.4
 	github.com/xmidt-org/sallust v0.1.6
 	github.com/xmidt-org/touchstone v0.1.2
+	github.com/xmidt-org/webpa-common v1.11.9
 	github.com/xmidt-org/webpa-common/v2 v2.0.7
 	github.com/xmidt-org/wrp-go/v3 v3.1.4
-	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.36.2
+	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.36.3
 	go.opentelemetry.io/otel/exporters/stdout v0.20.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.10.0 // indirect
 	go.opentelemetry.io/otel/exporters/zipkin v1.10.0 // indirect

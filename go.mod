@@ -41,7 +41,7 @@ require (
 	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2 // indirect
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
-	github.com/aws/aws-sdk-go v1.44.114 // indirect
+	github.com/aws/aws-sdk-go v1.44.124 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/billhathaway/consistentHash v0.0.0-20140718022140-addea16d2229 // indirect
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8 // indirect
@@ -60,7 +60,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/hashicorp/consul/api v1.15.2 // indirect
+	github.com/hashicorp/consul/api v1.15.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.3.1 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
@@ -80,7 +80,7 @@ require (
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.2 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -89,14 +89,14 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/stretchr/objx v0.4.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/xmidt-org/argus v0.9.2 // indirect
@@ -104,24 +104,24 @@ require (
 	github.com/xmidt-org/chronon v0.1.1 // indirect
 	github.com/xmidt-org/httpaux v0.3.2 // indirect
 	github.com/xmidt-org/themis v0.4.9 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.3 // indirect
-	go.opentelemetry.io/otel v1.11.0 // indirect
-	go.opentelemetry.io/otel/exporters/jaeger v1.11.0 // indirect
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.11.0 // indirect
-	go.opentelemetry.io/otel/exporters/zipkin v1.11.0 // indirect
-	go.opentelemetry.io/otel/metric v0.32.3 // indirect
-	go.opentelemetry.io/otel/sdk v1.11.0 // indirect
-	go.opentelemetry.io/otel/trace v1.11.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.4 // indirect
+	go.opentelemetry.io/otel v1.11.1 // indirect
+	go.opentelemetry.io/otel/exporters/jaeger v1.11.1 // indirect
+	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.11.1 // indirect
+	go.opentelemetry.io/otel/exporters/zipkin v1.11.1 // indirect
+	go.opentelemetry.io/otel/metric v0.33.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.11.1 // indirect
+	go.opentelemetry.io/otel/trace v1.11.1 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/dig v1.15.0 // indirect
 	go.uber.org/fx v1.18.2 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/net v0.0.0-20221004154528-8021a29435af // indirect
+	golang.org/x/crypto v0.1.0 // indirect
+	golang.org/x/mod v0.6.0 // indirect
+	golang.org/x/net v0.1.0 // indirect
 	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
-	golang.org/x/tools v0.1.12 // indirect
+	golang.org/x/tools v0.2.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect

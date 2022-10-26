@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	github.com/go-kit/kit v0.12.0
-	github.com/go-kit/log v0.2.1
 	github.com/goph/emperror v0.17.3-0.20190703203600-60a8d9faa17b
 	github.com/gorilla/mux v1.8.0
 	github.com/justinas/alice v1.2.0
@@ -37,7 +36,6 @@ require (
 require (
 	emperror.dev/emperror v0.33.0 // indirect
 	emperror.dev/errors v0.8.1 // indirect
-	github.com/GaryBoone/GoStats v0.0.0-20130122001700-1993eafbef57 // indirect
 	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2 // indirect
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
@@ -51,6 +49,7 @@ require (
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.7.0]
+- Add logging after fanout [179](https://github.com/xmidt-org/scytale/issues/179)
+- Fix docker so it builds
+- Restore license validationg
+- Fix and restore linting step
+- Dependency update
+
 ## [v0.6.8]
 - JWT Migration [183](https://github.com/xmidt-org/scytale/issues/183)
   - updated to use clortho `Resolver` & `Refresher`
@@ -125,7 +132,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.6.8...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.7.0...HEAD
+[v0.7.0]: https://github.com/xmidt-org/scytale/compare/v0.6.8...v0.7.0
 [v0.6.8]: https://github.com/xmidt-org/scytale/compare/v0.6.5...v0.6.8
 [v0.6.5]: https://github.com/xmidt-org/scytale/compare/v0.6.4...v0.6.5
 [v0.6.4]: https://github.com/xmidt-org/scytale/compare/v0.6.3...v0.6.4

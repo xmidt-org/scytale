@@ -25,10 +25,9 @@ RUN make test release
 FROM alpine:3.12.1
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /src/scytale /src/scytale.yaml /src/deploy/packaging/entrypoint.sh /go/bin/spruce /src/Dockerfile /src/NOTICE /src/LICENSE /src/CHANGELOG.md /
+COPY --from=builder /src/scytale /src/deploy/packaging/entrypoint.sh /go/bin/spruce /src/Dockerfile /src/NOTICE /src/LICENSE /src/CHANGELOG.md /
 COPY --from=builder /src/deploy/packaging/scytale_spruce.yaml /tmp/scytale_spruce.yaml
-
-RUN mkdir /etc/scytale/ && touch /etc/scytale/scytale.yaml && chmod 666 /etc/scytale/scytale.yaml
+COPY --from=builder /src/scytale.yaml /etc/scytale/scytale.yaml
 
 USER nobody
 

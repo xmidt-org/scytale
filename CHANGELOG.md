@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.7.1]
+- Fix the docker container so it has configuration in the right place.
+
 ## [v0.7.0]
 - Add logging after fanout [179](https://github.com/xmidt-org/scytale/issues/179)
 - Fix docker so it builds

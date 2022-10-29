@@ -129,6 +129,12 @@ metric:
     # (Optional)
     subsystem: "scytale"
 
+touchstone:
+  # DefaultNamespace is the prometheus namespace to apply when a metric has no namespace
+  defaultNamespace: "xmidt"
+  # DefaultSubsystem is the prometheus subsystem to apply when a metric has no subsystem
+  defaultSubsystem: "scytale"
+
 ########################################
 #   Logging Related Configuration
 ########################################
@@ -160,6 +166,35 @@ log:
   # json is a flag indicating whether JSON logging output should be used.
   # (Optional) defaults to false
   json: true
+
+zap:
+  # OutputPaths is a list of URLs or file paths to write logging output to.
+  outputPaths:
+    - stdout
+    # - /var/log/scytale/scytale.log
+
+  # Level is the minimum enabled logging level. Note that this is a dynamic
+  # level, so calling Config.Level.SetLevel will atomically change the log
+  # level of all loggers descended from this config.
+  level: DEBUG
+
+  # EncoderConfig sets options for the chosen encoder. See
+  # zapcore.EncoderConfig for details.
+  errorOutputPaths:
+    - stderr
+    # - /var/log/scytale/scytale.log
+
+  # EncoderConfig sets options for the chosen encoder. See
+  # zapcore.EncoderConfig for details.
+  encoderConfig:
+    messageKey: message
+    levelKey: key
+    levelEncoder: lowercase
+
+  # Encoding sets the logger's encoding. Valid values are "json" and
+  # "console", as well as any third-party encodings registered via
+  # RegisterEncoder.
+  encoding: json
 
 ########################################
 #   Fanout Related Configuration

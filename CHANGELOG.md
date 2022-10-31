@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.7.2]
+- Remove several unused build files and update the docker images to work. [179](https://github.com/xmidt-org/scytale/pull/209)
+
 ## [v0.7.1]
 - Fix the docker container so it has configuration in the right place.
 
@@ -135,7 +138,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.7.2...HEAD
+[v0.7.2]: https://github.com/xmidt-org/scytale/compare/v0.7.1...v0.7.2
+[v0.7.1]: https://github.com/xmidt-org/scytale/compare/v0.7.0...v0.7.1
 [v0.7.0]: https://github.com/xmidt-org/scytale/compare/v0.6.8...v0.7.0
 [v0.6.8]: https://github.com/xmidt-org/scytale/compare/v0.6.5...v0.6.8
 [v0.6.5]: https://github.com/xmidt-org/scytale/compare/v0.6.4...v0.6.5

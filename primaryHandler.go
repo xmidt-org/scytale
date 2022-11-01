@@ -41,7 +41,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
 
-	"github.com/xmidt-org/webpa-common/secure/handler"
+	"github.com/xmidt-org/webpa-common/logging"
 	"github.com/xmidt-org/webpa-common/v2/device"
 
 	gokithttp "github.com/go-kit/kit/transport/http"
@@ -50,10 +50,9 @@ import (
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/bascule/basculechecks"
 	bchecks "github.com/xmidt-org/bascule/basculechecks"
 	"github.com/xmidt-org/bascule/basculehttp"
-	"github.com/xmidt-org/webpa-common/v2/basculechecks"
-	"github.com/xmidt-org/webpa-common/v2/basculemetrics"
 	"github.com/xmidt-org/webpa-common/v2/service"
 	"github.com/xmidt-org/webpa-common/v2/service/monitor"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
@@ -88,9 +87,9 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry) (
 		return alice.Chain{}, errors.New("nil registry")
 	}
 
-	basculeMeasures := basculemetrics.NewAuthValidationMeasures(registry)
+	basculeMeasures := basculehttp.NewAuthValidationMeasures(registry)
 	capabilityCheckMeasures := basculechecks.NewAuthCapabilityCheckMeasures(registry)
-	listener := basculemetrics.NewMetricListener(basculeMeasures)
+	listener := basculehttp.NewMetricListener(basculeMeasures)
 
 	basicAllowed := make(map[string]string)
 	basicAuth := v.GetStringSlice(basicAuthConfigKey)
@@ -436,7 +435,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 					fanout.ReturnHeadersWithPrefix("X-"),
 					func(ctx context.Context, response http.ResponseWriter, result fanout.Result) context.Context {
 						var satClientID = "N/A"
-						reqContextValues, ok := handler.FromContext(result.Request.Context())
+						reqContextValues, ok := result.Request.Context().Value(contextKey{}).(*ContextValues)
 						if ok {
 							satClientID = reqContextValues.SatClientID
 						}

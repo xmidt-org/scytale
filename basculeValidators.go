@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/webpa-common/v2/basculechecks"
+	"github.com/xmidt-org/bascule/basculechecks"
 )
 
 var requirePartnersJWTClaim bascule.ValidatorFunc = func(_ context.Context, token bascule.Token) error {

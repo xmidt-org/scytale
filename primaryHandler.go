@@ -36,15 +36,13 @@ import (
 	"github.com/xmidt-org/clortho/clorthometrics"
 	"github.com/xmidt-org/clortho/clorthozap"
 	"github.com/xmidt-org/sallust"
+	"github.com/xmidt-org/sallust/sallustkit"
 	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
 
-	"github.com/xmidt-org/webpa-common/secure/handler"
+	"github.com/xmidt-org/webpa-common/logging"
 	"github.com/xmidt-org/webpa-common/v2/device"
-
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/goph/emperror"
@@ -52,14 +50,9 @@ import (
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/bascule/basculechecks"
 	bchecks "github.com/xmidt-org/bascule/basculechecks"
 	"github.com/xmidt-org/bascule/basculehttp"
-	"github.com/xmidt-org/webpa-common/v2/basculechecks"
-	"github.com/xmidt-org/webpa-common/v2/basculemetrics"
-
-	// nolint:staticcheck
-	"github.com/xmidt-org/webpa-common/v2/logging"
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service"
 	"github.com/xmidt-org/webpa-common/v2/service/monitor"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
@@ -89,34 +82,35 @@ const (
 
 var errNoDeviceName = errors.New("no device name")
 
-func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
+func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	if registry == nil {
 		return alice.Chain{}, errors.New("nil registry")
 	}
 
-	basculeMeasures := basculemetrics.NewAuthValidationMeasures(registry)
+	basculeMeasures := basculehttp.NewAuthValidationMeasures(registry)
 	capabilityCheckMeasures := basculechecks.NewAuthCapabilityCheckMeasures(registry)
-	listener := basculemetrics.NewMetricListener(basculeMeasures)
+	listener := basculehttp.NewMetricListener(basculeMeasures)
 
 	basicAllowed := make(map[string]string)
 	basicAuth := v.GetStringSlice(basicAuthConfigKey)
 	for _, a := range basicAuth {
 		decoded, err := base64.StdEncoding.DecodeString(a)
 		if err != nil {
-			logging.Info(logger).Log(logging.MessageKey(), "failed to decode auth header", "authHeader", a, logging.ErrorKey(), err.Error())
+			logger.Error("failed to decode auth header", zap.Error(err), zap.String("authHeader", a))
 			continue
 		}
 
 		i := bytes.IndexByte(decoded, ':')
-		logging.Debug(logger).Log(logging.MessageKey(), "decoded string", "string", decoded, "i", i)
+		logger.Debug("decoded string", zap.ByteString("string", decoded), zap.Int("i", i))
 		if i > 0 {
 			basicAllowed[string(decoded[:i])] = string(decoded[i+1:])
 		}
 	}
-	logging.Debug(logger).Log(logging.MessageKey(), "Created list of allowed basic auths", "allowed", basicAllowed, "config", basicAuth)
+	logger.Debug("Created list of allowed basic auths", zap.Any("allowed", basicAllowed), zap.Strings("config", basicAuth))
+	logger.Debug("Created list of allowed basic auths", zap.Any("allowed", basicAllowed), zap.Strings("config", basicAuth))
 
 	options := []basculehttp.COption{
-		basculehttp.WithCLogger(getLogger),
+		basculehttp.WithCLogger(sallust.Get),
 		basculehttp.WithCErrorResponseFunc(listener.OnErrorResponse),
 	}
 	if len(basicAllowed) > 0 {
@@ -159,13 +153,10 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 
 	var (
 		tsConfig touchstone.Config
-		zConfig  sallust.Config
 	)
-	// Get touchstone & zap configurations
+	// Get touchstone configuration
 	v.UnmarshalKey("touchstone", &tsConfig)
-	v.UnmarshalKey("zap", &zConfig)
-	zlogger := zap.Must(zConfig.Build())
-	tf := touchstone.NewFactory(tsConfig, zlogger, promReg)
+	tf := touchstone.NewFactory(tsConfig, logger, promReg)
 	// Instantiate a metric listener for refresher and resolver to share
 	cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))
 	if err != nil {
@@ -174,7 +165,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 
 	// Instantiate a logging listener for refresher and resolver to share
 	czl, err := clorthozap.NewListener(
-		clorthozap.WithLogger(zlogger),
+		clorthozap.WithLogger(logger),
 	)
 	if err != nil {
 		return alice.Chain{}, emperror.With(err, "failed to create clortho zap logger listener")
@@ -228,7 +219,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		for _, e := range capabilityCheck.EndpointBuckets {
 			r, err := regexp.Compile(e)
 			if err != nil {
-				logging.Error(logger).Log(logging.MessageKey(), "failed to compile regular expression", "regex", e, logging.ErrorKey(), err.Error())
+				logger.Error("failed to compile regular expression", zap.Error(err), zap.String("regex", e))
 				continue
 			}
 			endpoints = append(endpoints, r)
@@ -242,7 +233,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	}
 
 	authEnforcer := basculehttp.NewEnforcer(
-		basculehttp.WithELogger(getLogger),
+		basculehttp.WithELogger(sallust.Get),
 		basculehttp.WithRules("Basic", bascule.Validators{
 			bchecks.AllowAll(),
 		}),
@@ -271,12 +262,12 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
 // endpoints or service discovery.
 // nolint:govet
-func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
+func createEndpoints(logger *zap.Logger, cfg fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
 	if len(cfg.Endpoints) > 0 {
-		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using configured endpoints for fanout", "endpoints", cfg.Endpoints)
+		logger.Info("using configured endpoints for fanout", zap.Strings("endpoints", cfg.Endpoints))
 		return fanout.ParseURLs(cfg.Endpoints...)
 	} else if e != nil {
-		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using service discovery for fanout")
+		logger.Info("using service discovery for fanout")
 		endpoints := fanout.NewServiceEndpoints(
 			fanout.WithAccessorFactory(e.AccessorFactory()),
 			// required to get deviceID from either the header or the path
@@ -303,7 +294,7 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 		)
 
 		_, err := monitor.New(
-			monitor.WithLogger(logger),
+			monitor.WithLogger(sallustkit.Logger{Zap: logger}),
 			monitor.WithFilter(monitor.NewNormalizeFilter(e.DefaultScheme())),
 			monitor.WithEnvironment(e),
 			monitor.WithListeners(
@@ -318,13 +309,13 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 	return nil, fmt.Errorf("unable to create endpoints")
 }
 
-func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, tracing candlelight.Tracing) (http.Handler, error) {
+func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, tracing candlelight.Tracing) (http.Handler, error) {
 	var cfg fanout.Configuration
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
 	}
 	fanoutPrefix := v.GetString("fanout.pathPrefix")
-	logging.Error(logger).Log(logging.MessageKey(), "creating primary handler")
+	logger.Info("creating primary handler")
 	cfg.Tracing = tracing
 	// nolint:govet
 	endpoints, err := createEndpoints(logger, cfg, registry, e)
@@ -444,7 +435,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					fanout.ReturnHeadersWithPrefix("X-"),
 					func(ctx context.Context, response http.ResponseWriter, result fanout.Result) context.Context {
 						var satClientID = "N/A"
-						reqContextValues, ok := handler.FromContext(result.Request.Context())
+						reqContextValues, ok := result.Request.Context().Value(contextKey{}).(*ContextValues)
 						if ok {
 							satClientID = reqContextValues.SatClientID
 						}

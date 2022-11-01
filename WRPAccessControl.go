@@ -6,12 +6,12 @@ import (
 
 	"github.com/go-kit/kit/metrics"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/webpa-common/v2/basculechecks"
+	"github.com/xmidt-org/bascule/basculechecks"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
 	"github.com/xmidt-org/wrp-go/v3"
 )
 
-//partnerAuthority errors
+// partnerAuthority errors
 var (
 	ErrTokenMissing            = &xhttp.Error{Code: http.StatusInternalServerError, Text: "No JWT Token was found in context"}
 	ErrTokenTypeMismatch       = &xhttp.Error{Code: http.StatusInternalServerError, Text: "Token must be a JWT"}
@@ -21,7 +21,7 @@ var (
 	ErrPIDMismatch             = &xhttp.Error{Code: http.StatusForbidden, Text: "Unauthorized partners credentials in WRP message"}
 )
 
-//WRPCheckConfig drives the WRP Access control configuration when enabled
+// WRPCheckConfig drives the WRP Access control configuration when enabled
 type WRPCheckConfig struct {
 	Type string
 }
@@ -55,8 +55,8 @@ func (p *wrpPartnersAccess) withSuccess(labelValues ...string) metrics.Counter {
 	return p.receivedWRPMessageCount.With(append(labelValues, OutcomeLabel, Accepted)...)
 }
 
-//authorizeWRP runs the partners access policy against the WRP and returns an error if the check fails.
-//When the policy is not strictly enforced,
+// authorizeWRP runs the partners access policy against the WRP and returns an error if the check fails.
+// When the policy is not strictly enforced,
 // Additionally, when the policy is not a boolean is returned for failure cases where the policy autocorrects the WRP contents
 func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Message) (bool, error) {
 	var (
@@ -142,7 +142,7 @@ func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Messa
 	return true, nil
 }
 
-//returns true if list contains str
+// returns true if list contains str
 func contains(list []string, str string) bool {
 	for _, e := range list {
 		if e == str {
@@ -152,7 +152,7 @@ func contains(list []string, str string) bool {
 	return false
 }
 
-//returns true if a is a subset of b
+// returns true if a is a subset of b
 func isSubset(a, b []string) bool {
 	m := make(map[string]bool)
 

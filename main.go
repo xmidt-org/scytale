@@ -23,22 +23,21 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"syscall"
-
-	"github.com/go-kit/log/level"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/candlelight"
 
+	"github.com/xmidt-org/bascule/basculechecks"
+
 	// nolint:staticcheck
-	"github.com/xmidt-org/webpa-common/v2/basculechecks"
-	// nolint:staticcheck
-	"github.com/xmidt-org/webpa-common/v2/basculemetrics"
+
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/concurrent"
 	// nolint:staticcheck
-	"github.com/xmidt-org/webpa-common/v2/logging"
+
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/server"
 	// nolint:staticcheck
@@ -51,6 +50,7 @@ import (
 
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/webhook/aws"
+	"go.uber.org/zap"
 )
 
 const (
@@ -85,16 +85,14 @@ func scytale(arguments []string) int {
 		f = pflag.NewFlagSet(applicationName, pflag.ContinueOnError)
 		v = viper.New()
 
-		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, basculechecks.Metrics, basculemetrics.Metrics, consul.Metrics, Metrics, service.Metrics)
+		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, basculechecks.Metrics, basculehttp.Metrics, consul.Metrics, Metrics, service.Metrics)
 	)
 
 	if parseErr, done := printVersion(f, arguments); done {
 		// if we're done, we're exiting no matter what
 		if parseErr != nil {
 			friendlyError := fmt.Sprintf("failed to parse arguments. detailed error: %s", parseErr)
-			logging.Error(logger).Log(
-				logging.ErrorKey(),
-				friendlyError)
+			fmt.Fprintf(os.Stderr, friendlyError)
 			os.Exit(1)
 		}
 		os.Exit(0)
@@ -105,21 +103,19 @@ func scytale(arguments []string) int {
 		return 1
 	}
 
-	logger.Log(level.Key(), level.InfoValue(), "configurationFile", v.ConfigFileUsed())
-
 	tracing, err := loadTracing(v, applicationName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to build tracing component: %v \n", err)
 		return 1
 	}
-	level.Info(logger).Log(logging.MessageKey(), "tracing status", "enabled", !tracing.IsNoop())
+	logger.Info("tracing status", zap.String("enabled", strconv.FormatBool(!tracing.IsNoop())))
 
 	var e service.Environment
 	if v.IsSet("service") {
 		var err error
 		e, err = servicecfg.NewEnvironment(logger, v.Sub("service"), service.WithProvider(metricsRegistry))
 		if err != nil {
-			logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "Unable to initialize service discovery environment", logging.ErrorKey(), err)
+			logger.Error("unable to initialize service discovery environment", zap.Error(err))
 			return 4
 		}
 		defer e.Close()
@@ -128,7 +124,7 @@ func scytale(arguments []string) int {
 
 	primaryHandler, err := NewPrimaryHandler(logger, v, metricsRegistry, e, tracing)
 	if err != nil {
-		logger.Log(level.Key(), level.ErrorValue(), logging.ErrorKey(), err, logging.MessageKey(), "unable to create primary handler")
+		logger.Error("unable to create primary handler", zap.Error(err))
 		return 2
 	}
 
@@ -151,10 +147,10 @@ func scytale(arguments []string) int {
 	for exit := false; !exit; {
 		select {
 		case s := <-signals:
-			logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "exiting due to signal", "signal", s)
+			logger.Error("exiting due to signal", "signal", s)
 			exit = true
 		case <-done:
-			logger.Log(level.Key(), level.ErrorValue(), logging.MessageKey(), "one or more servers exited")
+			logger.Error("one or more servers exited")
 			exit = true
 		}
 	}

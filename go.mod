@@ -11,13 +11,12 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-hclog v1.3.1 // indirect
 	github.com/justinas/alice v1.2.0
-	github.com/lestrrat-go/jwx/v2 v2.0.6 // indirect
 	github.com/prometheus/client_golang v1.14.0
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.14.0
 	github.com/stretchr/testify v1.8.1
-	github.com/xmidt-org/bascule v0.11.0
+	github.com/xmidt-org/bascule v0.11.2
 	github.com/xmidt-org/candlelight v0.0.12
 	github.com/xmidt-org/clortho v0.0.4
 	github.com/xmidt-org/sallust v0.2.0
@@ -28,5 +27,4 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.36.4
 	go.opentelemetry.io/otel/exporters/stdout v0.20.0 // indirect
 	go.uber.org/zap v1.23.0
-	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0 // indirect
 )

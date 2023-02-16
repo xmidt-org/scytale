@@ -424,7 +424,17 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				fanout.WithFanoutBefore(
 					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 						var m wrp.Message
-						json.Unmarshal(body, &m)
+						format, err := DetermineFormat(wrp.Msgpack, original.Header, "Content-Type")`
+						if err != nil {
+						     return nil, err
+						 }
+						 
+						err = wrp.NewDecoderBytes(body, format).Decode(&m)
+						if err != nil {
+						     return nil, err
+						 }
+						 
+`
 						return context.WithValue(ctx, ContextKeyWRP, m), nil
 					},
 					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),

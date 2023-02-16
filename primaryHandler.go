@@ -423,11 +423,9 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				options,
 				fanout.WithFanoutBefore(
 					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
-						var entity wrphttp.Entity
-						var message wrp.Message
-						json.Unmarshal(body, &message)
-						entity.Message = message
-						return context.WithValue(ctx, ContextKeyWRP, entity.Message), nil
+						var m wrp.Message
+						json.Unmarshal(body, &m)
+						return context.WithValue(ctx, ContextKeyWRP, m), nil
 					},
 					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),
 					fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),

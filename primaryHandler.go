@@ -341,7 +341,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	var (
 		// nolint:govet,bodyclose
 		transactor = fanout.NewTransactor(cfg)
-		// decoder    = wrphttp.DefaultDecoder()
 		options = []fanout.Option{
 			fanout.WithTransactor(transactor),
 			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {

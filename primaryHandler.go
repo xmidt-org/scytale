@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -340,8 +341,8 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	var (
 		// nolint:govet,bodyclose
 		transactor = fanout.NewTransactor(cfg)
-		decoder    = wrphttp.DefaultDecoder()
-		options    = []fanout.Option{
+		// decoder    = wrphttp.DefaultDecoder()
+		options = []fanout.Option{
 			fanout.WithTransactor(transactor),
 			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -423,10 +424,10 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				options,
 				fanout.WithFanoutBefore(
 					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
-						entity, err := decoder(ctx, fanout)
-						if err != nil {
-							return nil, err
-						}
+						var entity wrphttp.Entity
+						var message wrp.Message
+						json.Unmarshal(body, &message)
+						entity.Message = message
 						return context.WithValue(ctx, ContextKeyWRP, entity.Message), nil
 					},
 					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),

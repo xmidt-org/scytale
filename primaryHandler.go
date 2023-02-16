@@ -423,12 +423,13 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 				fanout.WithFanoutBefore(
 					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 						var m wrp.Message
-						format, err := wrphttp.DetermineFormat(wrp.Msgpack, original.Header, "Content-Type")
+
+						f, err := wrphttp.DetermineFormat(wrp.Msgpack, original.Header, "Content-Type")
 						if err != nil {
 							return nil, err
 						}
 
-						err = wrp.NewDecoderBytes(body, format).Decode(&m)
+						err = wrp.NewDecoderBytes(body, f).Decode(&m)
 						if err != nil {
 							return nil, err
 						}

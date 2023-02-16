@@ -422,7 +422,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 			append(
 				options,
 				fanout.WithFanoutBefore(
-					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
+					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 						var m wrp.Message
 						json.Unmarshal(body, &m)
 						return context.WithValue(ctx, ContextKeyWRP, m), nil

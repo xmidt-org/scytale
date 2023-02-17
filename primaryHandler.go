@@ -340,7 +340,6 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 	var (
 		// nolint:govet,bodyclose
 		transactor = fanout.NewTransactor(cfg)
-		decoder    = wrphttp.DefaultDecoder()
 		options    = []fanout.Option{
 			fanout.WithTransactor(transactor),
 			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {
@@ -422,12 +421,20 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 			append(
 				options,
 				fanout.WithFanoutBefore(
-					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
-						entity, err := decoder(ctx, fanout)
+					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
+						var m wrp.Message
+
+						f, err := wrphttp.DetermineFormat(wrp.Msgpack, original.Header, "Content-Type")
 						if err != nil {
 							return nil, err
 						}
-						return context.WithValue(ctx, ContextKeyWRP, entity.Message), nil
+
+						err = wrp.NewDecoderBytes(body, f).Decode(&m)
+						if err != nil {
+							return nil, err
+						}
+
+						return context.WithValue(ctx, ContextKeyWRP, m), nil
 					},
 					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),
 					fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),

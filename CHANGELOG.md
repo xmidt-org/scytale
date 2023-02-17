@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- [ Scytale: WRP Decoder Panic #236] (https://github.com/xmidt-org/scytale/issues/236)
 
 ## [v0.7.2]
 - Remove several unused build files and update the docker images to work. [179](https://github.com/xmidt-org/scytale/pull/209)

@@ -274,11 +274,10 @@ authHeader:
 # used as authorization
 # (Optional)
 jwtValidator:
-  keys:
-    factory:
-      uri: "https://jwt.example.com/keys/{keyId}"
-    purpose: 0
-    updateInterval: 604800000000000
+  Config:
+    Resolve:
+      Template: (( grab $THEMIS_ENDPOINT || "http://themis:6500/keys/{keyID}" ))
+  
 
 # capabilityConfig provides the details needed for checking an incoming JWT's
 # capabilities.  If this isn't provided, no checking is done.  The capability

@@ -36,6 +36,7 @@ import (
 	"github.com/xmidt-org/clortho/clorthometrics"
 	"github.com/xmidt-org/clortho/clorthozap"
 	"github.com/xmidt-org/sallust"
+	"github.com/xmidt-org/scytale/basculehelper"
 	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
@@ -52,10 +53,11 @@ import (
 	"github.com/justinas/alice"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
-	bchecks "github.com/xmidt-org/bascule/basculechecks"
+	"github.com/xmidt-org/bascule/basculechecks"
 	"github.com/xmidt-org/bascule/basculehttp"
-	"github.com/xmidt-org/webpa-common/v2/basculechecks"
-	"github.com/xmidt-org/webpa-common/v2/basculemetrics"
+
+	// "github.com/xmidt-org/webpa-common/v2/basculechecks"
+	// "github.com/xmidt-org/webpa-common/v2/basculemetrics"
 
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/logging"
@@ -94,9 +96,9 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		return alice.Chain{}, errors.New("nil registry")
 	}
 
-	basculeMeasures := basculemetrics.NewAuthValidationMeasures(registry)
-	capabilityCheckMeasures := basculechecks.NewAuthCapabilityCheckMeasures(registry)
-	listener := basculemetrics.NewMetricListener(basculeMeasures)
+	basculeMeasures := basculehelper.NewAuthValidationMeasures(registry)
+	capabilityCheckMeasures := basculehelper.NewAuthCapabilityCheckMeasures(registry)
+	listener := basculehelper.NewMetricListener(basculeMeasures)
 
 	basicAllowed := make(map[string]string)
 	basicAuth := v.GetStringSlice(basicAuthConfigKey)
@@ -210,18 +212,19 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		basculehttp.WithCErrorHTTPResponseFunc(basculehttp.LegacyOnErrorHTTPResponse),
 	}, options...)...)
 	bearerRules := bascule.Validators{
-		bchecks.NonEmptyPrincipal(),
-		bchecks.NonEmptyType(),
-		bchecks.ValidType([]string{"jwt"}),
+		basculechecks.NonEmptyPrincipal(),
+		basculechecks.NonEmptyType(),
+		basculechecks.ValidType([]string{"jwt"}),
 		requirePartnersJWTClaim,
 	}
 
 	// only add capability check if the configuration is set
-	var capabilityCheck CapabilityConfig
+	var capabilityCheck basculechecks.CapabilitiesValidatorConfig
 	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
 	if capabilityCheck.Type == enforceCheck || capabilityCheck.Type == "monitor" {
 		var endpoints []*regexp.Regexp
-		c, err := basculechecks.NewEndpointRegexCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+		ec, err := basculehelper.NewEndpointRegexCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
+
 		if err != nil {
 			return alice.Chain{}, emperror.With(err, "failed to create capability check")
 		}
@@ -233,8 +236,8 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 			}
 			endpoints = append(endpoints, r)
 		}
-		m := basculechecks.MetricValidator{
-			C:         basculechecks.CapabilitiesValidator{Checker: c},
+		m := basculehelper.MetricValidator{
+			C:         basculehelper.CapabilitiesValidator{Checker: ec},
 			Measures:  capabilityCheckMeasures,
 			Endpoints: endpoints,
 		}
@@ -244,7 +247,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	authEnforcer := basculehttp.NewEnforcer(
 		basculehttp.WithELogger(getLogger),
 		basculehttp.WithRules("Basic", bascule.Validators{
-			bchecks.AllowAll(),
+			basculechecks.AllowAll(),
 		}),
 		basculehttp.WithRules("Bearer", bearerRules),
 		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),

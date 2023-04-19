@@ -94,7 +94,7 @@ func NewAuthValidationMeasures(r xmetrics.Registry) *AuthValidationMeasures {
 	}
 }
 
-/****************************Metrics****************************/
+/****************************MetricValidator****************************/
 
 // MetricValidator determines if a request is authorized and then updates a
 // metric to show those results.
@@ -322,14 +322,31 @@ type CapabilitiesValidator struct {
 	Checker CapabilityChecker
 }
 
-// CapabilityChecker is an object that can determine if a capability provides
-// authorization to the endpoint.
-type CapabilityChecker interface {
-	Authorized(string, string, string) bool
-}
-
 func PartnerKeys() []string {
 	return partnerKeys
+}
+
+// CreateValidator creates a function that determines whether or not a
+// client is authorized to make a request to an endpoint.  It uses the
+// bascule.Authentication from the context to get the information needed by the
+// CapabilityChecker to determine authorization.
+func (c CapabilitiesValidator) CreateValidator(errorOut bool) bascule.ValidatorFunc {
+	return func(ctx context.Context, _ bascule.Token) error {
+		auth, ok := bascule.FromContext(ctx)
+		if !ok {
+			if errorOut {
+				return ErrNoAuth
+			}
+			return nil
+		}
+
+		_, err := c.Check(auth, ParsedValues{})
+		if err != nil && errorOut {
+			return err
+		}
+
+		return nil
+	}
 }
 
 // Check takes the needed values out of the given Authentication object in
@@ -396,7 +413,12 @@ func getCapabilities(attributes bascule.Attributes) ([]string, string, error) {
 
 }
 
-/****************************EndpointRegexCheck****************************/
+/****************************CapabilityChecker****************************/
+// CapabilityChecker is an object that can determine if a capability provides
+// authorization to the endpoint.
+type CapabilityChecker interface {
+	Authorized(string, string, string) bool
+}
 
 // EndpointRegexCheck uses a regular expression to validate an endpoint and
 // method provided in a capability against the endpoint hit and method used for
@@ -452,4 +474,37 @@ func (e EndpointRegexCheck) Authorized(capability string, urlToMatch string, met
 	}
 
 	return true
+}
+
+// AlwaysCheck is a CapabilityChecker that always returns either true or false.
+type AlwaysCheck bool
+
+// Authorized returns the saved boolean value, rather than checking the
+// parameters given.
+func (a AlwaysCheck) Authorized(_, _, _ string) bool {
+	return bool(a)
+}
+
+// ConstCheck is a basic capability checker that determines a capability is
+// authorized if it matches the ConstCheck's string.
+type ConstCheck string
+
+// Authorized validates the capability provided against the stored string.
+func (c ConstCheck) Authorized(capability, _, _ string) bool {
+	return string(c) == capability
+}
+
+//Metric
+
+// Metrics returns the Metrics relevant to this package targeting our older non uber/fx applications.
+// To initialize the metrics, use NewAuthCapabilityCheckMeasures().
+func Metrics() []xmetrics.Metric {
+	return []xmetrics.Metric{
+		{
+			Name:       AuthCapabilityCheckOutcome,
+			Type:       xmetrics.CounterType,
+			Help:       capabilityCheckHelpMsg,
+			LabelNames: []string{OutcomeLabel, ReasonLabel, ClientIDLabel, PartnerIDLabel, EndpointLabel},
+		},
+	}
 }

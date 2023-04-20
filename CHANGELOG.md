@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 - Update tracing configs to include choices about parent-based traces [#247](https://github.com/xmidt-org/scytale/pull/247)
+-Removed webpa-common/bascule package and moved functions to a basculeHelper package within scytale(https://github.com/xmidt-org/scytale/pull/252)
 
 ## [v0.7.3]
 - [ Scytale: WRP Decoder Panic #236] (https://github.com/xmidt-org/scytale/issues/236)

@@ -14,7 +14,7 @@ import (
 	"github.com/xmidt-org/bascule"
 )
 
-/****************************MetricValidatorTests****************************/
+// MetricValidatorTests
 type mockCapabilitiesChecker struct {
 	mock.Mock
 }
@@ -343,8 +343,7 @@ func TestDeterminePartnerMetric(t *testing.T) {
 	}
 }
 
-/****************************CapabilitiesValidator Tests****************************/
-
+// CapabilitiesValidator Tests
 func TestCapabilitiesChecker(t *testing.T) {
 	var v interface{}
 	v = CapabilitiesValidator{}
@@ -635,7 +634,7 @@ func TestGetCapabilities(t *testing.T) {
 	}
 }
 
-/****************************CapabilityChecker Tests****************************/
+// CapabilityChecker Tests
 func TestAlwaysCheck(t *testing.T) {
 	assert := assert.New(t)
 	alwaysTrue := AlwaysCheck(true)

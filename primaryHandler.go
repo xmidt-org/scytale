@@ -56,9 +56,6 @@ import (
 	"github.com/xmidt-org/bascule/basculechecks"
 	"github.com/xmidt-org/bascule/basculehttp"
 
-	// "github.com/xmidt-org/webpa-common/v2/basculechecks"
-	// "github.com/xmidt-org/webpa-common/v2/basculemetrics"
-
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/logging"
 	// nolint:staticcheck

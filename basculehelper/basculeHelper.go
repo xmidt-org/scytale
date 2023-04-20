@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"emperror.dev/emperror"
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/provider"
@@ -19,7 +18,7 @@ import (
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
-	"go.uber.org/fx"
+	"go.uber.org/multierr"
 )
 
 var (
@@ -60,8 +59,6 @@ const (
 	ServerLabel    = "server"
 )
 
-/****************************AuthCapabilitiyCheckMeasures****************************/
-
 // AuthCapabilityCheckMeasures describes the defined metrics that will be used by clients
 type AuthCapabilityCheckMeasures struct {
 	CapabilityCheckOutcome metrics.Counter
@@ -75,12 +72,8 @@ func NewAuthCapabilityCheckMeasures(p provider.Provider) *AuthCapabilityCheckMea
 	}
 }
 
-/****************************AuthValidationMeasures****************************/
-
 // AuthValidationMeasures describes the defined metrics that will be used by clients
 type AuthValidationMeasures struct {
-	fx.In
-
 	NBFHistogram      metrics.Histogram
 	ExpHistogram      metrics.Histogram
 	ValidationOutcome metrics.Counter
@@ -93,8 +86,6 @@ func NewAuthValidationMeasures(r xmetrics.Registry) *AuthValidationMeasures {
 		ValidationOutcome: r.NewCounter(AuthValidationOutcome),
 	}
 }
-
-/****************************MetricValidator****************************/
 
 // MetricValidator determines if a request is authorized and then updates a
 // metric to show those results.
@@ -248,7 +239,7 @@ func determineEndpointMetric(endpoints []*regexp.Regexp, urlHit string) string {
 	return "not_recognized"
 }
 
-/****************************Metrics Listener****************************/
+// Metrics Listener
 type MetricListener struct {
 	expLeeway time.Duration
 	nbfLeeway time.Duration
@@ -312,8 +303,6 @@ func (m *MetricListener) OnAuthenticated(auth bascule.Authentication) {
 	}
 }
 
-/****************************CapabilitiesValidator****************************/
-
 // CapabilitiesValidator checks the capabilities provided in a
 // bascule.Authentication object to determine if a request is authorized.  It
 // can also provide a function to be used in authorization middleware that
@@ -322,8 +311,26 @@ type CapabilitiesValidator struct {
 	Checker CapabilityChecker
 }
 
+type CapabilitiesError struct {
+	CapabilitiesFound []string
+	UrlToMatch        string
+	MethodToMatch     string
+}
+
 func PartnerKeys() []string {
 	return partnerKeys
+}
+
+func NewCapabilitiesError(capabilities []string, reqUrl string, method string) *CapabilitiesError {
+	return &CapabilitiesError{
+		CapabilitiesFound: capabilities,
+		UrlToMatch:        reqUrl,
+		MethodToMatch:     method,
+	}
+}
+
+func (c *CapabilitiesError) Error() string {
+	return fmt.Sprintf("%v", &c)
 }
 
 // CreateValidator creates a function that determines whether or not a
@@ -384,7 +391,8 @@ func (c CapabilitiesValidator) checkCapabilities(capabilities []string, reqURL s
 			return nil
 		}
 	}
-	return emperror.With(ErrNoValidCapabilityFound, "capabilitiesFound", capabilities, "urlToMatch", reqURL, "methodToMatch", method)
+
+	return multierr.Append(ErrNoValidCapabilityFound, NewCapabilitiesError(capabilities, reqURL, method))
 
 }
 
@@ -413,7 +421,6 @@ func getCapabilities(attributes bascule.Attributes) ([]string, string, error) {
 
 }
 
-/****************************CapabilityChecker****************************/
 // CapabilityChecker is an object that can determine if a capability provides
 // authorization to the endpoint.
 type CapabilityChecker interface {

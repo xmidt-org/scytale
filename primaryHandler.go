@@ -67,6 +67,7 @@ import (
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
 	"github.com/xmidt-org/wrp-go/v3"
+	"github.com/xmidt-org/wrp-go/v3/wrpcontext"
 	"github.com/xmidt-org/wrp-go/v3/wrphttp"
 )
 
@@ -424,14 +425,17 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 						var m wrp.Message
 
-						f, err := wrphttp.DetermineFormat(wrp.Msgpack, original.Header, "Content-Type")
-						if err != nil {
-							return nil, err
-						}
+						if m, ok := wrpcontext.Get[wrp.Message](ctx); !ok {
+							f, err := wrphttp.DetermineFormat(wrp.JSON, original.Header, "Content-Type")
+							if err != nil {
+								return nil, err
+							}
 
-						err = wrp.NewDecoderBytes(body, f).Decode(&m)
-						if err != nil {
-							return nil, err
+							err = wrp.NewDecoderBytes(body, f).Decode(&m)
+							if err != nil {
+								return nil, err
+							}
+
 						}
 
 						return context.WithValue(ctx, ContextKeyWRP, m), nil

@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
+
+	//nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
 	"go.uber.org/multierr"
 )
@@ -48,7 +50,8 @@ const (
 	MissingValues              = "auth_is_missing_values"
 	UndeterminedCapabilities   = "undetermined_capabilities"
 	NoCapabilitiesMatch        = "no_capabilities_match"
-	TokenMissingValues         = "auth_is_missing_values"
+	//nolint:gosec
+	TokenMissingValues = "auth_is_missing_values"
 
 	//labels
 	OutcomeLabel   = "outcome"
@@ -192,6 +195,7 @@ func (m MetricValidator) prepMetrics(auth bascule.Authentication) (string, strin
 	}
 	partnerIDs, err := cast.ToStringSliceE(partnerVal)
 	if err != nil {
+		//nolint:errorlint
 		return client, "", "", UndeterminedPartnerID, fmt.Errorf("partner IDs \"%v\" couldn't be cast to string slice: %v", partnerVal, err)
 	}
 	partnerID := DeterminePartnerMetric(partnerIDs)
@@ -410,6 +414,7 @@ func getCapabilities(attributes bascule.Attributes) ([]string, string, error) {
 
 	vals, err := cast.ToStringSliceE(val)
 	if err != nil {
+		//nolint:errorlint
 		return []string{}, UndeterminedCapabilities, fmt.Errorf("capabilities \"%v\" not the expected string slice: %v", val, err)
 	}
 

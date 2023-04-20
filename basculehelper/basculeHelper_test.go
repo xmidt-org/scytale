@@ -345,6 +345,7 @@ func TestDeterminePartnerMetric(t *testing.T) {
 
 // CapabilitiesValidator Tests
 func TestCapabilitiesChecker(t *testing.T) {
+	//nolint:gosimple
 	var v interface{}
 	v = CapabilitiesValidator{}
 	_, ok := v.(CapabilitiesChecker)
@@ -644,6 +645,7 @@ func TestAlwaysCheck(t *testing.T) {
 }
 
 func TestConstCapabilityChecker(t *testing.T) {
+	//nolint:gosimple
 	var v interface{}
 	v = ConstCheck("test")
 	_, ok := v.(CapabilityChecker)

@@ -30,13 +30,11 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/candlelight"
+	"github.com/xmidt-org/scytale/basculehelper"
 
 	// nolint:staticcheck
-	"github.com/xmidt-org/webpa-common/v2/basculechecks"
-	// nolint:staticcheck
-	"github.com/xmidt-org/webpa-common/v2/basculemetrics"
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/concurrent"
+
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/logging"
 	// nolint:staticcheck
@@ -85,7 +83,7 @@ func scytale(arguments []string) int {
 		f = pflag.NewFlagSet(applicationName, pflag.ContinueOnError)
 		v = viper.New()
 
-		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, basculechecks.Metrics, basculemetrics.Metrics, consul.Metrics, Metrics, service.Metrics)
+		logger, metricsRegistry, webPA, err = server.Initialize(applicationName, arguments, f, v, webhook.Metrics, aws.Metrics, basculehelper.Metrics, basculehelper.Metrics, consul.Metrics, Metrics, service.Metrics)
 	)
 
 	if parseErr, done := printVersion(f, arguments); done {

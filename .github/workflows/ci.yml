@@ -24,5 +24,4 @@ jobs:
     with:
       copyright-skip: true
       release-type:   program
-      style-skip:     true
     secrets: inherit

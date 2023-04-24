@@ -38,7 +38,7 @@ const (
 // Metrics returns the metrics relevant to this package
 func Metrics() []xmetrics.Metric {
 	return []xmetrics.Metric{
-		xmetrics.Metric{
+		{
 			Name:       ReceivedWRPMessageCount,
 			Type:       xmetrics.CounterType,
 			Help:       "Number of WRP Messages successfully decoded and ready for fanout.",

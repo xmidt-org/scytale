@@ -44,7 +44,6 @@ const (
 	NoCapabilityChecker        = "no_capability_checker"
 	EmptyParsedURL             = "empty_parsed_URL"
 	AuthCapabilityCheckOutcome = "auth_capability_check"
-	AuthValidationOutcome      = "auth_validation"
 	capabilityCheckHelpMsg     = "Counter for the capability checker, providing outcome information by client, partner, and endpoint"
 	EmptyCapabilitiesList      = "empty_capabilities_list"
 	MissingValues              = "auth_is_missing_values"
@@ -60,6 +59,16 @@ const (
 	EndpointLabel  = "endpoint"
 	PartnerIDLabel = "partnerid"
 	ServerLabel    = "server"
+
+	//Names for Auth Validation metrics
+	AuthValidationOutcome = "auth_validation"
+	NBFHistogram          = "auth_from_nbf_seconds"
+	EXPHistogram          = "auth_from_exp_seconds"
+
+	// help messages for Auth Validation metrics
+	authValidationOutcomeHelpMsg = "Counter for success and failure reason results through bascule"
+	nbfHelpMsg                   = "Difference (in seconds) between time of JWT validation and nbf (including leeway)"
+	expHelpMsg                   = "Difference (in seconds) between time of JWT validation and exp (including leeway)"
 )
 
 // AuthCapabilityCheckMeasures describes the defined metrics that will be used by clients
@@ -75,6 +84,19 @@ func NewAuthCapabilityCheckMeasures(p provider.Provider) *AuthCapabilityCheckMea
 	}
 }
 
+// AuthCapabilitiesMetrics returns the Metrics relevant to this package targeting our older non uber/fx applications.
+// To initialize the metrics, use NewAuthCapabilityCheckMeasures().
+func AuthCapabilitiesMetrics() []xmetrics.Metric {
+	return []xmetrics.Metric{
+		{
+			Name:       AuthCapabilityCheckOutcome,
+			Type:       xmetrics.CounterType,
+			Help:       capabilityCheckHelpMsg,
+			LabelNames: []string{OutcomeLabel, ReasonLabel, ClientIDLabel, PartnerIDLabel, EndpointLabel},
+		},
+	}
+}
+
 // AuthValidationMeasures describes the defined metrics that will be used by clients
 type AuthValidationMeasures struct {
 	NBFHistogram      metrics.Histogram
@@ -87,6 +109,31 @@ type AuthValidationMeasures struct {
 func NewAuthValidationMeasures(r xmetrics.Registry) *AuthValidationMeasures {
 	return &AuthValidationMeasures{
 		ValidationOutcome: r.NewCounter(AuthValidationOutcome),
+	}
+}
+
+// AuthValidationMetrics returns the Metrics relevant to this package targeting our older non uber/fx applications.
+// To initialize the metrics, use NewAuthValidationMeasures().
+func AuthValidationMetrics() []xmetrics.Metric {
+	return []xmetrics.Metric{
+		{
+			Name:       AuthValidationOutcome,
+			Type:       xmetrics.CounterType,
+			Help:       authValidationOutcomeHelpMsg,
+			LabelNames: []string{OutcomeLabel},
+		},
+		{
+			Name:    NBFHistogram,
+			Type:    xmetrics.HistogramType,
+			Help:    nbfHelpMsg,
+			Buckets: []float64{-61, -11, -2, -1, 0, 9, 60}, // defines the upper inclusive (<=) bounds
+		},
+		{
+			Name:    EXPHistogram,
+			Type:    xmetrics.HistogramType,
+			Help:    expHelpMsg,
+			Buckets: []float64{-61, -11, -2, -1, 0, 9, 60},
+		},
 	}
 }
 
@@ -504,19 +551,4 @@ type ConstCheck string
 // Authorized validates the capability provided against the stored string.
 func (c ConstCheck) Authorized(capability, _, _ string) bool {
 	return string(c) == capability
-}
-
-//Metric
-
-// Metrics returns the Metrics relevant to this package targeting our older non uber/fx applications.
-// To initialize the metrics, use NewAuthCapabilityCheckMeasures().
-func Metrics() []xmetrics.Metric {
-	return []xmetrics.Metric{
-		{
-			Name:       AuthCapabilityCheckOutcome,
-			Type:       xmetrics.CounterType,
-			Help:       capabilityCheckHelpMsg,
-			LabelNames: []string{OutcomeLabel, ReasonLabel, ClientIDLabel, PartnerIDLabel, EndpointLabel},
-		},
-	}
 }

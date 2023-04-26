@@ -60,12 +60,12 @@ const (
 	PartnerIDLabel = "partnerid"
 	ServerLabel    = "server"
 
-	//Names for Auth Validation metrics
+	// Names for Auth Validation metrics
 	AuthValidationOutcome = "auth_validation"
 	NBFHistogram          = "auth_from_nbf_seconds"
 	EXPHistogram          = "auth_from_exp_seconds"
 
-	// help messages for Auth Validation metrics
+	// Help messages for Auth Validation metrics
 	authValidationOutcomeHelpMsg = "Counter for success and failure reason results through bascule"
 	nbfHelpMsg                   = "Difference (in seconds) between time of JWT validation and nbf (including leeway)"
 	expHelpMsg                   = "Difference (in seconds) between time of JWT validation and exp (including leeway)"

@@ -25,8 +25,8 @@ func (o *nonWRPResponseWriter) WRPFormat() wrp.Format {
 	return wrp.Msgpack
 }
 
-//nonWRPResponseWriterFactory helps configure the WRP handler to fulfill scytale's use case of only consuming
-//WRP requests but not produce WRP responses
+// nonWRPResponseWriterFactory helps configure the WRP handler to fulfill scytale's use case of only consuming
+// WRP requests but not produce WRP responses
 func nonWRPResponseWriterFactory(w http.ResponseWriter, _ *wrphttp.Request) (wrphttp.ResponseWriter, error) {
 	return &nonWRPResponseWriter{
 		ResponseWriter: w,

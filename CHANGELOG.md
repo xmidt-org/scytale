@@ -5,7 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v0.8.0]
 - Update tracing configs to include choices about parent-based traces [#247](https://github.com/xmidt-org/scytale/pull/247)
+- Removed webpa-common/bascule package and moved functions to a basculeHelper package within scytale [#252] (https://github.com/xmidt-org/scytale/pull/252)
 
 ## [v0.7.3]
 - [ Scytale: WRP Decoder Panic #236] (https://github.com/xmidt-org/scytale/issues/236)
@@ -142,7 +145,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation.
 
 
-[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.7.3...HEAD
+[Unreleased]: https://github.com/xmidt-org/scytale/compare/v0.8.0...HEAD
+[v0.8.0]: https://github.com/xmidt-org/scytale/compare/v0.7.3...v0.8.0
 [v0.7.3]: https://github.com/xmidt-org/scytale/compare/v0.7.2...v0.7.3
 [v0.7.2]: https://github.com/xmidt-org/scytale/compare/v0.7.1...v0.7.2
 [v0.7.1]: https://github.com/xmidt-org/scytale/compare/v0.7.0...v0.7.1

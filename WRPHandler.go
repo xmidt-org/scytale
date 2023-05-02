@@ -6,6 +6,7 @@ import (
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
 	"github.com/xmidt-org/wrp-go/v3"
+	"github.com/xmidt-org/wrp-go/v3/wrpcontext"
 	"github.com/xmidt-org/wrp-go/v3/wrphttp"
 )
 
@@ -58,6 +59,7 @@ func newWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p wrpAccessAuth
 			fanoutBody = r.Entity.Bytes
 		)
 
+		_, decoded := wrpcontext.Get[wrp.Message](ctx)
 		modified, err := p.authorizeWRP(ctx, &entity.Message)
 
 		if err != nil {
@@ -65,7 +67,7 @@ func newWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p wrpAccessAuth
 			return
 		}
 
-		if modified {
+		if modified || decoded {
 			if err := wrp.NewEncoderBytes(&fanoutBody, entity.Format).Encode(entity.Message); err != nil {
 				encodeError(ctx, err, w)
 				return

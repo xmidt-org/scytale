@@ -345,7 +345,7 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 			fanout.WithTransactor(transactor),
 			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-				w.Header().Set("X-Midt-Error", err.Error())
+				w.Header().Set("X-Xmidt-Error", err.Error())
 				// nolint:errorlint
 				if headerer, ok := err.(gokithttp.Headerer); ok {
 					for k, values := range headerer.Headers() {

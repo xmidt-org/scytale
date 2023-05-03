@@ -16,9 +16,11 @@ RUN apk add --no-cache --no-progress \
     libc-dev \
     upx
 
+# If arch is arm64 or aarch64, use arm64 download, else, do the amd64 default
 # Download spruce here to eliminate the need for curl in the final image
 RUN mkdir -p /go/bin && \
-    curl -L -o /go/bin/spruce https://github.com/geofffranks/spruce/releases/download/v1.29.0/spruce-linux-amd64 && \
+    if [ $(uname -m) = "aarch64" ] || [ $(uname -m) = "arm64" ]; then export PROC_ARCH="arm64"; else export PROC_ARCH="amd64"; fi && \
+    curl -L -o /go/bin/spruce https://github.com/geofffranks/spruce/releases/download/v1.29.0/spruce-linux-"${PROC_ARCH}" && \
     chmod +x /go/bin/spruce
 
 COPY . .

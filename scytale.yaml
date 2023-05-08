@@ -507,7 +507,6 @@ service:
 
 # tracing provides configuration around traces using OpenTelemetry.
 # (Optional). By default, a 'noop' tracer provider is used and tracing is disabled.
-# tracing for Scytale is not yet supported.
 tracing:
   # provider is the name of the trace provider to use. Currently, otlp/grpc, otlp/http, stdout, jaeger and zipkin are supported.
   # 'noop' can also be used as provider to explicitly disable tracing.

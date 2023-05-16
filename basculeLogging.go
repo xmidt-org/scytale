@@ -4,12 +4,12 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
-	"github.com/go-kit/log"
 	"github.com/xmidt-org/candlelight"
-
+	"github.com/xmidt-org/sallust"
+	"go.uber.org/zap"
 	// nolint:staticcheck
-	"github.com/xmidt-org/webpa-common/v2/logging"
 )
 
 // LoggerFunc is a strategy for adding key/value pairs (possibly) based on an HTTP request.
@@ -29,7 +29,7 @@ func sanitizeHeaders(headers http.Header) (filtered http.Header) {
 	return
 }
 
-func setLogger(logger log.Logger, lf ...LoggerFunc) func(delegate http.Handler) http.Handler {
+func setLogger(logger *zap.Logger, lf ...LoggerFunc) func(delegate http.Handler) http.Handler {
 
 	if logger == nil {
 		panic("The base Logger cannot be nil")
@@ -45,13 +45,13 @@ func setLogger(logger log.Logger, lf ...LoggerFunc) func(delegate http.Handler) 
 					}
 				}
 				kvs, _ = candlelight.AppendTraceInfo(r.Context(), kvs)
-				ctx := r.WithContext(logging.WithLogger(r.Context(), log.With(logger, kvs...)))
+				ctx := r.WithContext(sallust.With(r.Context(), logger))
 				delegate.ServeHTTP(w, ctx)
 			})
 	}
 }
 
-func getLogger(ctx context.Context) log.Logger {
-	logger := log.With(logging.GetLogger(ctx), "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
+func getLogger(ctx context.Context) *zap.Logger {
+	logger := sallust.Get(ctx).With(zap.Time("ts", time.Now().UTC()), zap.Any("caller", zap.WithCaller(true)))
 	return logger
 }

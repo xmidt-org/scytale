@@ -25,10 +25,9 @@ require (
 )
 
 require (
-	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2 //indirect
-	go.uber.org/multierr v1.11.0 //indirect
 	emperror.dev/emperror v0.33.0 // indirect
 	emperror.dev/errors v0.8.1 // indirect
+	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2 //indirect
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/aws/aws-sdk-go v1.44.263 // indirect
@@ -113,6 +112,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/dig v1.16.1 // indirect
 	go.uber.org/fx v1.19.3 // indirect
+	go.uber.org/multierr v1.11.0 //indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/net v0.8.0 // indirect

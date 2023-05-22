@@ -33,8 +33,8 @@ import (
 	"github.com/xmidt-org/candlelight"
 
 	// nolint:staticcheck
-
 	"github.com/xmidt-org/webpa-common/v2/adapter"
+	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/concurrent"
 
 	// nolint:staticcheck

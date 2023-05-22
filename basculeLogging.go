@@ -44,6 +44,7 @@ func setLogger(logger *zap.Logger, lf ...LoggerFunc) func(delegate http.Handler)
 						kvs = f(kvs, r)
 					}
 				}
+				// nolint:staticcheck
 				kvs, _ = candlelight.AppendTraceInfo(r.Context(), kvs)
 				ctx := r.WithContext(sallust.With(r.Context(), logger))
 				delegate.ServeHTTP(w, ctx)

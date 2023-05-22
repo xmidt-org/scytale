@@ -36,16 +36,12 @@ import (
 	"github.com/xmidt-org/clortho/clorthometrics"
 	"github.com/xmidt-org/clortho/clorthozap"
 	"github.com/xmidt-org/sallust"
-	"github.com/xmidt-org/scytale/basculehelper"
 	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
 
 	"github.com/xmidt-org/webpa-common/secure/handler"
 	"github.com/xmidt-org/webpa-common/v2/device"
-
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/goph/emperror"
@@ -54,10 +50,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculechecks"
+	"github.com/xmidt-org/bascule/basculehelper"
 	"github.com/xmidt-org/bascule/basculehttp"
 
-	// nolint:staticcheck
-	"github.com/xmidt-org/webpa-common/v2/logging"
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service"
 	"github.com/xmidt-org/webpa-common/v2/service/monitor"
@@ -89,7 +84,7 @@ const (
 
 var errNoDeviceName = errors.New("no device name")
 
-func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (alice.Chain, error) {
+func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry) (alice.Chain, error) {
 	if registry == nil {
 		return alice.Chain{}, errors.New("nil registry")
 	}
@@ -103,17 +98,18 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 	for _, a := range basicAuth {
 		decoded, err := base64.StdEncoding.DecodeString(a)
 		if err != nil {
-			logging.Info(logger).Log(logging.MessageKey(), "failed to decode auth header", "authHeader", a, logging.ErrorKey(), err.Error())
+			logger.Info("failed to decode auth header", zap.Any("authHeader", a))
+			logger.Error(err.Error())
 			continue
 		}
 
 		i := bytes.IndexByte(decoded, ':')
-		logging.Debug(logger).Log(logging.MessageKey(), "decoded string", "string", decoded, "i", i)
+		logger.Debug("decoded string", zap.Any("string", decoded), zap.Int("i", i))
 		if i > 0 {
 			basicAllowed[string(decoded[:i])] = string(decoded[i+1:])
 		}
 	}
-	logging.Debug(logger).Log(logging.MessageKey(), "Created list of allowed basic auths", "allowed", basicAllowed, "config", basicAuth)
+	logger.Debug("Created list of allowed basic auths", zap.Any("allowed", basicAllowed), zap.Any("config", basicAuth))
 
 	options := []basculehttp.COption{
 		basculehttp.WithCLogger(getLogger),
@@ -229,7 +225,7 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 		for _, e := range capabilityCheck.EndpointBuckets {
 			r, err := regexp.Compile(e)
 			if err != nil {
-				logging.Error(logger).Log(logging.MessageKey(), "failed to compile regular expression", "regex", e, logging.ErrorKey(), err.Error())
+				logger.Error("failed to compile regular expression", zap.Any("regex", e), zap.Error(err))
 				continue
 			}
 			endpoints = append(endpoints, r)
@@ -272,12 +268,12 @@ func authChain(v *viper.Viper, logger log.Logger, registry xmetrics.Registry) (a
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
 // endpoints or service discovery.
 // nolint:govet
-func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
+func createEndpoints(logger *zap.Logger, cfg fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
 	if len(cfg.Endpoints) > 0 {
-		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using configured endpoints for fanout", "endpoints", cfg.Endpoints)
+		logger.Info("using configured endpoints for fanout", zap.Any("endpoints", cfg.Endpoints))
 		return fanout.ParseURLs(cfg.Endpoints...)
 	} else if e != nil {
-		logger.Log(level.Key(), level.InfoValue(), logging.MessageKey(), "using service discovery for fanout")
+		logger.Info("using service discovery for fanout")
 		endpoints := fanout.NewServiceEndpoints(
 			fanout.WithAccessorFactory(e.AccessorFactory()),
 			// required to get deviceID from either the header or the path
@@ -319,13 +315,13 @@ func createEndpoints(logger log.Logger, cfg fanout.Configuration, registry xmetr
 	return nil, fmt.Errorf("unable to create endpoints")
 }
 
-func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, tracing candlelight.Tracing) (http.Handler, error) {
+func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, tracing candlelight.Tracing) (http.Handler, error) {
 	var cfg fanout.Configuration
 	if err := v.UnmarshalKey("fanout", &cfg); err != nil {
 		return nil, err
 	}
 	fanoutPrefix := v.GetString("fanout.pathPrefix")
-	logging.Error(logger).Log(logging.MessageKey(), "creating primary handler")
+	logger.Info("creating primary handler")
 	cfg.Tracing = tracing
 	// nolint:govet
 	endpoints, err := createEndpoints(logger, cfg, registry, e)
@@ -462,22 +458,18 @@ func NewPrimaryHandler(logger log.Logger, v *viper.Viper, registry xmetrics.Regi
 
 						wrpFromCtx, ok := ctx.Value("wrp").(wrp.Message)
 						if ok {
-							logging.Info(logger).Log(
-								logging.MessageKey(), "Bookkeeping response",
-								"messageType", wrpFromCtx.Type,
-								"destination", wrpFromCtx.Destination,
-								"source", wrpFromCtx.Source,
-								"transactionUUID", wrpFromCtx.TransactionUUID,
-								"status", wrpFromCtx.Status,
-								"partnerIDs", wrpFromCtx.PartnerIDs,
-								"satClientID", satClientID,
-							)
+							logger.Info("Bookkeping response",
+								zap.Any("messageType", wrpFromCtx.Type),
+								zap.String("destination", wrpFromCtx.Destination),
+								zap.String("source", wrpFromCtx.Source),
+								zap.String("transactionUUID", wrpFromCtx.TransactionUUID),
+								zap.Any("status", wrpFromCtx.Status),
+								zap.Strings("partnerIDS", wrpFromCtx.PartnerIDs),
+								zap.String("satClientID", satClientID))
+
 						} else {
-							logging.Error(logger).Log(logging.MessageKey(), "no wrp found")
-							logging.Info(logger).Log(
-								logging.MessageKey(), "Bookkeeping response",
-								"satClientID", satClientID,
-							)
+							logger.Error("no wrp found")
+							logger.Info("Bookkeeping response", zap.String("satClientID", satClientID))
 						}
 						return ctx
 					},

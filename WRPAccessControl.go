@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-kit/kit/metrics"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/webpa-common/v2/basculechecks"
+	"github.com/xmidt-org/bascule/basculechecks"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
 	"github.com/xmidt-org/wrp-go/v3"
 )

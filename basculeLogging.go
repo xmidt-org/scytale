@@ -53,6 +53,6 @@ func setLogger(logger *zap.Logger, lf ...LoggerFunc) func(delegate http.Handler)
 }
 
 func getLogger(ctx context.Context) *zap.Logger {
-	logger := sallust.Get(ctx).With(zap.Time("ts", time.Now().UTC()), zap.Any("caller", zap.WithCaller(true)))
+	logger := sallust.Get(ctx).With(zap.Time("ts", time.Now().UTC())).WithOptions(zap.WithCaller(true))
 	return logger
 }

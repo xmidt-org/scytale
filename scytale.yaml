@@ -187,6 +187,7 @@ zap:
     messageKey: message
     levelKey: key
     callerKey: caller
+    disableCaller: true
     levelEncoder: lowercase
 
   # Encoding sets the logger's encoding. Valid values are "json" and

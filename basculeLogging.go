@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -44,15 +45,25 @@ func setLogger(logger *zap.Logger, lf ...LoggerFunc) func(delegate http.Handler)
 						kvs = f(kvs, r)
 					}
 				}
-				// nolint:staticcheck
 				kvs, _ = candlelight.AppendTraceInfo(r.Context(), kvs)
-				ctx := r.WithContext(sallust.With(r.Context(), logger))
-				delegate.ServeHTTP(w, ctx)
+				ctx := r.Context()
+				ctx = addFieldsToLog(ctx, logger, kvs)
+				delegate.ServeHTTP(w, r.WithContext(ctx))
 			})
 	}
 }
 
 func getLogger(ctx context.Context) *zap.Logger {
-	logger := sallust.Get(ctx).With(zap.Time("ts", time.Now().UTC()), zap.Any("caller", zap.WithCaller(true)))
+	logger := sallust.Get(ctx).With(zap.Time("ts", time.Now().UTC())).WithOptions(zap.WithCaller(true))
 	return logger
+}
+
+func addFieldsToLog(ctx context.Context, logger *zap.Logger, kvs []interface{}) context.Context {
+
+	for i := 0; i <= len(kvs)-2; i += 2 {
+		logger = logger.With(zap.Any(fmt.Sprint(kvs[i]), kvs[i+1]))
+	}
+
+	return sallust.With(ctx, logger)
+
 }

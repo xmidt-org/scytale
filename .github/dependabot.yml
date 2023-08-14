@@ -1,5 +1,9 @@
+# SPDX-FileCopyrightText: 2023 Comcast Cable Communications Management, LLC
+# SPDX-License-Identifier: Apache-2.0
+---
 version: 2
 updates:
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -10,7 +14,13 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: daily
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "feat"
+      include: "scope"

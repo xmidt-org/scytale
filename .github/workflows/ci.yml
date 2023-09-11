@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2022 Comcast Cable Communications Management, LLC
+# SPDX-FileCopyrightText: 2019 Comcast Cable Communications Management, LLC
 # SPDX-License-Identifier: Apache-2.0
 ---
 name: CI
@@ -22,6 +22,5 @@ jobs:
   ci:
     uses: xmidt-org/shared-go/.github/workflows/ci.yml@5bc4b83f25ff4c944cd6253ba189e50d1997ab3c # v4.1.0
     with:
-      copyright-skip: true
       release-type:   program
     secrets: inherit

@@ -16,7 +16,7 @@ require (
 	github.com/xmidt-org/candlelight v0.0.16
 	github.com/xmidt-org/clortho v0.0.4
 	github.com/xmidt-org/sallust v0.2.2
-	github.com/xmidt-org/touchstone v0.1.2
+	github.com/xmidt-org/touchstone v0.1.3
 	github.com/xmidt-org/webpa-common v1.11.9
 	github.com/xmidt-org/webpa-common/v2 v2.2.2
 	github.com/xmidt-org/wrp-go/v3 v3.1.6

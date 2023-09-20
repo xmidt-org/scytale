@@ -331,6 +331,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 				// nolint:errorlint
 				if headerer, ok := err.(gokithttp.Headerer); ok {
 					for k, values := range headerer.Headers() {
+						// nolint: gosec
 						for _, v := range values {
 							w.Header().Add(k, v)
 						}

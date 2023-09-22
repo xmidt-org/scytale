@@ -83,8 +83,8 @@ func TestFanoutRequest(t *testing.T) {
 				Original: r,
 				Entity:   testCase.Entity,
 			}
-
-			mockWRPAccessAuthority.On("authorizeWRP", r.Context(), &testCase.Entity.Message).Return(testCase.Modify, testCase.Err)
+			m := testCase.Entity.Message
+			mockWRPAccessAuthority.On("authorizeWRP", r.Context(), &m).Return(testCase.Modify, testCase.Err)
 
 			wrpFanoutHandler.ServeWRP(wrpResponseWriter, wrpRequest)
 

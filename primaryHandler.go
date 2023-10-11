@@ -24,6 +24,7 @@ import (
 	"github.com/xmidt-org/sallust"
 	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/xmidt-org/webpa-common/secure/handler"
@@ -63,7 +64,7 @@ const (
 	jwtAuthConfigKey   = "jwtValidator"
 	wrpCheckConfigKey  = "WRPCheck"
 
-	deviceID = "deviceID"
+	deviceID = "devicID"
 
 	enforceCheck = "enforce"
 )
@@ -566,28 +567,26 @@ func ValidateWRP() func(http.Handler) http.Handler {
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			if req, err := wrphttp.DecodeRequest(r, nil); err == nil {
-				r = req
-			}
-
 			ctx := r.Context()
 			if msg, ok := wrpcontext.Get[*wrp.Message](ctx); ok {
 				validators := wrp.SpecValidators()
+				var err error
 				for _, v := range validators {
-					err := v.Validate(*msg)
-					if err != nil {
-						w.WriteHeader(http.StatusBadRequest)
-						fmt.Fprintf(
-							w,
-							`{"code": %d, "message": "%s"}`,
-							http.StatusBadRequest,
-							fmt.Sprintf("failed to validate wrp message: %s", err),
-						)
-						return
-					}
+					err = multierr.Append(err, v.Validate(*msg))
+				}
+				if err != nil {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusBadRequest)
+					fmt.Fprintf(
+						w,
+						`{"code": %d, "message": "%s"}`,
+						http.StatusBadRequest,
+						fmt.Sprintf("failed to validate WRP message: %s", err),
+					)
+					return
 				}
 			}
-			delegate.ServeHTTP(w, r.WithContext(ctx))
+			delegate.ServeHTTP(w, r)
 		})
 	}
 }

@@ -567,8 +567,7 @@ func ValidateWRP() func(http.Handler) http.Handler {
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			ctx := r.Context()
-			if msg, ok := wrpcontext.Get[*wrp.Message](ctx); ok {
+			if msg, ok := wrpcontext.Get[*wrp.Message](r.Context()); ok {
 				validators := wrp.SpecValidators()
 				var err error
 				for _, v := range validators {
@@ -586,6 +585,7 @@ func ValidateWRP() func(http.Handler) http.Handler {
 					return
 				}
 			}
+
 			delegate.ServeHTTP(w, r)
 		})
 	}

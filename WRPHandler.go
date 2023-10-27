@@ -62,7 +62,7 @@ func newWRPFanoutHandlerWithPIDCheck(fanoutHandler http.Handler, p wrpAccessAuth
 			fanoutBody = r.Entity.Bytes
 		)
 
-		_, decoded := wrpcontext.Get[wrp.Message](ctx)
+		_, decoded := wrpcontext.GetMessage(ctx)
 		modified, err := p.authorizeWRP(ctx, &entity.Message)
 
 		if err != nil {

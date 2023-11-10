@@ -568,11 +568,10 @@ func ValidateWRP() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			if msg, ok := wrpcontext.GetMessage(r.Context()); ok {
-				validators := wrp.SpecValidators()
 				var err error
-				for _, v := range validators {
-					err = multierr.Append(err, v.Validate(*msg))
-				}
+				//Validation for UTF8 and Message Type will return a 400 if any errors occur. Request cannot continue.
+				err = multierr.Append(err, wrp.UTF8Validator(*msg))
+				err = multierr.Append(err, wrp.MessageTypeValidator(*msg))
 				if err != nil {
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusBadRequest)
@@ -580,10 +579,19 @@ func ValidateWRP() func(http.Handler) http.Handler {
 						w,
 						`{"code": %d, "message": "%s"}`,
 						http.StatusBadRequest,
-						fmt.Sprintf("failed to validate WRP message: %s", err),
-					)
+						fmt.Sprintf("failed to validate WRP message: %s", err))
 					return
+				} else {
+					//Request will conitnue if validation for Source and Destination returns any errors, but will log the errors as a warning.
+					err = multierr.Append(err, wrp.SourceValidator(*msg))
+					err = multierr.Append(err, wrp.DestinationValidator(*msg))
+					if err != nil {
+						ctx := r.Context()
+						logger := sallust.Get(ctx)
+						logger.Warn("errors occurred during WRP message validation: %s", zap.Error(err))
+					}
 				}
+
 			}
 
 			delegate.ServeHTTP(w, r)

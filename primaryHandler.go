@@ -64,7 +64,7 @@ const (
 	jwtAuthConfigKey   = "jwtValidator"
 	wrpCheckConfigKey  = "WRPCheck"
 
-	deviceID = "devicID"
+	deviceID = "deviceID"
 
 	enforceCheck = "enforce"
 )

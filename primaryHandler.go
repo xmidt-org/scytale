@@ -392,7 +392,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		otelmux.WithPropagators(tracing.Propagator()),
 		otelmux.WithTracerProvider(tracing.TracerProvider()),
 	}
-	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator()), ValidateWRP())
+	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator(), true), ValidateWRP())
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
@@ -409,7 +409,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
 						var m wrp.Message
 
-						if m, ok := wrpcontext.Get[wrp.Message](ctx); !ok {
+						if m, ok := wrpcontext.GetMessage(ctx); !ok {
 							f, err := wrphttp.DetermineFormat(wrp.JSON, original.Header, "Content-Type")
 							if err != nil {
 								return nil, err
@@ -567,7 +567,7 @@ func ValidateWRP() func(http.Handler) http.Handler {
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			if msg, ok := wrpcontext.Get[*wrp.Message](r.Context()); ok {
+			if msg, ok := wrpcontext.GetMessage(r.Context()); ok {
 				validators := wrp.SpecValidators()
 				var err error
 				for _, v := range validators {

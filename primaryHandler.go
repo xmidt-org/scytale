@@ -392,7 +392,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		otelmux.WithPropagators(tracing.Propagator()),
 		otelmux.WithTracerProvider(tracing.TracerProvider()),
 	}
-	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator(), true), ValidateWRP())
+	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator(), true), ValidateWRP(logger))
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
@@ -563,7 +563,7 @@ func validateDeviceID() alice.Chain {
 	})
 }
 
-func ValidateWRP() func(http.Handler) http.Handler {
+func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -571,6 +571,7 @@ func ValidateWRP() func(http.Handler) http.Handler {
 				var err error
 				//Validation for UTF8 and Message Type will return a 400 if any errors occur. Request cannot continue.
 				err = multierr.Append(err, wrp.UTF8Validator(*msg))
+				//Current functionality will not hit this if the request has an invalid message type header and no body (wrp-go DecodeRequest is currently validating the request header's message type and returning an error)
 				err = multierr.Append(err, wrp.MessageTypeValidator(*msg))
 				if err != nil {
 					w.Header().Set("Content-Type", "application/json")
@@ -586,9 +587,7 @@ func ValidateWRP() func(http.Handler) http.Handler {
 					err = multierr.Append(err, wrp.SourceValidator(*msg))
 					err = multierr.Append(err, wrp.DestinationValidator(*msg))
 					if err != nil {
-						ctx := r.Context()
-						logger := sallust.Get(ctx)
-						logger.Warn("errors occurred during WRP message validation: %s", zap.Error(err))
+						logger.Warn("errors returned during WRP message validation", zap.Error(err))
 					}
 				}
 

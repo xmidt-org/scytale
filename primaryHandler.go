@@ -590,7 +590,6 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 						logger.Warn("errors returned during WRP message validation", zap.Error(err))
 					}
 				}
-
 			}
 
 			delegate.ServeHTTP(w, r)

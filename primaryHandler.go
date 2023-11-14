@@ -575,19 +575,17 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 					err = multierr.Append(err, v.Validate(*msg))
 				}
 
-				if err != nil {
-					if errors.Is(err, wrp.ErrorInvalidMessageEncoding.Err) || errors.Is(err, wrp.ErrorInvalidMessageType.Err) {
-						w.Header().Set("Content-Type", "application/json")
-						w.WriteHeader(http.StatusBadRequest)
-						fmt.Fprintf(
-							w,
-							`{"code": %d, "message": "%s"}`,
-							http.StatusBadRequest,
-							fmt.Sprintf("failed to validate WRP message: %s", err))
-						return
-					} else if errors.Is(err, wrp.ErrorInvalidDestination) || errors.Is(err, wrp.ErrorInvalidSource.Err) {
-						logger.Warn("WRP message validation failures found", zap.Error(err))
-					}
+				if errors.Is(err, wrp.ErrorInvalidMessageEncoding.Err) || errors.Is(err, wrp.ErrorInvalidMessageType.Err) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusBadRequest)
+					fmt.Fprintf(
+						w,
+						`{"code": %d, "message": "%s"}`,
+						http.StatusBadRequest,
+						fmt.Sprintf("failed to validate WRP message: %s", err))
+					return
+				} else if errors.Is(err, wrp.ErrorInvalidDestination) || errors.Is(err, wrp.ErrorInvalidSource.Err) {
+					logger.Warn("WRP message validation failures found", zap.Error(err))
 				}
 			}
 

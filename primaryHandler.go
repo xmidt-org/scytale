@@ -568,13 +568,12 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			if msg, ok := wrpcontext.GetMessage(r.Context()); ok {
-				var err error
 				var failureError error
 				var warningErrors error
 
 				validators := wrp.SpecValidators()
 				for _, v := range validators {
-					err = v.Validate(*msg)
+					err := v.Validate(*msg)
 					if errors.Is(err, wrp.ErrorInvalidMessageEncoding.Err) || errors.Is(err, wrp.ErrorInvalidMessageType.Err) {
 						failureError = multierr.Append(failureError, err)
 					} else if errors.Is(err, wrp.ErrorInvalidDestination.Err) || errors.Is(err, wrp.ErrorInvalidSource.Err) {
@@ -595,7 +594,7 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 						w,
 						`{"code": %d, "message": "%s"}`,
 						http.StatusBadRequest,
-						fmt.Sprintf("failed to validate WRP message: %s", err))
+						fmt.Sprintf("failed to validate WRP message: %s", failureError))
 					return
 				}
 			}

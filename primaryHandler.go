@@ -583,7 +583,7 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 				}
 
 				if warningErrors != nil {
-					logger.Warn("WRP message validation failures found", zap.Error(err))
+					logger.Warn("WRP message validation warnings found", zap.Error(warningErrors))
 				}
 
 				if failureError != nil {

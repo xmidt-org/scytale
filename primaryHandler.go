@@ -576,7 +576,7 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 				}
 
 				if err != nil {
-					if errors.Is(err, wrp.ErrorInvalidMessageEncoding) || errors.Is(err, wrp.ErrorInvalidMessageType.Err) {
+					if errors.Is(err, wrp.ErrorInvalidMessageEncoding.Err) || errors.Is(err, wrp.ErrorInvalidMessageType.Err) {
 						w.Header().Set("Content-Type", "application/json")
 						w.WriteHeader(http.StatusBadRequest)
 						fmt.Fprintf(

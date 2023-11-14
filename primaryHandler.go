@@ -569,28 +569,26 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 
 			if msg, ok := wrpcontext.GetMessage(r.Context()); ok {
 				var err error
-				//Validation for UTF8 and Message Type will return a 400 if any errors occur. Request cannot continue.
-				err = multierr.Append(err, wrp.UTF8Validator(*msg))
-				//Current functionality will not hit this if the request has an invalid message type header and no body (wrp-go DecodeRequest is currently validating the request header's message type and returning an error)
-				err = multierr.Append(err, wrp.MessageTypeValidator(*msg))
-				if err != nil {
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusBadRequest)
-					fmt.Fprintf(
-						w,
-						`{"code": %d, "message": "%s"}`,
-						http.StatusBadRequest,
-						fmt.Sprintf("failed to validate WRP message: %s", err))
-					return
-				} else {
-					//Request will conitnue if validation for Source and Destination returns any errors, but will log the errors as a warning.
-					err = multierr.Append(err, wrp.SourceValidator(*msg))
-					err = multierr.Append(err, wrp.DestinationValidator(*msg))
-					if err != nil {
-						logger.Warn("errors returned during WRP message validation", zap.Error(err))
-					}
+
+				validators := wrp.SpecValidators()
+				for _, v := range validators {
+					err = multierr.Append(err, v.Validate(*msg))
 				}
 
+				if err != nil {
+					if errors.Is(err, wrp.ErrorInvalidMessageEncoding) || errors.Is(err, wrp.ErrorInvalidMessageType.Err) {
+						w.Header().Set("Content-Type", "application/json")
+						w.WriteHeader(http.StatusBadRequest)
+						fmt.Fprintf(
+							w,
+							`{"code": %d, "message": "%s"}`,
+							http.StatusBadRequest,
+							fmt.Sprintf("failed to validate WRP message: %s", err))
+						return
+					} else if errors.Is(err, wrp.ErrorInvalidDestination) || errors.Is(err, wrp.ErrorInvalidSource.Err) {
+						logger.Warn("WRP message validation failures found", zap.Error(err))
+					}
+				}
 			}
 
 			delegate.ServeHTTP(w, r)

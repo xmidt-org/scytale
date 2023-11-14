@@ -584,7 +584,7 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 						http.StatusBadRequest,
 						fmt.Sprintf("failed to validate WRP message: %s", err))
 					return
-				} else if errors.Is(err, wrp.ErrorInvalidDestination) || errors.Is(err, wrp.ErrorInvalidSource.Err) {
+				} else if errors.Is(err, wrp.ErrorInvalidDestination.Err) || errors.Is(err, wrp.ErrorInvalidSource.Err) {
 					logger.Warn("WRP message validation failures found", zap.Error(err))
 				}
 			}

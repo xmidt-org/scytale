@@ -19,7 +19,7 @@ require (
 	github.com/xmidt-org/touchstone v0.1.3
 	github.com/xmidt-org/webpa-common v1.11.9
 	github.com/xmidt-org/webpa-common/v2 v2.2.2
-	github.com/xmidt-org/wrp-go/v3 v3.2.2
+	github.com/xmidt-org/wrp-go/v3 v3.2.3
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.46.0
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.26.0

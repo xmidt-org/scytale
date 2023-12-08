@@ -10,7 +10,7 @@ require (
 	github.com/prometheus/client_golang v1.17.0
 	github.com/spf13/cast v1.6.0
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.18.0
+	github.com/spf13/viper v1.18.1
 	github.com/stretchr/testify v1.8.4
 	github.com/xmidt-org/bascule v0.11.5
 	github.com/xmidt-org/candlelight v0.0.19

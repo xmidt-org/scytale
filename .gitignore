@@ -35,6 +35,7 @@ report.json
 # VSCode
 *.code-workspace
 .vscode/*
+.dev/*
 
 # Architecture specific extensions/prefixes
 *.[568vq]

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -21,7 +22,6 @@ import (
 	"github.com/xmidt-org/clortho"
 	"github.com/xmidt-org/clortho/clorthometrics"
 	"github.com/xmidt-org/clortho/clorthozap"
-	"github.com/xmidt-org/sallust"
 	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/multierr"
@@ -51,6 +51,7 @@ import (
 	"github.com/xmidt-org/wrp-go/v3"
 	"github.com/xmidt-org/wrp-go/v3/wrpcontext"
 	"github.com/xmidt-org/wrp-go/v3/wrphttp"
+	"github.com/xmidt-org/wrp-go/v3/wrpvalidator"
 )
 
 const (
@@ -60,18 +61,26 @@ const (
 	prevAPIBase        = "api/" + prevAPIVersion
 	apiBaseDualVersion = "api/{version:" + apiVersion + "|" + prevAPIVersion + "}"
 
-	basicAuthConfigKey = "authHeader"
-	jwtAuthConfigKey   = "jwtValidator"
-	wrpCheckConfigKey  = "WRPCheck"
+	basicAuthConfigKey    = "authHeader"
+	jwtAuthConfigKey      = "jwtValidator"
+	wrpCheckConfigKey     = "WRPCheck"
+	wrpValidatorConfigKey = "wrpValidators"
 
 	deviceID = "deviceID"
 
 	enforceCheck = "enforce"
 )
 
+// Default values
+const (
+	UnknownPartner = "unknown"
+)
+
 var errNoDeviceName = errors.New("no device name")
 
-func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry) (alice.Chain, error) {
+type validators []wrpvalidator.Validator
+
+func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, tf *touchstone.Factory) (alice.Chain, error) {
 	if registry == nil {
 		return alice.Chain{}, errors.New("nil registry")
 	}
@@ -135,20 +144,6 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry) (
 		return alice.Chain{}, emperror.With(err, "failed to create clortho resolver")
 	}
 
-	promReg, ok := registry.(prometheus.Registerer)
-	if !ok {
-		return alice.Chain{}, errors.New("failed to get prometheus registerer")
-	}
-
-	var (
-		tsConfig touchstone.Config
-		zConfig  sallust.Config
-	)
-	// Get touchstone & zap configurations
-	v.UnmarshalKey("touchstone", &tsConfig)
-	v.UnmarshalKey("zap", &zConfig)
-	zlogger := zap.Must(zConfig.Build())
-	tf := touchstone.NewFactory(tsConfig, zlogger, promReg)
 	// Instantiate a metric listener for refresher and resolver to share
 	cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))
 	if err != nil {
@@ -157,7 +152,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry) (
 
 	// Instantiate a logging listener for refresher and resolver to share
 	czl, err := clorthozap.NewListener(
-		clorthozap.WithLogger(zlogger),
+		clorthozap.WithLogger(logger),
 	)
 	if err != nil {
 		return alice.Chain{}, emperror.With(err, "failed to create clortho zap logger listener")
@@ -316,7 +311,16 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		return nil, err
 	}
 
-	authChain, err := authChain(v, logger, registry)
+	promReg, ok := registry.(prometheus.Registerer)
+	if !ok {
+		return nil, errors.New("failed to get prometheus registerer")
+	}
+
+	var tsConfig touchstone.Config
+	// Get touchstone & zap configurations
+	v.UnmarshalKey("touchstone", &tsConfig)
+	tf := touchstone.NewFactory(tsConfig, logger, promReg)
+	authChain, err := authChain(v, logger, registry, tf)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +396,13 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		otelmux.WithPropagators(tracing.Propagator()),
 		otelmux.WithTracerProvider(tracing.TracerProvider()),
 	}
-	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator(), true), ValidateWRP(logger))
+
+	valWRP, err := validateWRP(v, logger, tf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wrp validators: %w", err)
+	}
+
+	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator(), true), valWRP)
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
@@ -563,20 +573,65 @@ func validateDeviceID() alice.Chain {
 	})
 }
 
-func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
+func validateWRP(v *viper.Viper, logger *zap.Logger, tf *touchstone.Factory) (func(http.Handler) http.Handler, error) {
+	var (
+		errs error
+		vals []wrpvalidator.ValidatorWithMetadata
+	)
+
+	labelNames := []string{wrpvalidator.ClientIDLabel, wrpvalidator.PartnerIDLabel, wrpvalidator.MessageTypeLabel}
+	valConig := v.Get(wrpValidatorConfigKey)
+	if valConig != nil {
+		if b, err := json.Marshal(valConig); err != nil {
+			return nil, err
+		} else if err = json.Unmarshal(b, &vals); err != nil {
+			return nil, err
+		}
+
+		for _, v := range vals {
+			if err := v.AddMetric(tf, labelNames...); err != nil {
+				errs = multierr.Append(errs, err)
+			}
+		}
+	}
+
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			if msg, ok := wrpcontext.GetMessage(r.Context()); ok {
-				var failureError error
-				var warningErrors error
+				var (
+					warningErrors error
+					failureError  error
+					satClientID   = "N/A"
+					partnerID     = device.UnknownPartner
+				)
 
-				validators := wrp.SpecValidators()
-				for _, v := range validators {
-					err := v.Validate(*msg)
-					if errors.Is(err, wrp.ErrorInvalidMessageEncoding.Err) || errors.Is(err, wrp.ErrorInvalidMessageType.Err) {
+				auth, ok := bascule.FromContext(r.Context())
+				if ok {
+					if principal := auth.Token.Principal(); len(principal) > 0 {
+						satClientID = principal
+					}
+
+					if s, ok := auth.Token.Attributes().Get(device.PartnerIDClaimKey); ok {
+						if p, ok := s.(string); ok {
+							partnerID = p
+						}
+					}
+				}
+
+				for _, v := range vals {
+					err := v.Validate(
+						*msg,
+						prometheus.Labels{
+							wrpvalidator.ClientIDLabel:    satClientID,
+							wrpvalidator.PartnerIDLabel:   partnerID,
+							wrpvalidator.MessageTypeLabel: msg.Type.FriendlyName(),
+						},
+					)
+
+					switch v.Level() {
+					case wrpvalidator.ErrorLevel:
 						failureError = multierr.Append(failureError, err)
-					} else if errors.Is(err, wrp.ErrorInvalidDestination.Err) || errors.Is(err, wrp.ErrorInvalidSource.Err) {
+					case wrpvalidator.WarningLevel:
 						warningErrors = multierr.Append(warningErrors, err)
 					}
 				}
@@ -587,7 +642,6 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 
 				if failureError != nil {
 					logger.Error("WRP message validation failures found", zap.Error(failureError))
-
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusBadRequest)
 					fmt.Fprintf(
@@ -601,5 +655,5 @@ func ValidateWRP(logger *zap.Logger) func(http.Handler) http.Handler {
 
 			delegate.ServeHTTP(w, r)
 		})
-	}
+	}, errs
 }

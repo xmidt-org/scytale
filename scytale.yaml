@@ -1,6 +1,16 @@
 # SPDX-FileCopyrightText: 2019 Comcast Cable Communications Management, LLC
 # SPDX-License-Identifier: Apache-2.0
 ---
+
+# wrpValidators defines the wrp validators used to validate incoming wrp messages.
+# (Optional)
+wrpValidators:
+  - type: utf8
+    level: warning
+    disable: true
+  - type: source
+    level: error
+
 # The unique fully-qualified-domain-name of the server.  It is provided to
 # the X-Scytale-Server header for showing what server fulfilled the request
 # sent.

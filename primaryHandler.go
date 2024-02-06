@@ -576,18 +576,17 @@ func validateDeviceID() alice.Chain {
 func validateWRP(v *viper.Viper, logger *zap.Logger, tf *touchstone.Factory) (func(http.Handler) http.Handler, error) {
 	var (
 		errs error
-		vals []wrpvalidator.ValidatorWithMetadata
+		vals []wrpvalidator.MetaValidator
 	)
 
-	labelNames := []string{wrpvalidator.ClientIDLabel, wrpvalidator.PartnerIDLabel, wrpvalidator.MessageTypeLabel}
-	valConig := v.Get(wrpValidatorConfigKey)
-	if valConig != nil {
-		if b, err := json.Marshal(valConig); err != nil {
+	if valsConig := v.Get(wrpValidatorConfigKey); valsConig != nil {
+		if b, err := json.Marshal(valsConig); err != nil {
 			return nil, err
 		} else if err = json.Unmarshal(b, &vals); err != nil {
 			return nil, err
 		}
 
+		labelNames := []string{wrpvalidator.ClientIDLabel, wrpvalidator.PartnerIDLabel, wrpvalidator.MessageTypeLabel}
 		for _, v := range vals {
 			if err := v.AddMetric(tf, labelNames...); err != nil {
 				errs = multierr.Append(errs, err)

@@ -20,7 +20,7 @@ require (
 	github.com/xmidt-org/webpa-common v1.11.9
 	github.com/xmidt-org/webpa-common/v2 v2.3.2
 	github.com/xmidt-org/wrp-go/v3 v3.4.0
-	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.47.0
+	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.48.0
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.26.0
 )
@@ -101,16 +101,16 @@ require (
 	github.com/xmidt-org/httpaux v0.4.0 // indirect
 	github.com/xmidt-org/themis v0.4.15 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.47.0 // indirect
-	go.opentelemetry.io/otel v1.22.0 // indirect
+	go.opentelemetry.io/otel v1.23.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.22.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.22.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.22.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.22.0 // indirect
 	go.opentelemetry.io/otel/exporters/zipkin v1.22.0 // indirect
-	go.opentelemetry.io/otel/metric v1.22.0 // indirect
+	go.opentelemetry.io/otel/metric v1.23.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.22.0 // indirect
-	go.opentelemetry.io/otel/trace v1.22.0 // indirect
+	go.opentelemetry.io/otel/trace v1.23.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.1.0 // indirect
 	go.uber.org/dig v1.17.1 // indirect
 	go.uber.org/fx v1.20.1 // indirect

@@ -232,7 +232,7 @@ fanout:
   # Authorization is the Basic Auth token to use for each request.
   # (Optional) defaults to no auth token
   # WARNING: This is an example auth token. DO NOT use this in production.
-  authorization: YXV0aEhlYWRlcg==
+  authorization: dXNlcjpwYXNz
 
   # transport is a way to overwrite the default golang http.Transport configuration.
   # defined  https://golang.org/pkg/net/http/#Transport

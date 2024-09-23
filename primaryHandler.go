@@ -417,9 +417,9 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 				options,
 				fanout.WithFanoutBefore(
 					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-						var m wrp.Message
+						m, ok := wrpcontext.GetMessage(ctx)
 
-						if m, ok := wrpcontext.GetMessage(ctx); !ok {
+						if !ok {
 							f, err := wrphttp.DetermineFormat(wrp.JSON, original.Header, "Content-Type")
 							if err != nil {
 								return nil, err
@@ -454,7 +454,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 							satClientID = reqContextValues.SatClientID
 						}
 
-						wrpFromCtx, ok := ctx.Value("wrp").(wrp.Message)
+						wrpFromCtx, ok := ctx.Value(ContextKeyWRP).(*wrp.Message)
 						if ok {
 							logger.Info("Bookkeping response",
 								zap.Any("messageType", wrpFromCtx.Type),

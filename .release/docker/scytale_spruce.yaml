@@ -344,7 +344,7 @@ service:
 
     chrysom:
       listen:
-        # pullInterval is how often to call argus to update the list of 
+        # pullInterval is how often to call argus to update the list of
         # inactive datacenters.
         pullInterval:  (( grab $ARGUS_PULL_INTERVAL || "5s" ))
 
@@ -385,7 +385,7 @@ service:
     # (Optional) defaults to 10
     datacenterRetries: 3
 
-    # DatacenterWatchInterval is the interval at which scytale checks for a change 
+    # DatacenterWatchInterval is the interval at which scytale checks for a change
     # in active datacenters.
     datacenterWatchInterval: 10s
 

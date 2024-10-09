@@ -24,7 +24,6 @@ import (
 	"github.com/xmidt-org/clortho/clorthozap"
 	"github.com/xmidt-org/touchstone"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/xmidt-org/webpa-common/secure/handler"
@@ -69,6 +68,8 @@ const (
 	deviceID = "deviceID"
 
 	enforceCheck = "enforce"
+
+	zapWRPValidatorLabel = "wrp_validator_level"
 )
 
 // Default values
@@ -76,9 +77,10 @@ const (
 	UnknownPartner = "unknown"
 )
 
-var errNoDeviceName = errors.New("no device name")
-
-type validators []wrpvalidator.Validator
+var (
+	errNoDeviceName            = errors.New("no device name")
+	errWRPValidatorConfigError = errors.New("failed to configure wrp validators")
+)
 
 func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, tf *touchstone.Factory) (alice.Chain, error) {
 	if registry == nil {
@@ -417,9 +419,9 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 				options,
 				fanout.WithFanoutBefore(
 					func(ctx context.Context, original, fanout *http.Request, body []byte) (context.Context, error) {
-						var m wrp.Message
+						m, ok := wrpcontext.GetMessage(ctx)
 
-						if m, ok := wrpcontext.GetMessage(ctx); !ok {
+						if !ok {
 							f, err := wrphttp.DetermineFormat(wrp.JSON, original.Header, "Content-Type")
 							if err != nil {
 								return nil, err
@@ -454,7 +456,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 							satClientID = reqContextValues.SatClientID
 						}
 
-						wrpFromCtx, ok := ctx.Value("wrp").(wrp.Message)
+						wrpFromCtx, ok := ctx.Value(ContextKeyWRP).(*wrp.Message)
 						if ok {
 							logger.Info("Bookkeping response",
 								zap.Any("messageType", wrpFromCtx.Type),
@@ -581,25 +583,31 @@ func validateWRP(v *viper.Viper, logger *zap.Logger, tf *touchstone.Factory) (fu
 
 	if valsConig := v.Get(wrpValidatorConfigKey); valsConig != nil {
 		if b, err := json.Marshal(valsConig); err != nil {
-			return nil, err
+			return nil, errors.Join(errWRPValidatorConfigError, err)
 		} else if err = json.Unmarshal(b, &vals); err != nil {
-			return nil, err
+			return nil, errors.Join(errWRPValidatorConfigError, err)
 		}
 
 		labelNames := []string{wrpvalidator.ClientIDLabel, wrpvalidator.PartnerIDLabel, wrpvalidator.MessageTypeLabel}
 		for _, v := range vals {
 			if err := v.AddMetric(tf, labelNames...); err != nil {
-				errs = multierr.Append(errs, err)
+				errs = errors.Join(errs, err)
 			}
 		}
+	}
+
+	if errs != nil {
+		return nil, errors.Join(errWRPValidatorConfigError, errs)
 	}
 
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if msg, ok := wrpcontext.GetMessage(r.Context()); ok {
 				var (
+					infoErrors    error
 					warningErrors error
 					failureError  error
+					unknownError  error
 					satClientID   = "N/A"
 					partnerID     = device.UnknownPartner
 				)
@@ -628,19 +636,35 @@ func validateWRP(v *viper.Viper, logger *zap.Logger, tf *touchstone.Factory) (fu
 					)
 
 					switch v.Level() {
-					case wrpvalidator.ErrorLevel:
-						failureError = multierr.Append(failureError, err)
+					case wrpvalidator.InfoLevel:
+						infoErrors = errors.Join(infoErrors, err)
 					case wrpvalidator.WarningLevel:
-						warningErrors = multierr.Append(warningErrors, err)
+						warningErrors = errors.Join(warningErrors, err)
+					case wrpvalidator.ErrorLevel:
+						failureError = errors.Join(failureError, err)
+					default:
+						unknownError = errors.Join(unknownError, err)
 					}
 				}
 
+				if unknownError != nil {
+					logger.Warn("WRP message validation errors found",
+						zap.Error(unknownError), zap.String(zapWRPValidatorLabel, wrpvalidator.UnknownLevel.String()))
+				}
+
+				if infoErrors != nil {
+					logger.Warn("WRP message validation errors found",
+						zap.Error(infoErrors), zap.String(zapWRPValidatorLabel, wrpvalidator.InfoLevel.String()))
+				}
+
 				if warningErrors != nil {
-					logger.Warn("WRP message validation warnings found", zap.Error(warningErrors))
+					logger.Warn("WRP message validation errors found",
+						zap.Error(warningErrors), zap.String(zapWRPValidatorLabel, wrpvalidator.WarningLevel.String()))
 				}
 
 				if failureError != nil {
-					logger.Error("WRP message validation failures found", zap.Error(failureError))
+					logger.Error("WRP message validation (failure error level) found",
+						zap.Error(failureError), zap.String(zapWRPValidatorLabel, wrpvalidator.ErrorLevel.String()))
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusBadRequest)
 					fmt.Fprintf(

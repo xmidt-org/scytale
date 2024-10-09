@@ -191,7 +191,7 @@ zap:
   level: DEBUG
 
   # DisableCaller stops annotating logs with the calling function's file
-	# name and line number. By default, all logs are annotated.
+  # name and line number. By default, all logs are annotated.
   disableCaller: true
 
   # EncoderConfig sets options for the chosen encoder. See
@@ -291,7 +291,7 @@ jwtValidator:
   Config:
     Resolve:
       # Template is a URI template used to fetch keys.  This template may
-	    # use a single parameter named keyID, e.g. http://keys.com/{keyID}.
+      # use a single parameter named keyID, e.g. http://keys.com/{keyID}.
       # This field is required and has no default.
       Template: "http://localhost/{keyID}"
     Refresh:
@@ -304,21 +304,21 @@ jwtValidator:
         - URI: "http://localhost"
 
 # capabilityCheck provides the details needed for checking an incoming JWT's
-# capabilities.  If the type of check isn't provided, no checking is done.  The 
-# type can be "monitor" or "enforce".  If it is empty or a different value, no 
-# checking is done.  If "monitor" is provided, the capabilities are checked but 
-# the request isn't rejected when there isn't a valid capability for the 
-# request. Instead, a message is logged.  When "enforce" is provided, a request 
+# capabilities.  If the type of check isn't provided, no checking is done.  The
+# type can be "monitor" or "enforce".  If it is empty or a different value, no
+# checking is done.  If "monitor" is provided, the capabilities are checked but
+# the request isn't rejected when there isn't a valid capability for the
+# request. Instead, a message is logged.  When "enforce" is provided, a request
 # that doesn't have the needed capability is rejected.
 #
 # The capability is expected to have the format:
 #
 # {prefix}{endpoint}:{method}
 #
-# The prefix can be a regular expression.  If it's empty, no capability check 
+# The prefix can be a regular expression.  If it's empty, no capability check
 # is done.  The endpoint is a regular expression that should match the endpoint
-# the request was sent to. The method is usually the method of the request, such as 
-# GET.  The accept all method is a catchall string that indicates the capability 
+# the request was sent to. The method is usually the method of the request, such as
+# GET.  The accept all method is a catchall string that indicates the capability
 # is approved for all methods.
 # (Optional)
 # capabilityCheck:
@@ -326,10 +326,10 @@ jwtValidator:
 #   type: "enforce"
 #   # prefix provides the regex to match the capability before the endpoint.
 #   prefix: "prefix Here"
-#   # acceptAllMethod provides a way to have a capability that allows all 
+#   # acceptAllMethod provides a way to have a capability that allows all
 #   # methods for a specific endpoint.
 #   acceptAllMethod: "all"
-#   # endpointBuckets provides regular expressions to use against the request 
+#   # endpointBuckets provides regular expressions to use against the request
 #   # endpoint in order to group requests for a metric label.
 #   endpointBuckets:
 #     - "hook\\b"
@@ -397,7 +397,7 @@ service:
   #
   #   chrysom:
   #     listen:
-  #       # pullInterval is how often to call argus to update the list of 
+  #       # pullInterval is how often to call argus to update the list of
   #       # inactive datacenters.
   #       pullInterval: "5s"
   #
@@ -421,7 +421,7 @@ service:
   #         #   "": ""
   #
   #         # authURL is the URL to access for the token.
-  #         authURL: 
+  #         authURL:
   #
   #         # timeout is how long the request to get the token will take before
   #         # timing out.
@@ -437,7 +437,7 @@ service:
   #   # (Optional) defaults to 10
   #   datacenterRetries: 3
   #
-  #   # DatacenterWatchInterval is the interval at which scytale checks for a change 
+  #   # DatacenterWatchInterval is the interval at which scytale checks for a change
   #   # in active datacenters.
   #   datacenterWatchInterval: 10s
   #
@@ -539,7 +539,7 @@ tracing:
   # endpoint is where trace information should be routed. Applies to otlp, zipkin, and jaegar. OTLP/gRPC uses port 4317 by default.
   # OTLP/HTTP uses port 4318 by default.
   # endpoint: "localhost:4317"
-  
+
   # ParentBased and NoParent dictate if and when new spans should be created.
   # ParentBased = "ignore" (default), tracing is effectively turned off and the "NoParent" value is ignored
   # ParentBased = "honor", the sampling decision is made by the parent of the span

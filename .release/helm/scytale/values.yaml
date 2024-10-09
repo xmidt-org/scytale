@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2019 Comcast Cable Communications Management, LLC
 # SPDX-License-Identifier: Apache-2.0
 # Default values for scytale.
+---
 scytale:
   # docker image used
   image: xmidt/scytale
@@ -23,9 +24,7 @@ pprof:
 metric:
   address:
     host: ""
-    port: "6303"  
+    port: "6303"
 
 # Pull secret used when images are stored in a private repository
 # imagePullSecretName:
-
-

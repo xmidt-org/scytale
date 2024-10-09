@@ -21,7 +21,6 @@ require (
 	github.com/xmidt-org/webpa-common/v2 v2.3.2
 	github.com/xmidt-org/wrp-go/v3 v3.5.2
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.54.0
-	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.0
 )
 
@@ -115,6 +114,7 @@ require (
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/dig v1.18.0 // indirect
 	go.uber.org/fx v1.22.2 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/mod v0.17.0 // indirect

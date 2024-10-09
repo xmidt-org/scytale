@@ -69,6 +69,7 @@ const (
 
 	enforceCheck = "enforce"
 
+	// nolint:gosec
 	zapWRPValidatorLabel = "wrp_validator_level"
 )
 

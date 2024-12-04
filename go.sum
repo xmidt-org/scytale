@@ -873,8 +873,9 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.7.2/go.mod h1:R6va5+xMeoiuVRoj+gSkQ7d3FALtqAAGI1FQKckRals=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
+github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/subosito/gotenv v1.3.0/go.mod h1:YzJjq/33h7nrwdY+iHMhEOEEbW0ovIz0tB6t6PwAXzs=
 github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=
@@ -911,8 +912,8 @@ github.com/xmidt-org/bascule v0.10.1/go.mod h1:unqyDUxjulfGFnx4kYWbonTGkVHGWPUjU
 github.com/xmidt-org/bascule v0.11.6 h1:i46FAI97XPMt3OKraiNyKa+mt36AhLO8iuInAypXKNM=
 github.com/xmidt-org/bascule v0.11.6/go.mod h1:BXb5PEm/tjqdiEGsd+phm+fItMJx+Huv6LTCEU/zTzg=
 github.com/xmidt-org/candlelight v0.0.5/go.mod h1:j9Q2tzrOAywm+JvvVJjlOmlPJvdlRrOyFjLz33SaU1Y=
-github.com/xmidt-org/candlelight v0.1.21 h1:QaFgwpk3VtBx35PCkCkF/tQ0Io7x97JPL4v188dEX4o=
-github.com/xmidt-org/candlelight v0.1.21/go.mod h1:Q05f6nRDCWTV9bwci/0vNFP10B+BLB3uNH3CIZC4+o0=
+github.com/xmidt-org/candlelight v0.1.22 h1:4cTvBq71s2HJrIIDqOgRjNbY2owVt5Dt3OO62o8bKx0=
+github.com/xmidt-org/candlelight v0.1.22/go.mod h1:JP//DhMaHNQYFzCEGmENEyOpmTw8wqkm1NOeE0oYw4w=
 github.com/xmidt-org/chronon v0.1.1 h1:SzOYkT/nmps3jH4sWu6A52ToKvv5Bu0Gb45/ec5Ty9U=
 github.com/xmidt-org/chronon v0.1.1/go.mod h1:8VF1skJAouQihpKfXE8oZZkbQpV1TSR/7QltNxq8T4k=
 github.com/xmidt-org/clortho v0.0.4 h1:4G1uKle0rfm+LwQ3EV7W+jn7kgWnozAoK9DAbz0/etw=

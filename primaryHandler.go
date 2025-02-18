@@ -65,9 +65,6 @@ const (
 	deviceID = "deviceID"
 
 	enforceCheck = "enforce"
-
-	// nolint:gosec
-	zapWRPValidatorLabel = "wrp_validator_level"
 )
 
 // Default values

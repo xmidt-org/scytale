@@ -2,18 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# wrpValidators defines the wrp validators used to validate incoming wrp messages.
-# (Optional)
-# Available validator types: always_invalid, always_valid, utf8, msg_type, source, destination, simple_res_req, simple_event, spans
-# Available validator levels: info, warning, error
-# Validators can be disabled with `disable: true`, it is false by default
-wrpValidators:
-  - type: utf8
-    level: warning
-    disable: true
-  - type: source
-    level: error
-
 # The unique fully-qualified-domain-name of the server.  It is provided to
 # the X-Scytale-Server header for showing what server fulfilled the request
 # sent.

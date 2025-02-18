@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -50,7 +49,6 @@ import (
 	"github.com/xmidt-org/wrp-go/v3"
 	"github.com/xmidt-org/wrp-go/v3/wrpcontext"
 	"github.com/xmidt-org/wrp-go/v3/wrphttp"
-	"github.com/xmidt-org/wrp-go/v3/wrpvalidator"
 )
 
 const (
@@ -60,10 +58,9 @@ const (
 	prevAPIBase        = "api/" + prevAPIVersion
 	apiBaseDualVersion = "api/{version:" + apiVersion + "|" + prevAPIVersion + "}"
 
-	basicAuthConfigKey    = "authHeader"
-	jwtAuthConfigKey      = "jwtValidator"
-	wrpCheckConfigKey     = "WRPCheck"
-	wrpValidatorConfigKey = "wrpValidators"
+	basicAuthConfigKey = "authHeader"
+	jwtAuthConfigKey   = "jwtValidator"
+	wrpCheckConfigKey  = "WRPCheck"
 
 	deviceID = "deviceID"
 
@@ -79,8 +76,7 @@ const (
 )
 
 var (
-	errNoDeviceName            = errors.New("no device name")
-	errWRPValidatorConfigError = errors.New("failed to configure wrp validators")
+	errNoDeviceName = errors.New("no device name")
 )
 
 func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, tf *touchstone.Factory) (alice.Chain, error) {
@@ -400,12 +396,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		otelmux.WithTracerProvider(tracing.TracerProvider()),
 	}
 
-	valWRP, err := validateWRP(v, logger, tf)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get wrp validators: %w", err)
-	}
-
-	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator(), true), valWRP)
+	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator(), true))
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
@@ -574,110 +565,4 @@ func validateDeviceID() alice.Chain {
 			next.ServeHTTP(w, r)
 		})
 	})
-}
-
-func validateWRP(v *viper.Viper, logger *zap.Logger, tf *touchstone.Factory) (func(http.Handler) http.Handler, error) {
-	var (
-		errs error
-		vals []wrpvalidator.MetaValidator
-	)
-
-	if valsConig := v.Get(wrpValidatorConfigKey); valsConig != nil {
-		if b, err := json.Marshal(valsConig); err != nil {
-			return nil, errors.Join(errWRPValidatorConfigError, err)
-		} else if err = json.Unmarshal(b, &vals); err != nil {
-			return nil, errors.Join(errWRPValidatorConfigError, err)
-		}
-
-		labelNames := []string{wrpvalidator.ClientIDLabel, wrpvalidator.PartnerIDLabel, wrpvalidator.MessageTypeLabel}
-		for _, v := range vals {
-			if err := v.AddMetric(tf, labelNames...); err != nil {
-				errs = errors.Join(errs, err)
-			}
-		}
-	}
-
-	if errs != nil {
-		return nil, errors.Join(errWRPValidatorConfigError, errs)
-	}
-
-	return func(delegate http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if msg, ok := wrpcontext.GetMessage(r.Context()); ok {
-				var (
-					infoErrors    error
-					warningErrors error
-					failureError  error
-					unknownError  error
-					satClientID   = "N/A"
-					partnerID     = device.UnknownPartner
-				)
-
-				auth, ok := bascule.FromContext(r.Context())
-				if ok {
-					if principal := auth.Token.Principal(); len(principal) > 0 {
-						satClientID = principal
-					}
-
-					if s, ok := auth.Token.Attributes().Get(device.PartnerIDClaimKey); ok {
-						if p, ok := s.(string); ok {
-							partnerID = p
-						}
-					}
-				}
-
-				for _, v := range vals {
-					err := v.Validate(
-						*msg,
-						prometheus.Labels{
-							wrpvalidator.ClientIDLabel:    satClientID,
-							wrpvalidator.PartnerIDLabel:   partnerID,
-							wrpvalidator.MessageTypeLabel: msg.Type.FriendlyName(),
-						},
-					)
-
-					switch v.Level() {
-					case wrpvalidator.InfoLevel:
-						infoErrors = errors.Join(infoErrors, err)
-					case wrpvalidator.WarningLevel:
-						warningErrors = errors.Join(warningErrors, err)
-					case wrpvalidator.ErrorLevel:
-						failureError = errors.Join(failureError, err)
-					default:
-						unknownError = errors.Join(unknownError, err)
-					}
-				}
-
-				if unknownError != nil {
-					logger.Warn("WRP message validation errors found",
-						zap.Error(unknownError), zap.String(zapWRPValidatorLabel, wrpvalidator.UnknownLevel.String()))
-				}
-
-				if infoErrors != nil {
-					logger.Warn("WRP message validation errors found",
-						zap.Error(infoErrors), zap.String(zapWRPValidatorLabel, wrpvalidator.InfoLevel.String()))
-				}
-
-				if warningErrors != nil {
-					logger.Warn("WRP message validation errors found",
-						zap.Error(warningErrors), zap.String(zapWRPValidatorLabel, wrpvalidator.WarningLevel.String()))
-				}
-
-				if failureError != nil {
-					logger.Error("WRP message validation (failure error level) found",
-						zap.Error(failureError), zap.String(zapWRPValidatorLabel, wrpvalidator.ErrorLevel.String()))
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusBadRequest)
-					fmt.Fprintf(
-						w,
-						`{"code": %d, "message": "%s"}`,
-						http.StatusBadRequest,
-						fmt.Sprintf("failed to validate WRP message: %s", failureError))
-					return
-				}
-			}
-
-			delegate.ServeHTTP(w, r)
-		})
-	}, errs
 }

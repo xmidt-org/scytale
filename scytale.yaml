@@ -356,6 +356,9 @@ service:
   # (Optional) defaults to 211
   vnodeCount: 211
 
+  hashers:
+    - type: hostname
+
   # disableFilter disables filtering.
   # (Deprecated) does not do anything
   # disableFilter: false

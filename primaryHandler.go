@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -41,6 +42,8 @@ import (
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service"
 	"github.com/xmidt-org/webpa-common/v2/service/monitor"
+	"github.com/xmidt-org/webpa-common/v2/service/multiaccessor"
+	"github.com/xmidt-org/webpa-common/v2/service/servicecfg"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
 	"github.com/xmidt-org/webpa-common/v2/xhttp/fanout"
 
@@ -246,14 +249,14 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
 // endpoints or service discovery.
 // nolint:govet
-func createEndpoints(logger *zap.Logger, cfg fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
+func createEndpoints(logger *zap.Logger, cfg *fanout.Configuration, registry xmetrics.Registry, e service.Environment, b multiaccessor.Builder, vnodeCount int) (fanout.Endpoints, error) {
 	if len(cfg.Endpoints) > 0 {
 		logger.Info("using configured endpoints for fanout", zap.Any("endpoints", cfg.Endpoints))
 		return fanout.ParseURLs(cfg.Endpoints...)
 	} else if e != nil {
 		logger.Info("using service discovery for fanout")
 		endpoints := fanout.NewServiceEndpoints(
-			fanout.WithAccessorFactory(e.AccessorFactory()),
+			fanout.WithHasherFactory(multiaccessor.NewMultiAccessorFactory(b, vnodeCount)),
 			// required to get deviceID from either the header or the path
 			fanout.WithKeyFunc(func(request *http.Request) ([]byte, error) {
 				deviceName := request.Header.Get(device.DeviceNameHeader)
@@ -301,8 +304,20 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 	fanoutPrefix := v.GetString("fanout.pathPrefix")
 	logger.Info("creating primary handler")
 	cfg.Tracing = tracing
-	// nolint:govet
-	endpoints, err := createEndpoints(logger, cfg, registry, e)
+
+	var o servicecfg.Options
+	if err := v.UnmarshalKey("service", &o); err != nil {
+		return nil, err
+	}
+
+	var b multiaccessor.Builder
+	if s, err := json.Marshal(v.Get("service")); err != nil {
+		return nil, err
+	} else if err := json.Unmarshal(s, &b); err != nil {
+		return nil, err
+	}
+
+	endpoints, err := createEndpoints(logger, &cfg, registry, e, b, o.VnodeCount)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +408,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		otelmux.WithTracerProvider(tracing.TracerProvider()),
 	}
 
-	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator(), true))
+	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing, true))
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")

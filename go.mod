@@ -12,7 +12,7 @@ require (
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
-	github.com/xmidt-org/bascule v0.11.6
+	github.com/xmidt-org/bascule v0.11.7
 	github.com/xmidt-org/candlelight v0.2.1
 	github.com/xmidt-org/clortho v0.0.4
 	github.com/xmidt-org/sallust v0.2.4
@@ -64,9 +64,9 @@ require (
 	github.com/jtacoma/uritemplates v1.0.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
-	github.com/lestrrat-go/httprc v1.0.5 // indirect
+	github.com/lestrrat-go/httprc v1.0.6 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect
-	github.com/lestrrat-go/jwx/v2 v2.0.21 // indirect
+	github.com/lestrrat-go/jwx/v2 v2.1.1 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -90,7 +90,6 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	github.com/xmidt-org/arrange v0.4.0 // indirect
 	github.com/xmidt-org/chronon v0.1.1 // indirect
 	github.com/xmidt-org/themis v0.4.31 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect

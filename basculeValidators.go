@@ -9,13 +9,24 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/bascule/basculechecks"
 )
 
-var requirePartnersJWTClaim bascule.ValidatorFunc = func(_ context.Context, token bascule.Token) error {
-	partnerVal, ok := bascule.GetNestedAttribute(token.Attributes(), basculechecks.PartnerKeys()...)
+var partnerKeys = []string{"allowedResources", "allowedPartners"}
+
+var requirePartnersJWTClaim = func(_ context.Context, token bascule.Token) error {
+	tt, ok := token.(tokenType)
+	if !ok || tt.TokenType() != jwtTokenType {
+		return nil
+	}
+
+	accessor, ok := token.(bascule.AttributesAccessor)
 	if !ok {
-		return fmt.Errorf("partner IDs not found at keys %v", basculechecks.PartnerKeys())
+		return fmt.Errorf("partner IDs not found at keys %v", partnerKeys)
+	}
+
+	partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...)
+	if !ok {
+		return fmt.Errorf("partner IDs not found at keys %v", partnerKeys)
 	}
 	ids, err := cast.ToStringSliceE(partnerVal)
 	if err != nil {

@@ -8,11 +8,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xmidt-org/bascule"
 )
 
 func TestRequirePartnerIDs(t *testing.T) {
-	type badType int
 	var tests = []struct {
 		name       string
 		attrMap    map[string]interface{}
@@ -45,7 +43,7 @@ func TestRequirePartnerIDs(t *testing.T) {
 			name: "malformed partnerIDs field",
 			attrMap: map[string]interface{}{
 				"allowedResources": map[string]interface{}{
-					"allowedPartners": []badType{0, 1, 2},
+					"allowedPartners": map[string]interface{}{"partner0": true},
 				}},
 		},
 	}
@@ -55,8 +53,7 @@ func TestRequirePartnerIDs(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
-			attrs := bascule.NewAttributes(test.attrMap)
-			token := bascule.NewToken("bearer", "client0", attrs)
+			token := &jwtToken{principal: "client0", claims: test.attrMap}
 
 			err := requirePartnersJWTClaim(ctx, token)
 			if test.shouldPass {

@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/go-kit/kit/metrics"
+	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/bascule/basculechecks"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
 	"github.com/xmidt-org/wrp-go/v3"
 )
@@ -63,7 +63,7 @@ func (p *wrpPartnersAccess) withSuccess(labelValues ...string) metrics.Counter {
 // Additionally, when the policy is not a boolean is returned for failure cases where the policy autocorrects the WRP contents
 func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Message) (bool, error) {
 	var (
-		auth, ok    = bascule.FromContext(ctx)
+		token, ok   = bascule.Get(ctx)
 		satClientID = "none"
 	)
 
@@ -76,9 +76,8 @@ func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Messa
 		return false, nil
 	}
 
-	token := auth.Token
-
-	if token.Type() != "jwt" {
+	tt, isTyped := token.(tokenType)
+	if !isTyped || tt.TokenType() != jwtTokenType {
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenTypeMismatch).Add(1)
 
 		if p.strict {
@@ -91,9 +90,7 @@ func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Messa
 		satClientID = principal
 	}
 
-	attributes := token.Attributes()
-
-	partnerVal, ok := bascule.GetNestedAttribute(attributes, basculechecks.PartnerKeys()...)
+	accessor, ok := token.(bascule.AttributesAccessor)
 	if !ok {
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
 
@@ -104,8 +101,19 @@ func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Messa
 		return false, nil
 	}
 
-	allowedPartners, ok := partnerVal.([]string)
-	if !ok || len(allowedPartners) < 1 {
+	partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...)
+	if !ok {
+		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
+
+		if p.strict {
+			return false, ErrAllowedPartnersNotFound
+		}
+
+		return false, nil
+	}
+
+	allowedPartners, err := cast.ToStringSliceE(partnerVal)
+	if err != nil || len(allowedPartners) < 1 {
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
 
 		if p.strict {

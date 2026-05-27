@@ -4,7 +4,6 @@
 package main
 
 import (
-	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/clortho"
 )
 
@@ -15,5 +14,11 @@ type JWTValidator struct {
 
 	// Leeway is used to set the amount of time buffer should be given to JWT
 	// time values, such as nbf
-	Leeway bascule.Leeway
+	Leeway Leeway `json:"leeway" mapstructure:"leeway"`
+}
+
+type Leeway struct {
+	EXP int64 `json:"expLeeway" mapstructure:"expLeeway"`
+	NBF int64 `json:"nbfLeeway" mapstructure:"nbfLeeway"`
+	IAT int64 `json:"iatLeeway" mapstructure:"iatLeeway"`
 }

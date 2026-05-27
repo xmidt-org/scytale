@@ -33,10 +33,9 @@ import (
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/bascule/basculechecks"
-	"github.com/xmidt-org/bascule/basculehelper"
 	"github.com/xmidt-org/bascule/basculehttp"
 
 	// nolint:staticcheck
@@ -88,10 +87,6 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 		return alice.Chain{}, errors.New("nil registry")
 	}
 
-	basculeMeasures := basculehelper.NewAuthValidationMeasures(registry)
-	capabilityCheckMeasures := basculehelper.NewAuthCapabilityCheckMeasures(registry)
-	listener := basculehelper.NewMetricListener(basculeMeasures)
-
 	basicAllowed := make(map[string]string)
 	basicAuth := v.GetStringSlice(basicAuthConfigKey)
 	for _, a := range basicAuth {
@@ -110,17 +105,9 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 	}
 	logger.Debug("Created list of allowed basic auths", zap.Any("allowed", basicAllowed), zap.Any("config", basicAuth))
 
-	options := []basculehttp.COption{
-		basculehttp.WithCLogger(getLogger),
-		basculehttp.WithCErrorResponseFunc(listener.OnErrorResponse),
-	}
-	if len(basicAllowed) > 0 {
-		options = append(options, basculehttp.WithTokenFactory("Basic", basculehttp.BasicTokenFactory(basicAllowed)))
-	}
-
 	var jwtVal JWTValidator
 	// Get jwt configuration, including clortho's configuration
-	v.UnmarshalKey("jwtValidator", &jwtVal)
+	v.UnmarshalKey(jwtAuthConfigKey, &jwtVal)
 	// Instantiate a keyring for refresher and resolver to share
 	kr := clortho.NewKeyRing()
 
@@ -177,77 +164,186 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 		ref.Stop(context.Background())
 	}()
 
-	options = append(options, basculehttp.WithTokenFactory("Bearer", basculehttp.BearerTokenFactory{
-		DefaultKeyID: DefaultKeyID,
-		Resolver:     resolver,
-		Parser:       bascule.DefaultJWTParser,
-		Leeway:       jwtVal.Leeway,
-	}))
-	authConstructor := basculehttp.NewConstructor(append([]basculehttp.COption{
-		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc("/"+apiBase+"/", basculehttp.DefaultParseURLFunc)),
-	}, options...)...)
-	authConstructorLegacy := basculehttp.NewConstructor(append([]basculehttp.COption{
-		basculehttp.WithParseURLFunc(basculehttp.CreateRemovePrefixURLFunc("/api/"+prevAPIVersion+"/", basculehttp.DefaultParseURLFunc)),
-		basculehttp.WithCErrorHTTPResponseFunc(basculehttp.LegacyOnErrorHTTPResponse),
-	}, options...)...)
-	bearerRules := bascule.Validators{
-		basculechecks.NonEmptyPrincipal(),
-		basculechecks.NonEmptyType(),
-		basculechecks.ValidType([]string{"jwt"}),
-		requirePartnersJWTClaim,
+	authParserOptions := []basculehttp.AuthorizationParserOption{
+		basculehttp.WithScheme(basculehttp.SchemeBearer, &jwtTokenParser{resolver: resolver, logger: logger, leeway: jwtVal.Leeway}),
+	}
+	if len(basicAllowed) > 0 {
+		authParserOptions = append(authParserOptions, basculehttp.WithScheme(basculehttp.SchemeBasic, basicAllowedTokenParser{allowed: basicAllowed}))
+	}
+
+	authParser, err := basculehttp.NewAuthorizationParser(authParserOptions...)
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create authorization parser")
+	}
+
+	validators := bascule.Validators[*http.Request]{
+		basculehttp.AsValidator(func(_ context.Context, token bascule.Token) error {
+			if token.Principal() == "" {
+				return errors.New("empty token principal")
+			}
+
+			return nil
+		}),
+		basculehttp.AsValidator(requirePartnersJWTClaim),
 	}
 
 	// only add capability check if the configuration is set
-	var capabilityCheck basculechecks.CapabilitiesValidatorConfig
+	var capabilityCheck CapabilityConfig
 	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
 	if capabilityCheck.Type == enforceCheck || capabilityCheck.Type == "monitor" {
-		var endpoints []*regexp.Regexp
-		ec, err := basculehelper.NewEndpointRegexCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
-
+		ec, err := newEndpointRegexCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
 		if err != nil {
 			return alice.Chain{}, emperror.With(err, "failed to create capability check")
 		}
-		for _, e := range capabilityCheck.EndpointBuckets {
-			r, err := regexp.Compile(e)
+
+		endpointBuckets := make([]*regexp.Regexp, 0, len(capabilityCheck.EndpointBuckets))
+		for _, pattern := range capabilityCheck.EndpointBuckets {
+			re, err := regexp.Compile(pattern)
 			if err != nil {
-				logger.Error("failed to compile regular expression", zap.Any("regex", e), zap.Error(err))
+				logger.Error("failed to compile endpoint bucket regex", zap.String("regex", pattern), zap.Error(err))
 				continue
 			}
-			endpoints = append(endpoints, r)
+
+			endpointBuckets = append(endpointBuckets, re)
 		}
-		m := basculehelper.MetricValidator{
-			C:         basculehelper.CapabilitiesValidator{Checker: ec},
-			Measures:  capabilityCheckMeasures,
-			Endpoints: endpoints,
-		}
-		bearerRules = append(bearerRules, m.CreateValidator(capabilityCheck.Type == enforceCheck))
-	}
 
-	authEnforcer := basculehttp.NewEnforcer(
-		basculehttp.WithELogger(getLogger),
-		basculehttp.WithRules("Basic", bascule.Validators{
-			basculechecks.AllowAll(),
-		}),
-		basculehttp.WithRules("Bearer", bearerRules),
-		basculehttp.WithEErrorResponseFunc(listener.OnErrorResponse),
-	)
+		capabilityCheckCounter := NewAuthCapabilityCounter(registry)
 
-	authChain := alice.New(setLogger(logger), authConstructor, authEnforcer, basculehttp.NewListenerDecorator(listener))
-	authChainLegacy := alice.New(setLogger(logger), authConstructorLegacy, authEnforcer, basculehttp.NewListenerDecorator(listener))
+		enforce := capabilityCheck.Type == enforceCheck
+		validators = append(validators, basculehttp.AsValidator(func(_ context.Context, request *http.Request, token bascule.Token) error {
+			tt, ok := token.(tokenType)
+			if !ok || tt.TokenType() != jwtTokenType {
+				return nil
+			}
 
-	versionCompatibleAuth := alice.New(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(r http.ResponseWriter, req *http.Request) {
-			vars := mux.Vars(req)
-			if vars != nil {
-				if vars["version"] == prevAPIVersion {
-					authChainLegacy.Then(next).ServeHTTP(r, req)
-					return
+			clientID := token.Principal()
+			requestPath := trimVersionPrefix(request.URL.EscapedPath())
+			endpointBucket := determineEndpointMetric(endpointBuckets, requestPath)
+			failureOutcome := Accepted
+			if enforce {
+				failureOutcome = Rejected
+			}
+
+			reportFailure := func(reason string, authErr error) error {
+				capabilityCheckCounter.With(
+					OutcomeLabel, failureOutcome,
+					ReasonLabel, reason,
+					ClientIDLabel, clientID,
+					PartnerIDLabel, "undetermined",
+					EndpointLabel, endpointBucket,
+				).Add(1)
+
+				if enforce {
+					return authErr
+				}
+
+				return nil
+			}
+
+			accessor, ok := token.(bascule.AttributesAccessor)
+			if !ok {
+				return reportFailure(UndeterminedCapabilities, bascule.ErrUnauthorized)
+			}
+
+			partnerID := "none"
+			if partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...); ok {
+				if partners, err := cast.ToStringSliceE(partnerVal); err == nil {
+					partnerID = determinePartnerMetric(partners)
 				}
 			}
-			authChain.Then(next).ServeHTTP(r, req)
-		})
-	})
-	return versionCompatibleAuth, nil
+
+			rawCapabilities, ok := bascule.GetAttribute[any](accessor, "capabilities")
+			if !ok {
+				capabilityCheckCounter.With(
+					OutcomeLabel, failureOutcome,
+					ReasonLabel, UndeterminedCapabilities,
+					ClientIDLabel, clientID,
+					PartnerIDLabel, partnerID,
+					EndpointLabel, endpointBucket,
+				).Add(1)
+
+				if enforce {
+					return bascule.ErrUnauthorized
+				}
+
+				return nil
+			}
+
+			capabilities, ok := bascule.GetCapabilities(rawCapabilities)
+			if !ok || len(capabilities) < 1 {
+				capabilityCheckCounter.With(
+					OutcomeLabel, failureOutcome,
+					ReasonLabel, EmptyCapabilitiesList,
+					ClientIDLabel, clientID,
+					PartnerIDLabel, partnerID,
+					EndpointLabel, endpointBucket,
+				).Add(1)
+
+				if enforce {
+					return bascule.ErrUnauthorized
+				}
+
+				return nil
+			}
+
+			for _, capability := range capabilities {
+				if ec.authorized(capability, requestPath, request.Method) {
+					capabilityCheckCounter.With(
+						OutcomeLabel, Accepted,
+						ReasonLabel, "",
+						ClientIDLabel, clientID,
+						PartnerIDLabel, partnerID,
+						EndpointLabel, endpointBucket,
+					).Add(1)
+
+					return nil
+				}
+			}
+
+			return reportFailure(NoCapabilitiesMatch, bascule.ErrUnauthorized)
+		}))
+	}
+
+	authenticator, err := basculehttp.NewAuthenticator(
+		bascule.WithTokenParsers(authParser),
+		bascule.WithValidators[*http.Request](validators...),
+	)
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create authenticator")
+	}
+
+	authMiddleware, err := basculehttp.NewMiddleware(
+		basculehttp.WithAuthenticator(authenticator),
+		basculehttp.WithErrorStatusCoder(func(request *http.Request, err error) int {
+			if request != nil {
+				if vars := mux.Vars(request); vars != nil && vars["version"] == prevAPIVersion {
+					if errors.Is(err, bascule.ErrInvalidCredentials) {
+						return http.StatusBadRequest
+					}
+
+					return http.StatusForbidden
+				}
+			}
+
+			switch {
+			case errors.Is(err, bascule.ErrMissingCredentials):
+				return http.StatusUnauthorized
+			case errors.Is(err, bascule.ErrBadCredentials):
+				return http.StatusUnauthorized
+			case errors.Is(err, bascule.ErrInvalidCredentials):
+				return http.StatusBadRequest
+			case errors.Is(err, bascule.ErrUnauthorized):
+				return http.StatusForbidden
+			default:
+				return http.StatusInternalServerError
+			}
+		}),
+	)
+	if err != nil {
+		return alice.Chain{}, emperror.With(err, "failed to create auth middleware")
+	}
+
+	return alice.New(setLogger(logger), authMiddleware.Then), nil
 }
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
@@ -260,7 +356,6 @@ func createEndpoints(logger *zap.Logger, cfg fanout.Configuration, registry xmet
 	} else if e != nil {
 		logger.Info("using service discovery for fanout")
 		endpoints := fanout.NewServiceEndpoints(
-			fanout.WithAccessorFactory(e.AccessorFactory()),
 			// required to get deviceID from either the header or the path
 			fanout.WithKeyFunc(func(request *http.Request) ([]byte, error) {
 				deviceName := request.Header.Get(device.DeviceNameHeader)
@@ -405,7 +500,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		return nil, fmt.Errorf("failed to get wrp validators: %w", err)
 	}
 
-	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing.Propagator(), true), valWRP)
+	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing, true), valWRP)
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
@@ -613,15 +708,17 @@ func validateWRP(v *viper.Viper, logger *zap.Logger, tf *touchstone.Factory) (fu
 					partnerID     = device.UnknownPartner
 				)
 
-				auth, ok := bascule.FromContext(r.Context())
+				token, ok := bascule.Get(r.Context())
 				if ok {
-					if principal := auth.Token.Principal(); len(principal) > 0 {
+					if principal := token.Principal(); len(principal) > 0 {
 						satClientID = principal
 					}
 
-					if s, ok := auth.Token.Attributes().Get(device.PartnerIDClaimKey); ok {
-						if p, ok := s.(string); ok {
-							partnerID = p
+					if accessor, ok := token.(bascule.AttributesAccessor); ok {
+						if s, ok := accessor.Get(device.PartnerIDClaimKey); ok {
+							if p, ok := s.(string); ok {
+								partnerID = p
+							}
 						}
 					}
 				}

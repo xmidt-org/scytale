@@ -41,6 +41,8 @@ import (
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service"
 	"github.com/xmidt-org/webpa-common/v2/service/monitor"
+	"github.com/xmidt-org/webpa-common/v2/service/multiaccessor"
+	"github.com/xmidt-org/webpa-common/v2/service/servicecfg"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
 	"github.com/xmidt-org/webpa-common/v2/xhttp/fanout"
 
@@ -49,7 +51,6 @@ import (
 	"github.com/xmidt-org/wrp-go/v3"
 	"github.com/xmidt-org/wrp-go/v3/wrpcontext"
 	"github.com/xmidt-org/wrp-go/v3/wrphttp"
-	"github.com/xmidt-org/wrp-go/v3/wrpvalidator"
 )
 
 const (
@@ -59,17 +60,13 @@ const (
 	prevAPIBase        = "api/" + prevAPIVersion
 	apiBaseDualVersion = "api/{version:" + apiVersion + "|" + prevAPIVersion + "}"
 
-	basicAuthConfigKey    = "authHeader"
-	jwtAuthConfigKey      = "jwtValidator"
-	wrpCheckConfigKey     = "WRPCheck"
-	wrpValidatorConfigKey = "wrpValidators"
+	basicAuthConfigKey = "authHeader"
+	jwtAuthConfigKey   = "jwtValidator"
+	wrpCheckConfigKey  = "WRPCheck"
 
 	deviceID = "deviceID"
 
 	enforceCheck = "enforce"
-
-	// nolint:gosec
-	zapWRPValidatorLabel = "wrp_validator_level"
 )
 
 // Default values
@@ -78,8 +75,7 @@ const (
 )
 
 var (
-	errNoDeviceName            = errors.New("no device name")
-	errWRPValidatorConfigError = errors.New("failed to configure wrp validators")
+	errNoDeviceName = errors.New("no device name")
 )
 
 func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, tf *touchstone.Factory) (alice.Chain, error) {
@@ -349,7 +345,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
 // endpoints or service discovery.
 // nolint:govet
-func createEndpoints(logger *zap.Logger, cfg fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
+func createEndpoints(logger *zap.Logger, cfg *fanout.Configuration, registry xmetrics.Registry, e service.Environment, b multiaccessor.Builder, vnodeCount int) (fanout.Endpoints, error) {
 	if len(cfg.Endpoints) > 0 {
 		logger.Info("using configured endpoints for fanout", zap.Any("endpoints", cfg.Endpoints))
 		return fanout.ParseURLs(cfg.Endpoints...)
@@ -403,8 +399,20 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 	fanoutPrefix := v.GetString("fanout.pathPrefix")
 	logger.Info("creating primary handler")
 	cfg.Tracing = tracing
-	// nolint:govet
-	endpoints, err := createEndpoints(logger, cfg, registry, e)
+
+	var o servicecfg.Options
+	if err := v.UnmarshalKey("service", &o); err != nil {
+		return nil, err
+	}
+
+	var b multiaccessor.Builder
+	if s, err := json.Marshal(v.Get("service")); err != nil {
+		return nil, err
+	} else if err := json.Unmarshal(s, &b); err != nil {
+		return nil, err
+	}
+
+	endpoints, err := createEndpoints(logger, &cfg, registry, e, b, o.VnodeCount)
 	if err != nil {
 		return nil, err
 	}

@@ -193,16 +193,31 @@ func createLabelMaps(rejected bool, baseLabelPairs map[string]string) (strict ma
 }
 
 func enrichWithBasculeToken(ctx context.Context, tokenType string, allowedPartners []string) context.Context {
-	attrs := map[string]interface{}{
-		"allowedResources": map[string]interface{}{"allowedPartners": allowedPartners},
+	if tokenType == jwtTokenType {
+		attrs := map[string]interface{}{
+			"allowedResources": map[string]interface{}{"allowedPartners": allowedPartners},
+		}
+		if allowedPartners == nil {
+			attrs = map[string]interface{}{"allowedResources": map[string]interface{}{}}
+		}
+
+		return bascule.WithToken(ctx, &jwtToken{principal: "tester", claims: attrs})
 	}
-	if allowedPartners == nil {
-		attrs = map[string]interface{}{"allowedResources": map[string]interface{}{}}
-	}
-	auth := bascule.Authentication{
-		Token: bascule.NewToken(tokenType, "tester", bascule.NewAttributes(attrs)),
-	}
-	return bascule.WithAuthentication(ctx, auth)
+
+	return bascule.WithToken(ctx, &testToken{principal: "tester", tokenType: tokenType})
+}
+
+type testToken struct {
+	principal string
+	tokenType string
+}
+
+func (t *testToken) Principal() string {
+	return t.principal
+}
+
+func (t *testToken) TokenType() string {
+	return t.tokenType
 }
 
 type testCounter struct {

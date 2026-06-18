@@ -1,6 +1,6 @@
 module github.com/xmidt-org/scytale
 
-go 1.25.5
+go 1.26
 
 require (
 	github.com/go-kit/kit v0.13.0
@@ -16,13 +16,13 @@ require (
 	github.com/xmidt-org/bascule v1.1.1
 	github.com/xmidt-org/candlelight v0.2.1
 	github.com/xmidt-org/clortho v0.0.4
-	github.com/xmidt-org/sallust v0.2.4
+	github.com/xmidt-org/sallust v0.2.8
 	github.com/xmidt-org/touchstone v0.1.7
 	github.com/xmidt-org/webpa-common v1.11.9
 	github.com/xmidt-org/webpa-common/v2 v2.9.0
 	github.com/xmidt-org/wrp-go/v3 v3.7.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.65.0
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 )
 
 require (
@@ -114,7 +114,7 @@ require (
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9 // indirect

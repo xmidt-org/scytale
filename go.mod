@@ -8,7 +8,7 @@ require (
 	github.com/goph/emperror v0.17.3-0.20190703203600-60a8d9faa17b
 	github.com/gorilla/mux v1.8.1
 	github.com/justinas/alice v1.2.0
-	github.com/prometheus/client_golang v1.23.2
+	github.com/prometheus/client_golang v1.24.0
 	github.com/spf13/cast v1.10.0
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
@@ -78,8 +78,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.66.1 // indirect
-	github.com/prometheus/procfs v0.16.1 // indirect
+	github.com/prometheus/common v0.70.0 // indirect
+	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
@@ -107,7 +107,6 @@ require (
 	go.uber.org/dig v1.19.0 // indirect
 	go.uber.org/fx v1.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a // indirect

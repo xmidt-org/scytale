@@ -17,26 +17,23 @@ import (
 	"strings"
 	"syscall"
 
+	gokithttp "github.com/go-kit/kit/transport/http"
+	"github.com/goph/emperror"
+	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/cast"
+	"github.com/spf13/viper"
+	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/candlelight"
 	"github.com/xmidt-org/clortho"
 	"github.com/xmidt-org/clortho/clorthometrics"
 	"github.com/xmidt-org/clortho/clorthozap"
 	"github.com/xmidt-org/touchstone"
+	"github.com/xmidt-org/webpa-common/v2/device"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
-
-	"github.com/xmidt-org/webpa-common/secure/handler"
-	"github.com/xmidt-org/webpa-common/v2/device"
-
-	gokithttp "github.com/go-kit/kit/transport/http"
-	"github.com/goph/emperror"
-	"github.com/gorilla/mux"
-	"github.com/justinas/alice"
-	"github.com/spf13/cast"
-	"github.com/spf13/viper"
-	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/bascule/basculehttp"
 
 	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service"
@@ -556,7 +553,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 					fanout.ReturnHeadersWithPrefix("X-"),
 					func(ctx context.Context, response http.ResponseWriter, result fanout.Result) context.Context {
 						var satClientID = "N/A"
-						reqContextValues, ok := handler.FromContext(result.Request.Context())
+						reqContextValues, ok := FromContext(result.Request.Context())
 						if ok {
 							satClientID = reqContextValues.SatClientID
 						}

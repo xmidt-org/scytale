@@ -192,7 +192,7 @@ func newEndpointRegexCheck(prefix, acceptAllMethod string) (endpointRegexCheck, 
 
 func (r endpointRegexCheck) authorized(capability, urlToMatch, methodToMatch string) bool {
 	matches := r.prefixToMatch.FindStringSubmatch(capability)
-	if matches == nil || len(matches) < 3 {
+	if len(matches) == 0 || len(matches) < 3 {
 		return false
 	}
 
@@ -238,11 +238,13 @@ func trimVersionPrefix(path string) string {
 
 func determinePartnerMetric(partners []string) string {
 	if len(partners) < 1 {
+		// nolint: goconst
 		return "none"
 	}
 
 	if len(partners) == 1 {
 		if partners[0] == "*" {
+			// nolint: goconst
 			return "wildcard"
 		}
 

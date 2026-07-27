@@ -18,18 +18,23 @@ func TestSanitizeHeaders(t *testing.T) {
 	}{
 		{
 			Description: "Filtered",
-			Input:       http.Header{"Authorization": []string{"Basic xyz"}, "HeaderA": []string{"x"}},
-			Expected:    http.Header{"HeaderA": []string{"x"}, "Authorization-Type": []string{"Basic"}},
+			// nolint: goconst
+			Input: http.Header{"Authorization": []string{"Basic xyz"}, "HeaderA": []string{"x"}},
+			// nolint: goconst
+			Expected: http.Header{"HeaderA": []string{"x"}, "Authorization-Type": []string{"Basic"}},
 		},
 		{
 			Description: "Handled human error",
-			Input:       http.Header{"Authorization": []string{"BasicXYZ"}, "HeaderB": []string{"y"}},
-			Expected:    http.Header{"HeaderB": []string{"y"}},
+			// nolint: goconst
+			Input:    http.Header{"Authorization": []string{"BasicXYZ"}, "HeaderB": []string{"y"}},
+			Expected: http.Header{"HeaderB": []string{"y"}},
 		},
 		{
 			Description: "Not a perfect system",
-			Input:       http.Header{"Authorization": []string{"MySecret IWantToLeakIt"}},
-			Expected:    http.Header{"Authorization-Type": []string{"MySecret"}},
+			// nolint: goconst
+			Input: http.Header{"Authorization": []string{"MySecret IWantToLeakIt"}},
+			// nolint: goconst
+			Expected: http.Header{"Authorization-Type": []string{"MySecret"}},
 		},
 	}
 

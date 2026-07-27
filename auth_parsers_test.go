@@ -33,6 +33,7 @@ func TestJWTTokenMethods(t *testing.T) {
 					"partner": "p0",
 				},
 			},
+			// nolint: goconst
 			key:           "partner",
 			expectedValue: "p0",
 			expectedFound: true,
@@ -154,10 +155,12 @@ func TestBasicAllowedTokenParserParse(t *testing.T) {
 		{
 			name: "valid credentials",
 			allowed: map[string]string{
+				// nolint: goconst
 				"user": "pass",
 			},
 			raw:         basculehttp.BasicAuth("user", "pass"),
 			expectedErr: nil,
+			// nolint: goconst
 			expectedPrn: "user",
 		},
 		{
@@ -238,11 +241,14 @@ func TestEndpointRegexCheckAuthorized(t *testing.T) {
 		expected   bool
 	}{
 		{
-			name:       "exact method match",
+			name: "exact method match",
+			// nolint: goconst
 			capability: "perm:device/.*/stat:get",
-			url:        "/device/abc/stat",
-			method:     "GET",
-			expected:   true,
+			// nolint: goconst
+			url: "/device/abc/stat",
+			// nolint: goconst
+			method:   "GET",
+			expected: true,
 		},
 		{
 			name:       "accept all method",
@@ -289,6 +295,7 @@ func TestURLPathNormalization(t *testing.T) {
 		expected string
 	}{
 		{name: "empty", input: "", expected: "/"},
+		// nolint: goconst
 		{name: "already normalized", input: "/device/1", expected: "/device/1"},
 		{name: "missing leading slash", input: "device/1", expected: "/device/1"},
 	}
@@ -306,6 +313,7 @@ func TestTrimVersionPrefix(t *testing.T) {
 		input    string
 		expected string
 	}{
+		// nolint: goconst
 		{name: "v3 prefix", input: "/api/v3/device/send", expected: "/device/send"},
 		{name: "v2 prefix", input: "/api/v2/device/send", expected: "/device/send"},
 		{name: "not prefixed", input: "/device/send", expected: "/device/send"},
@@ -325,8 +333,10 @@ func TestDeterminePartnerMetric(t *testing.T) {
 		partners []string
 		expected string
 	}{
+		// nolint: goconst
 		{name: "none", partners: []string{}, expected: "none"},
 		{name: "single value", partners: []string{"p0"}, expected: "p0"},
+		// nolint: goconst
 		{name: "single wildcard", partners: []string{"*"}, expected: "wildcard"},
 		{name: "many values", partners: []string{"p0", "p1"}, expected: "many"},
 		{name: "many with wildcard", partners: []string{"p0", "*"}, expected: "wildcard"},
@@ -340,8 +350,8 @@ func TestDeterminePartnerMetric(t *testing.T) {
 }
 
 func TestDetermineEndpointMetric(t *testing.T) {
-	bucketA := regexp.MustCompile("/device/.*/stat\\b")
-	bucketB := regexp.MustCompile("/hook\\b")
+	bucketA := regexp.MustCompile(`/device/.*/stat\b`)
+	bucketB := regexp.MustCompile(`/hook\b`)
 
 	tests := []struct {
 		name      string

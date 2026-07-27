@@ -242,6 +242,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 				return reportFailure(UndeterminedCapabilities, bascule.ErrUnauthorized)
 			}
 
+			// nolint: goconst
 			partnerID := "none"
 			if partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...); ok {
 				if partners, err := cast.ToStringSliceE(partnerVal); err == nil {

@@ -26,11 +26,13 @@ func TestAuthorizeWRP(t *testing.T) {
 		ExpectedPartnerIDs  []string
 	}{
 		{
-			Name:      "Bascule token Missing",
-			Error:     ErrTokenMissing,
+			Name:  "Bascule token Missing",
+			Error: ErrTokenMissing,
+			// nolint: goconst
 			TokenType: "jwt",
 			BaseLabelPairs: map[string]string{
-				ReasonLabel:   TokenMissing,
+				ReasonLabel: TokenMissing,
+				// nolint: goconst
 				ClientIDLabel: "none",
 			},
 		},
@@ -39,7 +41,8 @@ func TestAuthorizeWRP(t *testing.T) {
 			Error:               ErrTokenTypeMismatch,
 			InjectSecurityToken: true,
 			TokenType:           "basic",
-			AllowedPartners:     []string{"partner0"},
+			// nolint: goconst
+			AllowedPartners: []string{"partner0"},
 			BaseLabelPairs: map[string]string{
 				ReasonLabel:   TokenTypeMismatch,
 				ClientIDLabel: "none",
@@ -53,7 +56,8 @@ func TestAuthorizeWRP(t *testing.T) {
 			TokenType:           "jwt",
 			AllowedPartners:     []string{},
 			BaseLabelPairs: map[string]string{
-				ReasonLabel:   JWTPIDInvalid,
+				ReasonLabel: JWTPIDInvalid,
+				// nolint: goconst
 				ClientIDLabel: "tester",
 			},
 		},
@@ -195,6 +199,7 @@ func createLabelMaps(rejected bool, baseLabelPairs map[string]string) (strict ma
 func enrichWithBasculeToken(ctx context.Context, tokenType string, allowedPartners []string) context.Context {
 	if tokenType == jwtTokenType {
 		attrs := map[string]interface{}{
+			// nolint: goconst
 			"allowedResources": map[string]interface{}{"allowedPartners": allowedPartners},
 		}
 		if allowedPartners == nil {

@@ -19,7 +19,9 @@ func TestRequirePartnerIDs(t *testing.T) {
 		{
 			name: "partnerIDs",
 			attrMap: map[string]interface{}{
+				// nolint: goconst
 				"allowedResources": map[string]interface{}{
+					// nolint: goconst
 					"allowedPartners": []string{"partner0", "partner1"},
 				}},
 			shouldPass: true,
@@ -28,6 +30,7 @@ func TestRequirePartnerIDs(t *testing.T) {
 		{
 			name: "missing partnerIDs key",
 			attrMap: map[string]interface{}{
+				// nolint: goconst
 				"allowedResources": map[string]interface{}{},
 			},
 		},
@@ -42,7 +45,9 @@ func TestRequirePartnerIDs(t *testing.T) {
 		{
 			name: "malformed partnerIDs field",
 			attrMap: map[string]interface{}{
+				// nolint: goconst
 				"allowedResources": map[string]interface{}{
+					// nolint: goconst
 					"allowedPartners": map[string]interface{}{"partner0": true},
 				}},
 		},

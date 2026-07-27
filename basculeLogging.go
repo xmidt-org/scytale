@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/xmidt-org/candlelight"
 	"github.com/xmidt-org/sallust"
@@ -55,12 +54,6 @@ func setLogger(logger *zap.Logger, lf ...LoggerFunc) func(delegate http.Handler)
 			})
 	}
 }
-
-func getLogger(ctx context.Context) *zap.Logger {
-	logger := sallust.Get(ctx).With(zap.Time("ts", time.Now().UTC())).WithOptions(zap.WithCaller(true))
-	return logger
-}
-
 func addFieldsToLog(ctx context.Context, logger *zap.Logger, kvs []interface{}) context.Context {
 
 	for i := 0; i <= len(kvs)-2; i += 2 {

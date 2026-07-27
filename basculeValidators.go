@@ -11,6 +11,7 @@ import (
 	"github.com/xmidt-org/bascule"
 )
 
+// nolint: goconst
 var partnerKeys = []string{"allowedResources", "allowedPartners"}
 
 var requirePartnersJWTClaim = func(_ context.Context, token bascule.Token) error {

@@ -239,6 +239,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 				return reportFailure(UndeterminedCapabilities, bascule.ErrUnauthorized)
 			}
 
+			// nolint: goconst
 			partnerID := "none"
 			if partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...); ok {
 				if partners, err := cast.ToStringSliceE(partnerVal); err == nil {
@@ -431,7 +432,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 
 	var (
 		// nolint:govet,bodyclose
-		transactor = fanout.NewTransactor(cfg)
+		transactor = fanout.NewTransactor(&cfg)
 		options    = []fanout.Option{
 			fanout.WithTransactor(transactor),
 			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {
@@ -512,7 +513,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
 	})
 	// nolint:govet
-	fanoutChain := fanout.NewChain(cfg)
+	fanoutChain := fanout.NewChain(&cfg)
 
 	HTTPFanoutHandler := fanoutChain.Then(
 		fanout.New(

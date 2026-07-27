@@ -18,7 +18,6 @@ require (
 	github.com/xmidt-org/clortho v0.1.15
 	github.com/xmidt-org/sallust v0.2.8
 	github.com/xmidt-org/touchstone v0.1.8
-	github.com/xmidt-org/webpa-common v1.11.9
 	github.com/xmidt-org/webpa-common/v2 v2.10.2
 	github.com/xmidt-org/wrp-go/v3 v3.7.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.69.0
@@ -26,7 +25,6 @@ require (
 )
 
 require (
-	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2 //indirect
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

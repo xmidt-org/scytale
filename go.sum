@@ -272,8 +272,8 @@ github.com/xmidt-org/chronon v0.1.13 h1:e6bW7sPIfZqVf9npbTvlAYPteqjSRIh/mR0BEb9l
 github.com/xmidt-org/chronon v0.1.13/go.mod h1:KYdgUzy0q+sv7Zp5mXo22oam8zRVRvzv36MlJeRY+vc=
 github.com/xmidt-org/clortho v0.1.15 h1:509Lb8ZhcmPL3KQ3n1ZMj7ThC4uGfWVYD82o+oyDxu8=
 github.com/xmidt-org/clortho v0.1.15/go.mod h1:ha9mAM2UINtTpFZHmSWNddQQy264M/S0ZRNLENNv9vk=
-github.com/xmidt-org/sallust v0.2.8 h1:SUvBdFL0PDrpW20T8VE6d4I8DKVtshhmJwlKoLx3ZJQ=
-github.com/xmidt-org/sallust v0.2.8/go.mod h1:IA73vXpu7XkmEWtG3qsxKLW7u6xTR5ZTRUTffP6uVXU=
+github.com/xmidt-org/sallust v0.2.9 h1:R41iDzhq3RzDX3qTJVNZHBqByAmyER7m1rLtWv5Vtlg=
+github.com/xmidt-org/sallust v0.2.9/go.mod h1:FBDOmfGlAPihf8aND9tbDKHCWAW1jstfBtYj1BY6I+8=
 github.com/xmidt-org/touchstone v0.1.8 h1:jpA7j2pPtuP6hFr/LcT25cvfYkztWOp3Tj1ZCvqIvMw=
 github.com/xmidt-org/touchstone v0.1.8/go.mod h1:3nKZJlgWCDDThy/djXF2/wiwmRyCcDBSWBrSuUSy3ME=
 github.com/xmidt-org/webpa-common/v2 v2.10.5 h1:7jsBh+Unm+qzcnPaHFM4YQ69Visx75B5SJ1HTThbs00=

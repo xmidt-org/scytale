@@ -15,7 +15,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/xmidt-org/bascule v1.1.8
 	github.com/xmidt-org/candlelight v0.2.16
-	github.com/xmidt-org/clortho v0.1.15
+	github.com/xmidt-org/clortho v0.1.16
 	github.com/xmidt-org/sallust v0.2.9
 	github.com/xmidt-org/touchstone v0.1.8
 	github.com/xmidt-org/webpa-common/v2 v2.10.6

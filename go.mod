@@ -14,7 +14,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
 	github.com/xmidt-org/bascule v1.1.9
-	github.com/xmidt-org/candlelight v0.2.17
+	github.com/xmidt-org/candlelight v0.2.18
 	github.com/xmidt-org/clortho v0.1.17
 	github.com/xmidt-org/sallust v0.2.10
 	github.com/xmidt-org/touchstone v0.1.8

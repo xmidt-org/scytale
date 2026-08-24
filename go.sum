@@ -264,8 +264,8 @@ github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSW
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/ugorji/go/codec v1.2.14 h1:yOQvXCBc3Ij46LRkRoh4Yd5qK6LVOgi0bYOXfb7ifjw=
 github.com/ugorji/go/codec v1.2.14/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
-github.com/xmidt-org/bascule v1.1.8 h1:2o0efDb/odl09zqt53m4Fsm49LvNpKCty9mVIgbVMVA=
-github.com/xmidt-org/bascule v1.1.8/go.mod h1:hjWpDwHII3UWz2OkVAume0LSaUX5ZSAEwh6IdsNwCyU=
+github.com/xmidt-org/bascule v1.1.9 h1:Ycu7uKFxs+tRPqgmY8YymwzrsjkCIh9VwRon80cuDgw=
+github.com/xmidt-org/bascule v1.1.9/go.mod h1:dNZ19O/K/lgTHN9R7Z42YzfOaAJKV8ZMWflr7UehumU=
 github.com/xmidt-org/candlelight v0.2.17 h1:1fYNNK782/R1S/8aTisztGzRPubRw89IsFdVthECLBY=
 github.com/xmidt-org/candlelight v0.2.17/go.mod h1:nP5D99fWOGSBvI+2WvMV1thoZBVxie4arT61zuTXsss=
 github.com/xmidt-org/chronon v0.1.13 h1:e6bW7sPIfZqVf9npbTvlAYPteqjSRIh/mR0BEb9lgQo=

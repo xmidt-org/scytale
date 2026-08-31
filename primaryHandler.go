@@ -73,38 +73,51 @@ var (
 	errNoDeviceName = errors.New("no device name")
 )
 
-func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, tf *touchstone.Factory) (alice.Chain, error) {
+func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, _ *touchstone.Factory) (alice.Chain, error) {
 	if registry == nil {
 		return alice.Chain{}, errors.New("nil registry")
 	}
 
-	basicAllowed := make(map[string]string)
-	basicAuth := v.GetStringSlice(basicAuthConfigKey)
-	for _, a := range basicAuth {
-		decoded, err := base64.StdEncoding.DecodeString(a)
-		if err != nil {
-			logger.Info("failed to decode auth header", zap.Any("authHeader", a))
-			logger.Error(err.Error())
-			continue
+	var (
+		authorizationParserOpts []basculehttp.AuthorizationParserOption
+		authorizerOpts          []bascule.AuthorizerOption[*http.Request]
+		validatorOpts           []bascule.Validator[*http.Request]
+		jwtParseOpts            []jwt.ParseOption
+		endpointBuckets         []*regexp.Regexp
+	)
+	if v.IsSet(basicAuthConfigKey) && v.IsSet(jwtAuthConfigKey) {
+		return alice.Chain{}, fmt.Errorf("`%s` and `%s` can't both be set", basicAuthConfigKey, jwtAuthConfigKey)
+	} else if v.IsSet(basicAuthConfigKey) {
+		basicAllowed := make(map[string]string)
+		basicAuth := v.GetStringSlice(basicAuthConfigKey)
+		for _, a := range basicAuth {
+			if len(a) == 0 {
+				continue
+			}
+
+			decoded, err := base64.StdEncoding.DecodeString(a)
+			if err != nil {
+				logger.Info("failed to decode auth header", zap.Any("authHeader", a))
+				logger.Error(err.Error())
+				continue
+			}
+
+			i := bytes.IndexByte(decoded, ':')
+			logger.Debug("decoded string", zap.Any("string", decoded), zap.Int("i", i))
+			if i > 0 {
+				basicAllowed[string(decoded[:i])] = string(decoded[i+1:])
+			}
 		}
 
-		i := bytes.IndexByte(decoded, ':')
-		logger.Debug("decoded string", zap.Any("string", decoded), zap.Int("i", i))
-		if i > 0 {
-			basicAllowed[string(decoded[:i])] = string(decoded[i+1:])
+		if len(basicAllowed) == 0 {
+			return alice.Chain{}, fmt.Errorf("`%s` must contain at least 1 valid basic cred", basicAuthConfigKey)
 		}
-	}
-	logger.Debug("Created list of allowed basic auths", zap.Any("allowed", basicAllowed), zap.Any("config", basicAuth))
 
-	var authParserOptions []basculehttp.AuthorizationParserOption
-	if len(basicAllowed) > 0 {
-		authParserOptions = append(authParserOptions, basculehttp.WithBasic())
-	}
-
-	approverOpts := []basculecaps.ApproverOption{}
-	authorizerEventListeners := []bascule.Listener[bascule.AuthorizeEvent[*http.Request]]{}
-	authenticatorEventListeners := []bascule.Listener[bascule.AuthenticateEvent[*http.Request]]{}
-	if v.IsSet(jwtAuthConfigKey) {
+		authorizationParserOpts = append(authorizationParserOpts, basculehttp.WithBasic())
+		validatorOpts = append(validatorOpts, basculehttp.AsValidator(basicSchemeValidator))
+		authorizerOpts = append(authorizerOpts,
+			bascule.WithApproverFuncs(basicPasswordValidator(basicAllowed)))
+	} else if v.IsSet(jwtAuthConfigKey) {
 		var jwtVal JWTValidator
 		if err := v.UnmarshalKey(jwtAuthConfigKey, &jwtVal); err != nil {
 			return alice.Chain{}, fmt.Errorf("failed to parse jwt configuration: %v", err)
@@ -119,13 +132,14 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 			return alice.Chain{}, fmt.Errorf("error setting up JWT key resolver: %v", err)
 		}
 
-		jwtp, err := basculejwt.NewTokenParser(
-			jwt.WithKeySet(ks, jws.WithInferAlgorithmFromKey(true)))
+		jwtParseOpts = append(jwtParseOpts, jwt.WithKeySet(ks, jws.WithInferAlgorithmFromKey(true)))
+		jwtp, err := basculejwt.NewTokenParser(jwtParseOpts...)
 		if err != nil {
 			return alice.Chain{}, fmt.Errorf("error setting up JWT parser: %v", err)
 		}
 
-		authParserOptions = append(authParserOptions, basculehttp.WithScheme(basculehttp.SchemeBearer, jwtp))
+		authorizationParserOpts = append(authorizationParserOpts, basculehttp.WithScheme(basculehttp.SchemeBearer, jwtp))
+		validatorOpts = append(validatorOpts, basculehttp.AsValidator(bearerSchemeValidator))
 
 		var capabilityCheck CapabilityConfig
 		if err := v.UnmarshalKey(jwtCapabilityCheckKey, &capabilityCheck); err != nil {
@@ -133,11 +147,16 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 		}
 
 		v.UnmarshalKey("capabilityCheck", &capabilityCheck)
-		approverOpts = append(approverOpts,
+		approver, err := basculecaps.NewApprover(
 			basculecaps.WithPrefixes(capabilityCheck.Capabilities...),
 			basculecaps.WithAllMethod(capabilityCheck.AcceptAllMethod))
+		if err != nil {
+			return alice.Chain{}, fmt.Errorf("error setting up JWT capability checks: %v", err)
+		}
 
-		endpointBuckets := make([]*regexp.Regexp, 0, len(capabilityCheck.EndpointBuckets))
+		authorizerOpts = append(authorizerOpts,
+			bascule.WithApprovers(approver),
+			bascule.WithApproverFuncs(jwtClaimPartnerIDsValidator))
 		for _, pattern := range capabilityCheck.EndpointBuckets {
 			re, err := regexp.Compile(pattern)
 			if err != nil {
@@ -147,45 +166,35 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 
 			endpointBuckets = append(endpointBuckets, re)
 		}
-
-		authorizerEventListeners = append(authorizerEventListeners,
-			authorizerEvent{
-				l:         logger,
-				counter:   registry.NewCounterVec(AuthCapabilityCheckCount),
-				endpoints: endpointBuckets})
-		authenticatorEventListeners = append(authenticatorEventListeners,
-			authenticatorEvent{
-				l:          logger,
-				counter:    registry.NewCounterVec(AuthCapabilityCheckCount),
-				parserOpts: []jwt.ParseOption{jwt.WithKeySet(ks, jws.WithInferAlgorithmFromKey(true))}})
+	} else {
+		return alice.Chain{}, fmt.Errorf("either `%s` or `%s` must be set, but not both", basicAuthConfigKey, jwtAuthConfigKey)
 	}
 
-	tp, err := basculehttp.NewAuthorizationParser(authParserOptions...)
+	tp, err := basculehttp.NewAuthorizationParser(authorizationParserOpts...)
 	if err != nil {
 		return alice.Chain{}, fmt.Errorf("error setting up authorization parser: %v", err)
 	}
 
-	approver, err := basculecaps.NewApprover(approverOpts...)
-	if err != nil {
-		return alice.Chain{}, fmt.Errorf("error setting up JWT capability checks: %v", err)
-	}
-
+	validatorOpts = append(validatorOpts, basculehttp.AsValidator(authPrincipalValidator))
+	authorizerOpts = append(authorizerOpts,
+		bascule.WithAuthorizeListeners(
+			authorizerEvent{
+				l:         logger,
+				counter:   registry.NewCounterVec(AuthCapabilityCheckCount),
+				endpoints: endpointBuckets}))
 	auth, err := basculehttp.NewMiddleware(
 		basculehttp.UseAuthenticator(basculehttp.NewAuthenticator(
 			bascule.WithTokenParsers(tp),
-			bascule.WithValidators(
-				basculehttp.AsValidator(authSchemeValidator),
-				basculehttp.AsValidator(authPrincipalValidator)),
-			bascule.WithAuthenticateListeners(authenticatorEventListeners...),
+			bascule.WithValidators(validatorOpts...),
+			bascule.WithAuthenticateListeners(
+				authenticatorEvent{
+					l:          logger,
+					counter:    registry.NewCounterVec(AuthCapabilityCheckCount),
+					parserOpts: jwtParseOpts,
+					endpoints:  endpointBuckets}),
 		)),
-		basculehttp.UseAuthorizer(basculehttp.NewAuthorizer(
-			bascule.WithApprovers(approver),
-			bascule.WithApproverFuncs(jwtClaimPartnerIDsValidator),
-			bascule.WithApproverFuncs(basicPasswordValidator(basicAllowed)),
-			bascule.WithAuthorizeListeners(authorizerEventListeners...),
-		)),
+		basculehttp.UseAuthorizer(basculehttp.NewAuthorizer(authorizerOpts...)),
 	)
-
 	if err != nil {
 		return alice.Chain{}, fmt.Errorf("failed to create auth middleware: %v", err)
 	}

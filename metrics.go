@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/lestrrat-go/jwx/v2/jws"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cast"
@@ -20,7 +21,6 @@ import (
 
 	// nolint: staticcheck
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -66,6 +66,8 @@ const (
 	AuthMissingClaims   = "auth_is_missing_expected_claims"
 	AuthInvalidClaims   = "auth_invalid_claim_values"
 	AuthInvalidCreds    = "invalid_creds"
+	AuthCannotVerify    = "could_not_verify_message"
+	AuthInvalidScheme   = "invalid_scheme"
 	AuthUnknownScheme   = "unknown_scheme"
 	AuthEmptyPrincipal  = "empty_principal"
 	AuthUnsatifiedExp   = "exp_not_satisfied"
@@ -113,7 +115,12 @@ type authenticatorEvent struct {
 }
 
 func (ae authenticatorEvent) OnEvent(e bascule.AuthenticateEvent[*http.Request]) {
-	ae.l.Debug("authenticate event", zap.Any("event", e))
+	if e.Err == nil {
+		ae.l.Debug("authenticator event: creds authenticated")
+
+		return
+	}
+
 	if e.Token == nil && e.Err == nil {
 		panic(errors.New("authenticator event handling failure: expected event token to be a non-nil"))
 	} else if e.Source == nil {
@@ -129,54 +136,50 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 		PartnerIDLabel: "",
 		EndpointLabel:  determineEndpoint(ae.endpoints, e.Source),
 		MethodLabel:    e.Source.Method,
-		OutcomeLabel:   Accepted,
+		OutcomeLabel:   Rejected,
 		ReasonLabel:    "",
 	}
-	token := e.Token
-	if token == nil {
-		var errs error
-		ls[ReasonLabel] = Rejected
+	if e.Token != nil {
+		ls[ClientIDLabel] = e.Token.Principal()
+		ls[PartnerIDLabel] = determinePartnerID(e.Token)
+	} else {
+		reparseFailureMsg := "authenticator event: failed to reparse the request auth"
 		opts := append([]jwt.ParseOption{jwt.WithResetValidators(true),
 			jwt.WithValidator(jwt.IsIssuedAtValid()),
 			jwt.WithValidator(jwt.IsNbfValid())},
 			ae.parserOpts...)
 		if parser, err := basculejwt.NewTokenParser(opts...); err != nil {
-			errs = multierr.Append(e.Err, errors.Join(errEventMetricMetadata, err))
+			ae.l.Error(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
 		} else if authValue := e.Source.Header.Get(basculehttp.DefaultAuthorizationHeader); len(authValue) == 0 {
-			errs = multierr.Append(e.Err, errors.Join(errEventMetricMetadata, errAuthUnknownScheme))
+			ae.l.Error(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, bascule.ErrMissingCredentials)))
 		} else if _, value, err := basculehttp.ParseAuthorization(authValue); err != nil {
-			errs = multierr.Append(e.Err, errors.Join(errEventMetricMetadata, err))
-		} else if token, err = parser.Parse(context.Background(), value); err != nil {
-			errs = multierr.Append(e.Err, errors.Join(errEventMetricMetadata, err))
-		}
-
-		if errs != nil {
-			ae.l.Error("authenticator event: failed to reparse the request auth", zap.Error(errs))
+			ae.l.Error(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
+		} else if t, err := parser.Parse(context.Background(), value); err == nil {
+			ls[ClientIDLabel] = t.Principal()
+			ls[PartnerIDLabel] = determinePartnerID(t)
+		} else {
+			ae.l.Error(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
 		}
 	}
 
-	ls[ClientIDLabel] = token.Principal()
-	ls[PartnerIDLabel] = determinePartnerID(token)
-	if e.Err == nil {
-		ae.l.Debug("authenticator event: auth creds accepted")
-
-		return ls
-	}
-
-	ae.l.Info("authenticator event: auth creds rejected")
-	ls[OutcomeLabel] = Rejected
+	ae.l.Info("authenticator event: creds rejected")
+	var err *basculehttp.UnsupportedSchemeError
 	if errors.Is(e.Err, jwt.ErrTokenExpired()) {
 		ls[ReasonLabel] = AuthUnsatifiedExp
 	} else if errors.Is(e.Err, jwt.ErrInvalidIssuedAt()) {
 		ls[ReasonLabel] = AuthUnsatifiedIAT
 	} else if errors.Is(e.Err, jwt.ErrTokenNotYetValid()) {
 		ls[ReasonLabel] = AuthUnsatifiedNBF
+	} else if jws.IsVerificationError(e.Err) {
+		ls[ReasonLabel] = AuthCannotVerify
 	} else if errors.Is(e.Err, bascule.ErrInvalidCredentials) {
 		ls[ReasonLabel] = AuthInvalidCreds
-	} else if errors.Is(e.Err, errAuthEmptyPrincipal) {
-		ls[ReasonLabel] = AuthEmptyPrincipal
 	} else if errors.Is(e.Err, bascule.ErrBadCredentials) {
 		ls[ReasonLabel] = AuthBadCreds
+	} else if errors.As(e.Err, &err) {
+		ls[ReasonLabel] = AuthInvalidScheme
+	} else if errors.Is(e.Err, errAuthEmptyPrincipal) {
+		ls[ReasonLabel] = AuthEmptyPrincipal
 	} else if errors.Is(e.Err, errAuthUnknownScheme) {
 		ls[ReasonLabel] = AuthUnknownScheme
 	} else {
@@ -194,7 +197,6 @@ type authorizerEvent struct {
 }
 
 func (ae authorizerEvent) OnEvent(e bascule.AuthorizeEvent[*http.Request]) {
-	ae.l.Debug("authorize event", zap.Any("event", e))
 	if e.Token == nil {
 		panic(fmt.Errorf("authorizer event handling failure: expected event token to be a non-nil since it passed the `authenticator` middleware without issue: %v", e.Err))
 	} else if e.Resource == nil {
@@ -214,21 +216,21 @@ func (ae authorizerEvent) getLabels(e bascule.AuthorizeEvent[*http.Request]) pro
 		ReasonLabel:    "",
 	}
 	if e.Err == nil {
-		ae.l.Debug("authorizer event: auth creds accepted")
+		ae.l.Debug("authorizer event: creds accepted")
 
 		return ls
 	}
 
-	ae.l.Info("authorizer event: auth creds rejected")
+	ae.l.Info("authorizer event: creds rejected")
 	ls[OutcomeLabel] = Rejected
 	if errors.Is(e.Err, bascule.ErrBadCredentials) {
 		ls[ReasonLabel] = AuthBadCreds
+	} else if errors.Is(e.Err, bascule.ErrUnauthorized) {
+		ls[ReasonLabel] = NoCapabilitiesMatch
 	} else if errors.Is(e.Err, errAuthMissingClaims) {
 		ls[ReasonLabel] = AuthMissingClaims
 	} else if errors.Is(e.Err, errAuthInvalidClaims) {
 		ls[ReasonLabel] = AuthInvalidClaims
-	} else if errors.Is(e.Err, bascule.ErrUnauthorized) {
-		ls[ReasonLabel] = NoCapabilitiesMatch
 	} else {
 		ls[ReasonLabel] = UnknownReason
 		ae.l.Error("authorizer event failure", zap.Error(fmt.Errorf("unexpected event error: %v", e.Err)))
@@ -257,8 +259,12 @@ func determineEndpoint(endpoints []*regexp.Regexp, req *http.Request) string {
 }
 
 func determinePartnerID(token bascule.Token) string {
-	if token == nil {
+	switch token.(type) {
+	case basculehttp.BasicToken, nil:
 		return ""
+	case bascule.AttributesAccessor:
+	default:
+		return AuthUnknownScheme
 	}
 
 	partnerIDsVal, ok := bascule.GetAttribute[any](token.(bascule.AttributesAccessor), partnerKeys...)

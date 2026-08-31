@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/bascule/basculejwt"
 	"go.uber.org/multierr"
 )
 
@@ -29,13 +30,27 @@ var (
 
 var partnerKeys = []string{allowedResources, allowedPartners}
 
-func authSchemeValidator(ctx context.Context, req *http.Request, token bascule.Token) error {
+func basicSchemeValidator(ctx context.Context, req *http.Request, token bascule.Token) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
 	switch t := token.(type) {
-	case basculehttp.BasicToken, bascule.AttributesAccessor:
+	case basculehttp.BasicToken:
+	default:
+		return fmt.Errorf("%w: %v: `%T`", bascule.ErrBadCredentials, errAuthUnknownScheme, t)
+	}
+
+	return nil
+}
+
+func bearerSchemeValidator(ctx context.Context, req *http.Request, token bascule.Token) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	switch t := token.(type) {
+	case basculejwt.Claims:
 	default:
 		return fmt.Errorf("%w: %v: `%T`", bascule.ErrBadCredentials, errAuthUnknownScheme, t)
 	}

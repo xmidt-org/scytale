@@ -99,50 +99,37 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 	logger.Debug("Created list of allowed basic auths", zap.Any("allowed", basicAllowed), zap.Any("config", basicAuth))
 
 
+	var authParserOptions []basculehttp.AuthorizationParserOption
+	if len(basicAllowed) > 0 {
+		authParserOptions = append(authParserOptions, basculehttp.WithBasic())
 	}
 
 
 	approverOpts := []basculecaps.ApproverOption{}
+	authorizerEventListeners := []bascule.Listener[bascule.AuthorizeEvent[*http.Request]]{}
+	authenticatorEventListeners := []bascule.Listener[bascule.AuthenticateEvent[*http.Request]]{}
+	if v.IsSet(jwtAuthConfigKey) {
 		var jwtVal JWTValidator
 		if err := v.UnmarshalKey(jwtAuthConfigKey, &jwtVal); err != nil {
 			return alice.Chain{}, fmt.Errorf("failed to parse jwt configuration: %v", err)
 		}
 
-
-	authParserOptions := []basculehttp.AuthorizationParserOption{
-		basculehttp.WithScheme(basculehttp.SchemeBearer, &jwtTokenParser{resolver: resolver, logger: logger, leeway: jwtVal.Leeway}),
-	}
-	if len(basicAllowed) > 0 {
-		authParserOptions = append(authParserOptions, basculehttp.WithScheme(basculehttp.SchemeBasic, basicAllowedTokenParser{allowed: basicAllowed}))
-	}
 		if jwtVal.Config.isZero() {
 			return alice.Chain{}, fmt.Errorf("jwt configuration was set, `%s.Config` can't be empty", jwtAuthConfigKey)
 		}
 
-	authParser, err := basculehttp.NewAuthorizationParser(authParserOptions...)
-	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create authorization parser")
-	}
 		ks, err := jwtVal.Config.Build()
 		if err != nil {
 			return alice.Chain{}, fmt.Errorf("error setting up JWT key resolver: %v", err)
 		}
 
-	validators := bascule.Validators[*http.Request]{
-		basculehttp.AsValidator(func(_ context.Context, token bascule.Token) error {
-			if token.Principal() == "" {
-				return errors.New("empty token principal")
-			}
 		jwtp, err := basculejwt.NewTokenParser(
 			jwt.WithKeySet(ks, jws.WithInferAlgorithmFromKey(true)))
 		if err != nil {
 			return alice.Chain{}, fmt.Errorf("error setting up JWT parser: %v", err)
 		}
 
-			return nil
-		}),
-		basculehttp.AsValidator(requirePartnersJWTClaim),
-	}
+		authParserOptions = append(authParserOptions, basculehttp.WithScheme(basculehttp.SchemeBearer, jwtp))
 
 		var capabilityCheck CapabilityConfig
 		if err := v.UnmarshalKey(jwtCapabilityCheckKey, &capabilityCheck); err != nil {

@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/bascule/basculehttp/basculecaps"
 	"github.com/xmidt-org/bascule/basculejwt"
 	"github.com/xmidt-org/candlelight"
 	"github.com/xmidt-org/touchstone"
@@ -56,6 +57,7 @@ const (
 
 	basicAuthConfigKey    = "authHeader"
 	jwtAuthConfigKey      = "jwtValidator"
+	jwtCapabilityCheckKey = "capabilityCheck"
 	wrpCheckConfigKey     = "WRPCheck"
 	wrpValidatorConfigKey = "wrpValidators"
 
@@ -100,6 +102,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 	}
 
 
+	approverOpts := []basculecaps.ApproverOption{}
 		var jwtVal JWTValidator
 		if err := v.UnmarshalKey(jwtAuthConfigKey, &jwtVal); err != nil {
 			return alice.Chain{}, fmt.Errorf("failed to parse jwt configuration: %v", err)
@@ -141,14 +144,15 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 		basculehttp.AsValidator(requirePartnersJWTClaim),
 	}
 
-	// only add capability check if the configuration is set
-	var capabilityCheck CapabilityConfig
-	v.UnmarshalKey("capabilityCheck", &capabilityCheck)
-	if capabilityCheck.Type == enforceCheck || capabilityCheck.Type == "monitor" {
-		ec, err := newEndpointRegexCheck(capabilityCheck.Prefix, capabilityCheck.AcceptAllMethod)
-		if err != nil {
-			return alice.Chain{}, emperror.With(err, "failed to create capability check")
+		var capabilityCheck CapabilityConfig
+		if err := v.UnmarshalKey(jwtCapabilityCheckKey, &capabilityCheck); err != nil {
+			return alice.Chain{}, fmt.Errorf("failed to parse jwt configuration `%s`: %v", jwtCapabilityCheckKey, err)
 		}
+
+		v.UnmarshalKey("capabilityCheck", &capabilityCheck)
+		approverOpts = append(approverOpts,
+			basculecaps.WithPrefixes(capabilityCheck.Capabilities...),
+			basculecaps.WithAllMethod(capabilityCheck.AcceptAllMethod))
 
 		endpointBuckets := make([]*regexp.Regexp, 0, len(capabilityCheck.EndpointBuckets))
 		for _, pattern := range capabilityCheck.EndpointBuckets {
@@ -161,102 +165,18 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 			endpointBuckets = append(endpointBuckets, re)
 		}
 
-		capabilityCheckCounter := NewAuthCapabilityCounter(registry)
 
-		enforce := capabilityCheck.Type == enforceCheck
-		validators = append(validators, basculehttp.AsValidator(func(_ context.Context, request *http.Request, token bascule.Token) error {
-			tt, ok := token.(tokenType)
-			if !ok || tt.TokenType() != jwtTokenType {
-				return nil
-			}
 
-			clientID := token.Principal()
-			requestPath := trimVersionPrefix(request.URL.EscapedPath())
-			endpointBucket := determineEndpointMetric(endpointBuckets, requestPath)
-			failureOutcome := Accepted
-			if enforce {
-				failureOutcome = Rejected
-			}
 
-			reportFailure := func(reason string, authErr error) error {
-				capabilityCheckCounter.With(
-					OutcomeLabel, failureOutcome,
-					ReasonLabel, reason,
-					ClientIDLabel, clientID,
-					PartnerIDLabel, "undetermined",
-					EndpointLabel, endpointBucket,
-				).Add(1)
 
-				if enforce {
-					return authErr
-				}
 
-				return nil
-			}
 
-			accessor, ok := token.(bascule.AttributesAccessor)
-			if !ok {
-				return reportFailure(UndeterminedCapabilities, bascule.ErrUnauthorized)
-			}
 
-			// nolint: goconst
-			partnerID := "none"
-			if partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...); ok {
-				if partners, err := cast.ToStringSliceE(partnerVal); err == nil {
-					partnerID = determinePartnerMetric(partners)
-				}
-			}
 
-			rawCapabilities, ok := bascule.GetAttribute[any](accessor, "capabilities")
-			if !ok {
-				capabilityCheckCounter.With(
-					OutcomeLabel, failureOutcome,
-					ReasonLabel, UndeterminedCapabilities,
-					ClientIDLabel, clientID,
-					PartnerIDLabel, partnerID,
-					EndpointLabel, endpointBucket,
-				).Add(1)
 
-				if enforce {
-					return bascule.ErrUnauthorized
-				}
 
-				return nil
-			}
 
-			capabilities, ok := bascule.GetCapabilities(rawCapabilities)
-			if !ok || len(capabilities) < 1 {
-				capabilityCheckCounter.With(
-					OutcomeLabel, failureOutcome,
-					ReasonLabel, EmptyCapabilitiesList,
-					ClientIDLabel, clientID,
-					PartnerIDLabel, partnerID,
-					EndpointLabel, endpointBucket,
-				).Add(1)
 
-				if enforce {
-					return bascule.ErrUnauthorized
-				}
-
-				return nil
-			}
-
-			for _, capability := range capabilities {
-				if ec.authorized(capability, requestPath, request.Method) {
-					capabilityCheckCounter.With(
-						OutcomeLabel, Accepted,
-						ReasonLabel, "",
-						ClientIDLabel, clientID,
-						PartnerIDLabel, partnerID,
-						EndpointLabel, endpointBucket,
-					).Add(1)
-
-					return nil
-				}
-			}
-
-			return reportFailure(NoCapabilitiesMatch, bascule.ErrUnauthorized)
-		}))
 	}
 
 	authenticator, err := basculehttp.NewAuthenticator(

@@ -17,7 +17,6 @@ require (
 	github.com/xmidt-org/arrange v0.5.10
 	github.com/xmidt-org/bascule v1.1.9
 	github.com/xmidt-org/candlelight v0.2.18
-	github.com/xmidt-org/clortho v0.1.18
 	github.com/xmidt-org/sallust v0.2.10
 	github.com/xmidt-org/touchstone v0.1.8
 	github.com/xmidt-org/webpa-common/v2 v2.10.9

@@ -15,13 +15,11 @@ import (
 	"strings"
 
 	gokithttp "github.com/go-kit/kit/transport/http"
-	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/lestrrat-go/jwx/v2/jws"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
@@ -166,46 +164,26 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 
 	}
 
-	authenticator, err := basculehttp.NewAuthenticator(
-		bascule.WithTokenParsers(authParser),
-		bascule.WithValidators[*http.Request](validators...),
-	)
+	approver, err := basculecaps.NewApprover(approverOpts...)
 	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create authenticator")
+		return alice.Chain{}, fmt.Errorf("error setting up JWT capability checks: %v", err)
 	}
 
-	authMiddleware, err := basculehttp.NewMiddleware(
-		basculehttp.WithAuthenticator(authenticator),
-		basculehttp.WithErrorStatusCoder(func(request *http.Request, err error) int {
-			if request != nil {
-				if vars := mux.Vars(request); vars != nil && vars["version"] == prevAPIVersion {
-					if errors.Is(err, bascule.ErrInvalidCredentials) {
-						return http.StatusBadRequest
+	auth, err := basculehttp.NewMiddleware(
+		basculehttp.UseAuthenticator(basculehttp.NewAuthenticator(
+			bascule.WithTokenParsers(tp),
 					}
-
-					return http.StatusForbidden
-				}
-			}
-
-			switch {
-			case errors.Is(err, bascule.ErrMissingCredentials):
-				return http.StatusUnauthorized
-			case errors.Is(err, bascule.ErrBadCredentials):
-				return http.StatusUnauthorized
-			case errors.Is(err, bascule.ErrInvalidCredentials):
-				return http.StatusBadRequest
-			case errors.Is(err, bascule.ErrUnauthorized):
-				return http.StatusForbidden
-			default:
-				return http.StatusInternalServerError
-			}
-		}),
+		)),
+		basculehttp.UseAuthorizer(basculehttp.NewAuthorizer(
+			bascule.WithApprovers(approver),
+		)),
 	)
+
 	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create auth middleware")
+		return alice.Chain{}, fmt.Errorf("failed to create auth middleware: %v", err)
 	}
 
-	return alice.New(setLogger(logger), authMiddleware.Then), nil
+	return alice.New(setLogger(logger), auth.Then), nil
 }
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured

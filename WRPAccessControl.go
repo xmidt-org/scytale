@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2019 Comcast Cable Communications Management, LLC
 // SPDX-License-Identifier: Apache-2.0
-
 package main
 
 import (
@@ -10,18 +9,19 @@ import (
 	"github.com/go-kit/kit/metrics"
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/bascule/basculejwt"
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
 	"github.com/xmidt-org/wrp-go/v3"
 )
 
 // partnerAuthority errors
 var (
-	ErrTokenMissing            = &xhttp.Error{Code: http.StatusInternalServerError, Text: "No JWT Token was found in context"}
-	ErrTokenTypeMismatch       = &xhttp.Error{Code: http.StatusInternalServerError, Text: "Token must be a JWT"}
-	ErrPIDMissing              = &xhttp.Error{Code: http.StatusBadRequest, Text: "WRP PartnerIDs field must not be empty"}
-	ErrAllowedPartnersNotFound = &xhttp.Error{Code: http.StatusForbidden, Text: "AllowedPartners JWT claim not found"}
-	ErrInvalidAllowedPartners  = &xhttp.Error{Code: http.StatusForbidden, Text: "AllowedPartners JWT claim must be a non-empty list of strings"}
-	ErrPIDMismatch             = &xhttp.Error{Code: http.StatusForbidden, Text: "Unauthorized partners credentials in WRP message"}
+	ErrTokenMissing           = &xhttp.Error{Code: http.StatusInternalServerError, Text: "No JWT Token was found in context"}
+	ErrTokenTypeMismatch      = &xhttp.Error{Code: http.StatusInternalServerError, Text: "Token must be a JWT"}
+	ErrPIDMissing             = &xhttp.Error{Code: http.StatusBadRequest, Text: "WRP PartnerIDs field must not be empty"}
+	ErrInvalidAllowedPartners = &xhttp.Error{Code: http.StatusForbidden, Text: "AllowedPartners JWT claim was either not found or an empty list"}
+	ErrPIDMismatch            = &xhttp.Error{Code: http.StatusForbidden, Text: "Unauthorized partners credentials in WRP message"}
 )
 
 // WRPCheckConfig drives the WRP Access control configuration when enabled
@@ -76,13 +76,14 @@ func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Messa
 		return false, nil
 	}
 
-	tt, isTyped := token.(tokenType)
-	if !isTyped || tt.TokenType() != jwtTokenType {
+	switch token.(type) {
+	case basculejwt.Claims, basculehttp.BasicToken:
+	default:
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenTypeMismatch).Add(1)
-
 		if p.strict {
 			return false, ErrTokenTypeMismatch
 		}
+
 		return false, nil
 	}
 
@@ -95,7 +96,7 @@ func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Messa
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
 
 		if p.strict {
-			return false, ErrAllowedPartnersNotFound
+			return false, ErrInvalidAllowedPartners
 		}
 
 		return false, nil
@@ -106,7 +107,7 @@ func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Messa
 		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
 
 		if p.strict {
-			return false, ErrAllowedPartnersNotFound
+			return false, ErrInvalidAllowedPartners
 		}
 
 		return false, nil

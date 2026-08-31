@@ -96,12 +96,10 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 	}
 	logger.Debug("Created list of allowed basic auths", zap.Any("allowed", basicAllowed), zap.Any("config", basicAuth))
 
-
 	var authParserOptions []basculehttp.AuthorizationParserOption
 	if len(basicAllowed) > 0 {
 		authParserOptions = append(authParserOptions, basculehttp.WithBasic())
 	}
-
 
 	approverOpts := []basculecaps.ApproverOption{}
 	authorizerEventListeners := []bascule.Listener[bascule.AuthorizeEvent[*http.Request]]{}
@@ -151,17 +149,9 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 		}
 
 
-
-
-
-
-
-
-
-
-
-
-
+	tp, err := basculehttp.NewAuthorizationParser(authParserOptions...)
+	if err != nil {
+		return alice.Chain{}, fmt.Errorf("error setting up authorization parser: %v", err)
 	}
 
 	approver, err := basculecaps.NewApprover(approverOpts...)
@@ -172,10 +162,14 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 	auth, err := basculehttp.NewMiddleware(
 		basculehttp.UseAuthenticator(basculehttp.NewAuthenticator(
 			bascule.WithTokenParsers(tp),
-					}
+			bascule.WithValidators(
+				basculehttp.AsValidator(authSchemeValidator),
+				basculehttp.AsValidator(authPrincipalValidator)),
 		)),
 		basculehttp.UseAuthorizer(basculehttp.NewAuthorizer(
 			bascule.WithApprovers(approver),
+			bascule.WithApproverFuncs(jwtClaimPartnerIDsValidator),
+			bascule.WithApproverFuncs(basicPasswordValidator(basicAllowed)),
 		)),
 	)
 

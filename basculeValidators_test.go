@@ -7,49 +7,51 @@ import (
 	"context"
 	"testing"
 
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+type testJWT struct {
+	jwt.Token
+}
+
+func (j testJWT) Principal() string {
+	return j.Subject()
+}
 
 func TestRequirePartnerIDs(t *testing.T) {
 	var tests = []struct {
 		name       string
-		attrMap    map[string]interface{}
+		attrMap    map[string]any
 		shouldPass bool
 	}{
 		{
 			name: "partnerIDs",
-			attrMap: map[string]interface{}{
+			attrMap: map[string]any{
 				// nolint: goconst
-				"allowedResources": map[string]interface{}{
-					// nolint: goconst
-					"allowedPartners": []string{"partner0", "partner1"},
-				}},
+				allowedPartners: []string{"partner0", "partner1"},
+			},
 			shouldPass: true,
 		},
 
 		{
 			name: "missing partnerIDs key",
-			attrMap: map[string]interface{}{
-				// nolint: goconst
-				"allowedResources": map[string]interface{}{},
+			attrMap: map[string]any{
+				allowedResources: map[string]any{},
 			},
 		},
 		{
 			name: "no partnerIDs",
-			attrMap: map[string]interface{}{
-				"allowedResources": map[string]interface{}{
-					"allowedPartners": []string{},
-				},
+			attrMap: map[string]any{
+				allowedPartners: []string{},
 			},
 		},
 		{
 			name: "malformed partnerIDs field",
-			attrMap: map[string]interface{}{
-				// nolint: goconst
-				"allowedResources": map[string]interface{}{
-					// nolint: goconst
-					"allowedPartners": map[string]interface{}{"partner0": true},
-				}},
+			attrMap: map[string]any{
+				allowedPartners: map[string]any{"partner0": true},
+			},
 		},
 	}
 
@@ -58,13 +60,18 @@ func TestRequirePartnerIDs(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
-			token := &jwtToken{principal: "client0", claims: test.attrMap}
-
-			err := requirePartnersJWTClaim(ctx, token)
+			require := require.New(t)
+			token, err := jwt.NewBuilder().
+				Claim(allowedResources, test.attrMap).
+				Subject("client0").
+				Issuer("https://example.com").
+				Build()
+			require.NoError(err, "failed to build test JWT")
+			err = jwtClaimPartnerIDsValidator(ctx, nil, testJWT{token})
 			if test.shouldPass {
-				assert.Nil(err)
+				assert.NoError(err)
 			} else {
-				assert.NotNil(err)
+				assert.Error(err)
 			}
 		})
 	}

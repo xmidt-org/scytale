@@ -4,15 +4,17 @@ go 1.26.5
 
 require (
 	github.com/go-kit/kit v0.13.0
-	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/goph/emperror v0.17.3-0.20190703203600-60a8d9faa17b
 	github.com/gorilla/mux v1.8.1
 	github.com/justinas/alice v1.2.0
+	github.com/lestrrat-go/httprc v1.0.6
+	github.com/lestrrat-go/jwx/v2 v2.1.7
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/cast v1.10.0
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
+	github.com/xmidt-org/arrange v0.5.10
 	github.com/xmidt-org/bascule v1.1.9
 	github.com/xmidt-org/candlelight v0.2.18
 	github.com/xmidt-org/clortho v0.1.18

@@ -11,25 +11,22 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"os/signal"
 	"regexp"
 	"strings"
-	"syscall"
 
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/goph/emperror"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	"github.com/lestrrat-go/jwx/v2/jws"
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/bascule/basculejwt"
 	"github.com/xmidt-org/candlelight"
-	"github.com/xmidt-org/clortho"
-	"github.com/xmidt-org/clortho/clorthometrics"
-	"github.com/xmidt-org/clortho/clorthozap"
 	"github.com/xmidt-org/touchstone"
 	"github.com/xmidt-org/webpa-common/v2/device"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
@@ -99,64 +96,15 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 	}
 	logger.Debug("Created list of allowed basic auths", zap.Any("allowed", basicAllowed), zap.Any("config", basicAuth))
 
-	var jwtVal JWTValidator
-	// Get jwt configuration, including clortho's configuration
-	v.UnmarshalKey(jwtAuthConfigKey, &jwtVal)
-	// Instantiate a keyring for refresher and resolver to share
-	kr := clortho.NewKeyRing()
 
-	// Instantiate a fetcher for refresher and resolver to share
-	f, err := clortho.NewFetcher()
-	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create clortho fetcher")
 	}
 
-	ref, err := clortho.NewRefresher(
-		clortho.WithConfig(jwtVal.Config),
-		clortho.WithFetcher(f),
-	)
-	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create clortho refresher")
-	}
 
-	resolver, err := clortho.NewResolver(
-		clortho.WithConfig(jwtVal.Config),
-		clortho.WithKeyRing(kr),
-		clortho.WithFetcher(f),
-	)
-	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create clortho resolver")
-	}
+		var jwtVal JWTValidator
+		if err := v.UnmarshalKey(jwtAuthConfigKey, &jwtVal); err != nil {
+			return alice.Chain{}, fmt.Errorf("failed to parse jwt configuration: %v", err)
+		}
 
-	// Instantiate a metric listener for refresher and resolver to share
-	cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))
-	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create clortho metrics listener")
-	}
-
-	// Instantiate a logging listener for refresher and resolver to share
-	czl, err := clorthozap.NewListener(
-		clorthozap.WithLogger(logger),
-	)
-	if err != nil {
-		return alice.Chain{}, emperror.With(err, "failed to create clortho zap logger listener")
-	}
-
-	resolver.AddListener(cml)
-	resolver.AddListener(czl)
-	ref.AddListener(cml)
-	ref.AddListener(czl)
-	ref.AddListener(kr)
-	// context.Background() is for the unused `context.Context` argument in refresher.Start
-	ref.Start(context.Background())
-	// Shutdown refresher's goroutines when SIGTERM
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		// context.Background() is for the unused `context.Context` argument in refresher.Stop
-		ref.Stop(context.Background())
-	}()
 
 	authParserOptions := []basculehttp.AuthorizationParserOption{
 		basculehttp.WithScheme(basculehttp.SchemeBearer, &jwtTokenParser{resolver: resolver, logger: logger, leeway: jwtVal.Leeway}),
@@ -164,17 +112,29 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 	if len(basicAllowed) > 0 {
 		authParserOptions = append(authParserOptions, basculehttp.WithScheme(basculehttp.SchemeBasic, basicAllowedTokenParser{allowed: basicAllowed}))
 	}
+		if jwtVal.Config.isZero() {
+			return alice.Chain{}, fmt.Errorf("jwt configuration was set, `%s.Config` can't be empty", jwtAuthConfigKey)
+		}
 
 	authParser, err := basculehttp.NewAuthorizationParser(authParserOptions...)
 	if err != nil {
 		return alice.Chain{}, emperror.With(err, "failed to create authorization parser")
 	}
+		ks, err := jwtVal.Config.Build()
+		if err != nil {
+			return alice.Chain{}, fmt.Errorf("error setting up JWT key resolver: %v", err)
+		}
 
 	validators := bascule.Validators[*http.Request]{
 		basculehttp.AsValidator(func(_ context.Context, token bascule.Token) error {
 			if token.Principal() == "" {
 				return errors.New("empty token principal")
 			}
+		jwtp, err := basculejwt.NewTokenParser(
+			jwt.WithKeySet(ks, jws.WithInferAlgorithmFromKey(true)))
+		if err != nil {
+			return alice.Chain{}, fmt.Errorf("error setting up JWT parser: %v", err)
+		}
 
 			return nil
 		}),

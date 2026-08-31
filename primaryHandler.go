@@ -148,6 +148,17 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 			endpointBuckets = append(endpointBuckets, re)
 		}
 
+		authorizerEventListeners = append(authorizerEventListeners,
+			authorizerEvent{
+				l:         logger,
+				counter:   registry.NewCounterVec(AuthCapabilityCheckCount),
+				endpoints: endpointBuckets})
+		authenticatorEventListeners = append(authenticatorEventListeners,
+			authenticatorEvent{
+				l:          logger,
+				counter:    registry.NewCounterVec(AuthCapabilityCheckCount),
+				parserOpts: []jwt.ParseOption{jwt.WithKeySet(ks, jws.WithInferAlgorithmFromKey(true))}})
+	}
 
 	tp, err := basculehttp.NewAuthorizationParser(authParserOptions...)
 	if err != nil {
@@ -165,11 +176,13 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 			bascule.WithValidators(
 				basculehttp.AsValidator(authSchemeValidator),
 				basculehttp.AsValidator(authPrincipalValidator)),
+			bascule.WithAuthenticateListeners(authenticatorEventListeners...),
 		)),
 		basculehttp.UseAuthorizer(basculehttp.NewAuthorizer(
 			bascule.WithApprovers(approver),
 			bascule.WithApproverFuncs(jwtClaimPartnerIDsValidator),
 			bascule.WithApproverFuncs(basicPasswordValidator(basicAllowed)),
+			bascule.WithAuthorizeListeners(authorizerEventListeners...),
 		)),
 	)
 
@@ -441,7 +454,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 			HTTPFanoutHandler,
 			&wrpPartnersAccess{
 				strict:                  wrpCheckConfig.Type == enforceCheck,
-				receivedWRPMessageCount: NewReceivedWRPCounter(registry),
+				receivedWRPMessageCount: registry.NewCounter(ReceivedWRPMessageCount),
 			})
 	} else {
 		WRPFanoutHandler = newWRPFanoutHandler(HTTPFanoutHandler)

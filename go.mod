@@ -21,6 +21,7 @@ require (
 	github.com/xmidt-org/webpa-common/v2 v2.10.9
 	github.com/xmidt-org/wrp-go/v3 v3.7.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.71.0
+	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.28.0
 )
 

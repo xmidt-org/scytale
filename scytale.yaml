@@ -278,7 +278,7 @@ authHeader: ["dXNlcjpwYXNz"]
 jwtValidator:
   Config:
     # URL is the URL to get the public keys from.
-    URL: "https://sat-prod.codebig2.net/v2/sign-keys/available"
+    URL: "http://localhost/sign-keys/available"
 
     # RefreshInterval is the interval to refresh the public keys.
     RefreshInterval: "15m"

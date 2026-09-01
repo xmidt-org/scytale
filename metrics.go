@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/lestrrat-go/jwx/v2/jws"
@@ -168,7 +169,6 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 	}
 
 	ae.l.Info("authenticator event: creds rejected")
-	var err *basculehttp.UnsupportedSchemeError
 	if errors.Is(e.Err, jwt.ErrTokenExpired()) {
 		ls[ReasonLabel] = AuthUnsatifiedExp
 	} else if errors.Is(e.Err, jwt.ErrInvalidIssuedAt()) {
@@ -181,7 +181,7 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 		ls[ReasonLabel] = AuthInvalidCreds
 	} else if errors.Is(e.Err, bascule.ErrBadCredentials) {
 		ls[ReasonLabel] = AuthBadCreds
-	} else if errors.As(e.Err, &err) {
+	} else if _, ok := errors.AsType[*basculehttp.UnsupportedSchemeError](e.Err); ok {
 		ls[ReasonLabel] = AuthInvalidScheme
 	} else if errors.Is(e.Err, errAuthEmptyPrincipal) {
 		ls[ReasonLabel] = AuthEmptyPrincipal
@@ -296,10 +296,8 @@ func determinePartnerID(token bascule.Token) string {
 		return ids[0]
 	}
 
-	for _, id := range ids {
-		if id == Wildcard {
-			return WildcardPartner
-		}
+	if slices.Contains(ids, Wildcard) {
+		return WildcardPartner
 	}
 
 	return ManyPartner

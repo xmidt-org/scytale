@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"slices"
 
 	"github.com/go-kit/kit/metrics"
 	"github.com/spf13/cast"
@@ -156,12 +157,7 @@ func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Messa
 
 // returns true if list contains str
 func contains(list []string, str string) bool {
-	for _, e := range list {
-		if e == str {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, str)
 }
 
 // returns true if a is a subset of b

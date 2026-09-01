@@ -18,7 +18,7 @@ import (
 // LoggerFunc is a strategy for adding key/value pairs (possibly) based on an HTTP request.
 // Functions of this type must append key/value pairs to the supplied slice and then return
 // the new slice.
-type LoggerFunc func([]interface{}, *http.Request) []interface{}
+type LoggerFunc func([]any, *http.Request) []any
 
 func sanitizeHeaders(headers http.Header) (filtered http.Header) {
 	filtered = headers.Clone()
@@ -41,7 +41,7 @@ func setLogger(logger *zap.Logger, lf ...LoggerFunc) func(delegate http.Handler)
 	return func(delegate http.Handler) http.Handler {
 		return http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
-				kvs := []interface{}{"requestHeaders", sanitizeHeaders(r.Header), "requestURL", r.URL.EscapedPath(), "method", r.Method}
+				kvs := []any{"requestHeaders", sanitizeHeaders(r.Header), "requestURL", r.URL.EscapedPath(), "method", r.Method}
 				for _, f := range lf {
 					if f != nil {
 						kvs = f(kvs, r)
@@ -54,7 +54,7 @@ func setLogger(logger *zap.Logger, lf ...LoggerFunc) func(delegate http.Handler)
 			})
 	}
 }
-func addFieldsToLog(ctx context.Context, logger *zap.Logger, kvs []interface{}) context.Context {
+func addFieldsToLog(ctx context.Context, logger *zap.Logger, kvs []any) context.Context {
 
 	for i := 0; i <= len(kvs)-2; i += 2 {
 		logger = logger.With(zap.Any(fmt.Sprint(kvs[i]), kvs[i+1]))

@@ -46,8 +46,7 @@ var (
 )
 
 type CapabilityConfig struct {
-	Type            string
-	Prefix          string
+	Capabilities    []string
 	AcceptAllMethod string
 	EndpointBuckets []string
 }

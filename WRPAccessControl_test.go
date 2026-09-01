@@ -5,9 +5,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/go-kit/kit/metrics"
+	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/wrp-go/v3"
@@ -18,7 +20,7 @@ func TestAuthorizeWRP(t *testing.T) {
 		Name                string
 		PartnerIDs          []string
 		AllowedPartners     []string
-		TokenType           string
+		IsBearer            bool
 		InjectSecurityToken bool
 		ExpectAutocorrect   bool
 		Error               error
@@ -28,11 +30,11 @@ func TestAuthorizeWRP(t *testing.T) {
 		{
 			Name:  "Bascule token Missing",
 			Error: ErrTokenMissing,
-			// nolint: goconst
-			TokenType: "jwt",
+
+			IsBearer: true,
 			BaseLabelPairs: map[string]string{
 				ReasonLabel: TokenMissing,
-				// nolint: goconst
+
 				ClientIDLabel: "none",
 			},
 		},
@@ -40,7 +42,6 @@ func TestAuthorizeWRP(t *testing.T) {
 			Name:                "Bad bascule token type",
 			Error:               ErrTokenTypeMismatch,
 			InjectSecurityToken: true,
-			TokenType:           "basic",
 			// nolint: goconst
 			AllowedPartners: []string{"partner0"},
 			BaseLabelPairs: map[string]string{
@@ -53,7 +54,7 @@ func TestAuthorizeWRP(t *testing.T) {
 			Name:                "Invalid AllowedPartners",
 			Error:               ErrInvalidAllowedPartners,
 			InjectSecurityToken: true,
-			TokenType:           "jwt",
+			IsBearer:            true,
 			AllowedPartners:     []string{},
 			BaseLabelPairs: map[string]string{
 				ReasonLabel: JWTPIDInvalid,
@@ -64,9 +65,9 @@ func TestAuthorizeWRP(t *testing.T) {
 
 		{
 			Name:                "No AllowedPartners",
-			Error:               ErrAllowedPartnersNotFound,
+			Error:               ErrInvalidAllowedPartners,
 			InjectSecurityToken: true,
-			TokenType:           "jwt",
+			IsBearer:            true,
 			AllowedPartners:     nil,
 			BaseLabelPairs: map[string]string{
 				ReasonLabel:   JWTPIDInvalid,
@@ -78,7 +79,7 @@ func TestAuthorizeWRP(t *testing.T) {
 			Name:                "PartnerIDs missing from WRP",
 			Error:               ErrPIDMissing,
 			InjectSecurityToken: true,
-			TokenType:           "jwt",
+			IsBearer:            true,
 			AllowedPartners:     []string{"p0", "p1"},
 			ExpectAutocorrect:   true,
 			BaseLabelPairs: map[string]string{
@@ -91,7 +92,7 @@ func TestAuthorizeWRP(t *testing.T) {
 		{
 			Name:                "PartnerIDs is not subset of allowerPartners",
 			InjectSecurityToken: true,
-			TokenType:           "jwt",
+			IsBearer:            true,
 			PartnerIDs:          []string{"p2"},
 			AllowedPartners:     []string{"p0", "p1"},
 			Error:               ErrPIDMismatch,
@@ -106,7 +107,7 @@ func TestAuthorizeWRP(t *testing.T) {
 		{
 			Name:                "Wildcard in allowedPartners",
 			InjectSecurityToken: true,
-			TokenType:           "jwt",
+			IsBearer:            true,
 			PartnerIDs:          []string{"p2"}, //TODO: is this the behavior we actually want? '*' giving user superpowers!
 			AllowedPartners:     []string{"p0", "p1", "*"},
 			BaseLabelPairs: map[string]string{
@@ -119,7 +120,7 @@ func TestAuthorizeWRP(t *testing.T) {
 		{
 			Name:                "Non-empty partnerIDs is subset of allowerPartners",
 			InjectSecurityToken: true,
-			TokenType:           "jwt",
+			IsBearer:            true,
 			PartnerIDs:          []string{"p0"},
 			AllowedPartners:     []string{"p0", "p1"},
 			BaseLabelPairs: map[string]string{
@@ -136,7 +137,7 @@ func TestAuthorizeWRP(t *testing.T) {
 
 			ctx := context.Background()
 			if testCase.InjectSecurityToken {
-				ctx = enrichWithBasculeToken(context.Background(), testCase.TokenType, testCase.AllowedPartners)
+				ctx = enrichWithBasculeToken(context.Background(), testCase.IsBearer, testCase.AllowedPartners)
 			}
 
 			wrpMsg := &wrp.Message{
@@ -196,33 +197,21 @@ func createLabelMaps(rejected bool, baseLabelPairs map[string]string) (strict ma
 	return
 }
 
-func enrichWithBasculeToken(ctx context.Context, tokenType string, allowedPartners []string) context.Context {
-	if tokenType == jwtTokenType {
-		attrs := map[string]interface{}{
-			// nolint: goconst
-			"allowedResources": map[string]interface{}{"allowedPartners": allowedPartners},
-		}
-		if allowedPartners == nil {
-			attrs = map[string]interface{}{"allowedResources": map[string]interface{}{}}
+func enrichWithBasculeToken(ctx context.Context, isBearer bool, partners []string) context.Context {
+	if isBearer {
+		token, err := jwt.NewBuilder().
+			Claim(allowedResources, map[string]any{allowedPartners: partners}).
+			Subject("tester").
+			Issuer("https://example.com").
+			Build()
+		if err != nil {
+			panic(fmt.Errorf("failed to build test JWT: %v", err))
 		}
 
-		return bascule.WithToken(ctx, &jwtToken{principal: "tester", claims: attrs})
+		return bascule.WithToken(ctx, &testJWT{token})
 	}
 
-	return bascule.WithToken(ctx, &testToken{principal: "tester", tokenType: tokenType})
-}
-
-type testToken struct {
-	principal string
-	tokenType string
-}
-
-func (t *testToken) Principal() string {
-	return t.principal
-}
-
-func (t *testToken) TokenType() string {
-	return t.tokenType
+	return bascule.WithToken(ctx, bascule.StubToken("tester"))
 }
 
 type testCounter struct {

@@ -277,20 +277,25 @@ authHeader: ["dXNlcjpwYXNz"]
 # (Optional)
 jwtValidator:
   Config:
-    Resolve:
-      # Template is a URI template used to fetch keys.  This template may
-      # use a single parameter named keyID, e.g. http://keys.com/{keyID}.
-      # This field is required and has no default.
-      Template: "http://localhost/{keyID}"
-    Refresh:
-      Sources:
-        # URI is the location where keys are served.  By default, clortho supports
-        # file://, http://, and https:// URIs, as well as standard file system paths
-        # such as /etc/foo/bar.jwk.
-        #
-        # This field is required and has no default.
-        - URI: "http://localhost"
+    # URL is the URL to get the public keys from.
+    URL: "https://sat-prod.codebig2.net/v2/sign-keys/available"
 
+    # RefreshInterval is the interval to refresh the public keys.
+    RefreshInterval: "15m"
+
+    # FetcherWorkerCount specifies the number of HTTP fetch workers that are spawned in the backend. By default 3 workers are spawned.
+    FetcherWorkerCount: 3
+    #  HTTPClient is the configuration for the http client used to fetch the public keys.
+    HTTPClient:
+      timeout: "15s"
+      transport:
+        TLSHandshakeTimeout: "10s"
+        maxIdleConns: 0
+        maxIdleConnsPerHost: 1000
+        maxConnsPerHost: 0
+        idleConnTimeout: "90s"
+        expectContinueTimeout: "1s"
+        forceAttemptHTTP2: true
 # capabilityCheck provides the details needed for checking an incoming JWT's
 # capabilities.  If the type of check isn't provided, no checking is done.  The
 # type can be "monitor" or "enforce".  If it is empty or a different value, no
@@ -310,10 +315,9 @@ jwtValidator:
 # is approved for all methods.
 # (Optional)
 # capabilityCheck:
-#   # type provides the mode for capability checking.
-#   type: "enforce"
-#   # prefix provides the regex to match the capability before the endpoint.
-#   prefix: "prefix Here"
+#   # capabilities is a list of regex to match the capability before the endpoint.
+#   capabilities
+#     - "foo:bar:api:"
 #   # acceptAllMethod provides a way to have a capability that allows all
 #   # methods for a specific endpoint.
 #   acceptAllMethod: "all"

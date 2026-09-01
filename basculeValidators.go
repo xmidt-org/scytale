@@ -5,37 +5,120 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/bascule/basculejwt"
+	"go.uber.org/multierr"
 )
 
-// nolint: goconst
-var partnerKeys = []string{"allowedResources", "allowedPartners"}
+const (
+	allowedPartners  = "allowedPartners"
+	allowedResources = "allowedResources"
+)
 
-var requirePartnersJWTClaim = func(_ context.Context, token bascule.Token) error {
-	tt, ok := token.(tokenType)
-	if !ok || tt.TokenType() != jwtTokenType {
+var (
+	errAuthMissingClaims  = fmt.Errorf("%w: missing partner related keys", bascule.ErrBadCredentials)
+	errAuthInvalidClaims  = fmt.Errorf("%w: invalid `%s` claim(s)", bascule.ErrBadCredentials, partnerKeys)
+	errAuthUnknownScheme  = errors.New("unknown auth scheme")
+	errAuthEmptyPrincipal = errors.New("empty principal")
+)
+
+var partnerKeys = []string{allowedResources, allowedPartners}
+
+func basicSchemeValidator(ctx context.Context, req *http.Request, token bascule.Token) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	switch t := token.(type) {
+	case basculehttp.BasicToken:
+	default:
+		return fmt.Errorf("%w: %v: `%T`", bascule.ErrBadCredentials, errAuthUnknownScheme, t)
+	}
+
+	return nil
+}
+
+func bearerSchemeValidator(ctx context.Context, req *http.Request, token bascule.Token) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	switch t := token.(type) {
+	case basculejwt.Claims:
+	default:
+		return fmt.Errorf("%w: %v: `%T`", bascule.ErrBadCredentials, errAuthUnknownScheme, t)
+	}
+
+	return nil
+}
+
+func basicPasswordValidator(allowed map[string]string) func(context.Context, *http.Request, bascule.Token) error {
+	return func(ctx context.Context, req *http.Request, token bascule.Token) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		basic, ok := token.(basculehttp.BasicToken)
+		if !ok {
+			return nil
+		}
+
+		password, ok := allowed[basic.UserName()]
+		// User not found.
+		if !ok {
+			return bascule.ErrBadCredentials
+
+		}
+
+		if basic.Password() != password {
+			return bascule.ErrBadCredentials
+		}
+
 		return nil
+	}
+}
+
+func jwtClaimPartnerIDsValidator(ctx context.Context, req *http.Request, token bascule.Token) error {
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
 	accessor, ok := token.(bascule.AttributesAccessor)
 	if !ok {
-		return fmt.Errorf("partner IDs not found at keys %v", partnerKeys)
+		return errAuthMissingClaims
 	}
 
 	partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...)
 	if !ok {
-		return fmt.Errorf("partner IDs not found at keys %v", partnerKeys)
+		return errAuthMissingClaims
 	}
-	ids, err := cast.ToStringSliceE(partnerVal)
+
+	allowedPartners, err := cast.ToStringSliceE(partnerVal)
 	if err != nil {
-		// nolint:errorlint
-		return fmt.Errorf("failed to cast partner IDs to []string: %v", err)
+		return multierr.Append(errAuthInvalidClaims, err)
 	}
-	if len(ids) < 1 {
-		return fmt.Errorf("partner ID JWT claim should be a non-empty list of strings")
+
+	if len(allowedPartners) == 0 {
+		return fmt.Errorf("%w: should not be empty", errAuthInvalidClaims)
 	}
+
+	return nil
+}
+
+func authPrincipalValidator(ctx context.Context, token bascule.Token) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	if token.Principal() == "" {
+		return fmt.Errorf("%w: %v", bascule.ErrBadCredentials, errAuthEmptyPrincipal)
+	}
+
 	return nil
 }

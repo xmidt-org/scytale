@@ -73,6 +73,7 @@ const (
 	AuthUnsatifiedExp   = "exp_not_satisfied"
 	AuthUnsatifiedIAT   = "iat_not_satisfied"
 	AuthUnsatifiedNBF   = "nbf_not_satisfied"
+	AuthKeyNotFind      = "jwk_key_not_found"
 	AuthBadCreds        = "bad_creds"
 	AuthMissingCreds    = "missing_creds"
 	NoCapabilitiesMatch = "no_capabilities_match"
@@ -87,6 +88,10 @@ const (
 
 var (
 	errEventMetricMetadata = errors.New("could not parse jwt for additional metric metdata")
+)
+
+var (
+	keyProviderFailureRegex = regexp.MustCompile(`.*key provider \d failed:.*failed to find key with key ID.*`)
 )
 
 // Metrics returns the metrics relevant to this package
@@ -158,7 +163,7 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 			ls[ClientIDLabel] = t.Principal()
 			ls[PartnerIDLabel] = determinePartnerID(t)
 		} else {
-			ae.l.Error(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
+			ae.l.Debug(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
 		}
 	}
 
@@ -182,6 +187,8 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 		ls[ReasonLabel] = AuthEmptyPrincipal
 	} else if errors.Is(e.Err, errAuthUnknownScheme) {
 		ls[ReasonLabel] = AuthUnknownScheme
+	} else if keyProviderFailureRegex.MatchString(e.Err.Error()) {
+		ls[ReasonLabel] = AuthKeyNotFind
 	} else {
 		ls[ReasonLabel] = UnknownReason
 		ae.l.Error("authenticator event failure", zap.Error(fmt.Errorf("unexpected event error: %v", e.Err)))

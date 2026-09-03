@@ -18,7 +18,7 @@ require (
 	github.com/xmidt-org/candlelight v0.2.18
 	github.com/xmidt-org/sallust v0.2.10
 	github.com/xmidt-org/touchstone v0.1.8
-	github.com/xmidt-org/webpa-common/v2 v2.10.9
+	github.com/xmidt-org/webpa-common/v2 v2.10.10
 	github.com/xmidt-org/wrp-go/v3 v3.7.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.71.0
 	go.uber.org/multierr v1.11.0
@@ -81,7 +81,7 @@ require (
 	github.com/ugorji/go/codec v1.2.14 // indirect
 	github.com/xmidt-org/httpaux v0.4.5 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0 // indirect
 	go.opentelemetry.io/otel v1.46.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.45.0 // indirect

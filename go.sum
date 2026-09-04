@@ -142,6 +142,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lestrrat-go/blackmagic v1.0.4 h1:IwQibdnf8l2KoO+qC3uT4OaTWsW7tuRQXy9TRN9QanA=
 github.com/lestrrat-go/blackmagic v1.0.4/go.mod h1:6AWFyKNNj0zEXQYfTMPfZrAXUWUfTIZ5ECEUEJaijtw=
+github.com/lestrrat-go/dsig v1.4.0 h1:g7LUjK8cT74A5DzBXJI5HzsJuLhoYN0Wzj4nuOMIrH8=
+github.com/lestrrat-go/dsig v1.4.0/go.mod h1:I8Nddg/vN2cUl/h8N7SRRApLnNNeyZPIqLYpvpOtGGo=
 github.com/lestrrat-go/httpcc v1.0.1 h1:ydWCStUeJLkpYyjLDHihupbn2tYmZ7m22BGkcvZZrIE=
 github.com/lestrrat-go/httpcc v1.0.1/go.mod h1:qiltp3Mt56+55GPVCbTdM9MlqhvzyuL6W/NMDA8vA5E=
 github.com/lestrrat-go/httprc v1.0.6 h1:qgmgIRhpvBqexMJjA/PmwSvhNk679oqD1RbovdCGW8k=
@@ -150,8 +152,12 @@ github.com/lestrrat-go/iter v1.0.2 h1:gMXo1q4c2pHmC3dn8LzRhJfP1ceCbgSiT9lUydIzlt
 github.com/lestrrat-go/iter v1.0.2/go.mod h1:Momfcq3AnRlRjI5b5O8/G5/BvpzrhoFTZcn06fEOPt4=
 github.com/lestrrat-go/jwx/v2 v2.1.7 h1:bnYeET+S8IOyAw6W4LTc6SEeK7Xs58SKKZkR7scb3Ko=
 github.com/lestrrat-go/jwx/v2 v2.1.7/go.mod h1:exQ9ZBuN1cMLYmxwhTlHUru08ykONG0z+HbLEeDG9qo=
+github.com/lestrrat-go/jwx/v4 v4.4.0 h1:CzoK8+u++WF7vVEmxx9fB8VaheeXWZ698F6HZbrl6SI=
+github.com/lestrrat-go/jwx/v4 v4.4.0/go.mod h1:65utsGK/iSrjgGfu6iqj/TAvSfia6SSXkRpjHcKcTyg=
 github.com/lestrrat-go/option v1.0.1 h1:oAzP2fvZGQKWkvHa1/SAcFolBEca1oN+mQ7eooNBEYU=
 github.com/lestrrat-go/option v1.0.1/go.mod h1:5ZHFbivi4xwXxhxY9XHDe2FHo6/Z7WWmtT7T5nBBp3I=
+github.com/lestrrat-go/option/v3 v3.0.0-alpha1 h1:dvdzLwm/Ba5CJUF3jQP7w/iNYSLfy7yyh9XXNa1WjxI=
+github.com/lestrrat-go/option/v3 v3.0.0-alpha1/go.mod h1:5KSg20dfsKkNJtjDmaQRLZVXuUrzuCCcz/gbDK0pfKk=
 github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
 github.com/mattn/go-colorable v0.1.12/go.mod h1:u5H1YNBxpqRaxsYJYSkiCWKzEfiAb1Gb520KVy5xxl4=
 github.com/mattn/go-colorable v0.1.15 h1:+u9SLTRGnXv73cEsnsmoZBom+dMU88B2M0aDcWy0/jY=
@@ -241,10 +247,12 @@ github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSW
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/ugorji/go/codec v1.2.14 h1:yOQvXCBc3Ij46LRkRoh4Yd5qK6LVOgi0bYOXfb7ifjw=
 github.com/ugorji/go/codec v1.2.14/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
+github.com/valyala/fastjson v1.6.10 h1:/yjJg8jaVQdYR3arGxPE2X5z89xrlhS0eGXdv+ADTh4=
+github.com/valyala/fastjson v1.6.10/go.mod h1:e6FubmQouUNP73jtMLmcbxS6ydWIpOfhz34TSfO3JaE=
 github.com/xmidt-org/arrange v0.5.10 h1:nB3ufAq8wzZhD7CvJCJWDQ1v+AwMo7TFlR9v7azUQQM=
 github.com/xmidt-org/arrange v0.5.10/go.mod h1:c4aEwqmzU2UaJ8wJ4vW0cV3MWwxwtzvNpss12KN8tkA=
-github.com/xmidt-org/bascule v1.1.9 h1:Ycu7uKFxs+tRPqgmY8YymwzrsjkCIh9VwRon80cuDgw=
-github.com/xmidt-org/bascule v1.1.9/go.mod h1:dNZ19O/K/lgTHN9R7Z42YzfOaAJKV8ZMWflr7UehumU=
+github.com/xmidt-org/bascule v1.2.0 h1:j/ljhKvqsVnRl8IuG4gWhBu+jDNWnDv1rZ0rKVFDnsg=
+github.com/xmidt-org/bascule v1.2.0/go.mod h1:a14ne4b4fY5E84AaXuNTUNcZh5M3P1dZeDAN7V5/VFI=
 github.com/xmidt-org/candlelight v0.2.18 h1:izN9JoHLRhhVdC/hZWqCt2POGX8kw0ZsHW/chdkSTCY=
 github.com/xmidt-org/candlelight v0.2.18/go.mod h1:UmY0Hp4BwKfOz+OglcUcPla60XwYA/Ab5jyxQ8Usj14=
 github.com/xmidt-org/httpaux v0.4.5 h1:+/YVnfWlUn7FJJbNguYgBPxzih32lPGEt30sSSPN2F0=

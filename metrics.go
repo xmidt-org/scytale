@@ -64,8 +64,8 @@ const (
 const (
 	// reasons
 	UnknownReason       = "unknown"
-	AuthMissingClaims   = "auth_is_missing_expected_claims"
-	AuthInvalidClaims   = "auth_invalid_claim_values"
+	AuthMissingClaims   = "missing_expected_claims"
+	AuthInvalidClaims   = "invalid_claim_values"
 	AuthInvalidCreds    = "invalid_creds"
 	AuthCannotVerify    = "could_not_verify_message"
 	AuthInvalidScheme   = "invalid_scheme"
@@ -137,18 +137,15 @@ func (ae authenticatorEvent) OnEvent(e bascule.AuthenticateEvent[*http.Request])
 }
 
 func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request]) prometheus.Labels {
-	ls := prometheus.Labels{
-		ClientIDLabel:  "",
-		PartnerIDLabel: "",
-		EndpointLabel:  determineEndpoint(ae.endpoints, e.Source),
-		MethodLabel:    e.Source.Method,
-		OutcomeLabel:   Rejected,
-		ReasonLabel:    "",
-	}
+	var (
+		client  string
+		partner string
+		reason  string
+	)
 	if e.Token != nil {
-		ls[ClientIDLabel] = e.Token.Principal()
-		ls[PartnerIDLabel] = determinePartnerID(e.Token)
-	} else {
+		client = e.Token.Principal()
+		partner = determinePartnerID(e.Token)
+	} else if _, ok := e.Token.(basculejwt.Claims); ok {
 		reparseFailureMsg := "authenticator event: failed to reparse the request auth"
 		opts := append([]jwt.ParseOption{jwt.WithResetValidators(true),
 			jwt.WithValidator(jwt.IsIssuedAtValid()),
@@ -161,40 +158,54 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 		} else if _, value, err := basculehttp.ParseAuthorization(authValue); err != nil {
 			ae.l.Error(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
 		} else if t, err := parser.Parse(context.Background(), value); err == nil {
-			ls[ClientIDLabel] = t.Principal()
-			ls[PartnerIDLabel] = determinePartnerID(t)
+			client = t.Principal()
+			partner = determinePartnerID(t)
 		} else {
 			ae.l.Debug(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
 		}
 	}
 
-	ae.l.Info("authenticator event: creds rejected")
 	if errors.Is(e.Err, jwt.ErrTokenExpired()) {
-		ls[ReasonLabel] = AuthUnsatifiedExp
+		reason = AuthUnsatifiedExp
 	} else if errors.Is(e.Err, jwt.ErrInvalidIssuedAt()) {
-		ls[ReasonLabel] = AuthUnsatifiedIAT
+		reason = AuthUnsatifiedIAT
 	} else if errors.Is(e.Err, jwt.ErrTokenNotYetValid()) {
-		ls[ReasonLabel] = AuthUnsatifiedNBF
+		reason = AuthUnsatifiedNBF
 	} else if jws.IsVerificationError(e.Err) {
-		ls[ReasonLabel] = AuthCannotVerify
+		reason = AuthCannotVerify
+	} else if errors.Is(e.Err, bascule.ErrMissingCredentials) {
+		reason = AuthMissingCreds
 	} else if errors.Is(e.Err, bascule.ErrInvalidCredentials) {
-		ls[ReasonLabel] = AuthInvalidCreds
+		reason = AuthInvalidCreds
 	} else if errors.Is(e.Err, bascule.ErrBadCredentials) {
-		ls[ReasonLabel] = AuthBadCreds
+		reason = AuthBadCreds
 	} else if _, ok := errors.AsType[*basculehttp.UnsupportedSchemeError](e.Err); ok {
-		ls[ReasonLabel] = AuthInvalidScheme
+		reason = AuthInvalidScheme
 	} else if errors.Is(e.Err, errAuthEmptyPrincipal) {
-		ls[ReasonLabel] = AuthEmptyPrincipal
+		reason = AuthEmptyPrincipal
 	} else if errors.Is(e.Err, errAuthUnknownScheme) {
-		ls[ReasonLabel] = AuthUnknownScheme
+		reason = AuthUnknownScheme
 	} else if keyProviderFailureRegex.MatchString(e.Err.Error()) {
-		ls[ReasonLabel] = AuthKeyNotFind
+		reason = AuthKeyNotFind
 	} else {
-		ls[ReasonLabel] = UnknownReason
-		ae.l.Error("authenticator event failure", zap.Error(fmt.Errorf("unexpected event error: %v", e.Err)))
+		reason = UnknownReason
 	}
 
-	return ls
+	fs := []zap.Field{zap.String("sat_client_id", client), zap.String("sat_partner_id", partner), zap.String("sat_rejection_reason", reason)}
+	if reason == UnknownReason {
+		ae.l.Error("authenticator event failure", append(fs, zap.Error(fmt.Errorf("unexpected event error: %v", e.Err)))...)
+	} else {
+		ae.l.Info("authenticator event: creds rejected", fs...)
+	}
+
+	return prometheus.Labels{
+		ClientIDLabel:  client,
+		PartnerIDLabel: partner,
+		EndpointLabel:  determineEndpoint(ae.endpoints, e.Source),
+		MethodLabel:    e.Source.Method,
+		OutcomeLabel:   Rejected,
+		ReasonLabel:    reason,
+	}
 }
 
 type authorizerEvent struct {
@@ -214,36 +225,48 @@ func (ae authorizerEvent) OnEvent(e bascule.AuthorizeEvent[*http.Request]) {
 }
 
 func (ae authorizerEvent) getLabels(e bascule.AuthorizeEvent[*http.Request]) prometheus.Labels {
-	ls := prometheus.Labels{
-		ClientIDLabel:  e.Token.Principal(),
-		PartnerIDLabel: determinePartnerID(e.Token),
+	client := e.Token.Principal()
+	partner := determinePartnerID(e.Token)
+	fs := []zap.Field{zap.String("sat_client_id", client), zap.String("sat_partner_id", partner)}
+	if e.Err == nil {
+		return prometheus.Labels{
+			ClientIDLabel:  client,
+			PartnerIDLabel: partner,
+			EndpointLabel:  determineEndpoint(ae.endpoints, e.Resource),
+			MethodLabel:    e.Resource.Method,
+			OutcomeLabel:   Accepted,
+			ReasonLabel:    "",
+		}
+	}
+
+	reason := ""
+	if errors.Is(e.Err, bascule.ErrBadCredentials) {
+		reason = AuthBadCreds
+	} else if errors.Is(e.Err, bascule.ErrUnauthorized) {
+		reason = NoCapabilitiesMatch
+	} else if errors.Is(e.Err, errAuthMissingClaims) {
+		reason = AuthMissingClaims
+	} else if errors.Is(e.Err, errAuthInvalidClaims) {
+		reason = AuthInvalidClaims
+	} else {
+		reason = UnknownReason
+	}
+
+	fs = append(fs, zap.String("sat_rejection_reason", reason))
+	if reason == UnknownReason {
+		ae.l.Error("authorizer event failure", append(fs, zap.Error(fmt.Errorf("unexpected event error: %v", e.Err)))...)
+	} else {
+		ae.l.Info("authorizer event: creds rejected", fs...)
+	}
+
+	return prometheus.Labels{
+		ClientIDLabel:  client,
+		PartnerIDLabel: partner,
 		EndpointLabel:  determineEndpoint(ae.endpoints, e.Resource),
 		MethodLabel:    e.Resource.Method,
-		OutcomeLabel:   Accepted,
-		ReasonLabel:    "",
+		OutcomeLabel:   Rejected,
+		ReasonLabel:    reason,
 	}
-	if e.Err == nil {
-		ae.l.Debug("authorizer event: creds accepted")
-
-		return ls
-	}
-
-	ae.l.Info("authorizer event: creds rejected")
-	ls[OutcomeLabel] = Rejected
-	if errors.Is(e.Err, bascule.ErrBadCredentials) {
-		ls[ReasonLabel] = AuthBadCreds
-	} else if errors.Is(e.Err, bascule.ErrUnauthorized) {
-		ls[ReasonLabel] = NoCapabilitiesMatch
-	} else if errors.Is(e.Err, errAuthMissingClaims) {
-		ls[ReasonLabel] = AuthMissingClaims
-	} else if errors.Is(e.Err, errAuthInvalidClaims) {
-		ls[ReasonLabel] = AuthInvalidClaims
-	} else {
-		ls[ReasonLabel] = UnknownReason
-		ae.l.Error("authorizer event failure", zap.Error(fmt.Errorf("unexpected event error: %v", e.Err)))
-	}
-
-	return ls
 }
 
 func determineEndpoint(endpoints []*regexp.Regexp, req *http.Request) string {

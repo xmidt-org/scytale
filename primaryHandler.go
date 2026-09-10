@@ -11,14 +11,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 
 	gokithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	"github.com/lestrrat-go/jwx/v2/jws"
-	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/lestrrat-go/jwx/v4/jwt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
@@ -26,6 +28,9 @@ import (
 	"github.com/xmidt-org/bascule/basculehttp/basculecaps"
 	"github.com/xmidt-org/bascule/basculejwt"
 	"github.com/xmidt-org/candlelight"
+	"github.com/xmidt-org/clortho"
+	"github.com/xmidt-org/clortho/clorthometrics"
+	"github.com/xmidt-org/clortho/clorthozap"
 	"github.com/xmidt-org/touchstone"
 	"github.com/xmidt-org/webpa-common/v2/device"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
@@ -73,7 +78,7 @@ var (
 	errNoDeviceName = errors.New("no device name")
 )
 
-func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, _ *touchstone.Factory) (alice.Chain, error) {
+func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, tf *touchstone.Factory) (alice.Chain, error) {
 	if registry == nil {
 		return alice.Chain{}, errors.New("nil registry")
 	}
@@ -123,16 +128,52 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, _
 			return alice.Chain{}, fmt.Errorf("failed to parse jwt configuration: %v", err)
 		}
 
-		if jwtVal.Config.isZero() {
-			return alice.Chain{}, fmt.Errorf("jwt configuration was set, `%s.Config` can't be empty", jwtAuthConfigKey)
-		}
-
-		ks, err := jwtVal.Config.Build()
+		// Instantiate a keyring for refresher and resolver to share
+		kr := clortho.NewKeyRing()
+		// Instantiate a fetcher for refresher and resolver to share
+		f := clortho.NewFetcher()
+		ref, err := clortho.NewRefresher(
+			clortho.WithConfig(jwtVal.Config),
+			clortho.WithFetcher(f),
+		)
 		if err != nil {
-			return alice.Chain{}, fmt.Errorf("error setting up JWT key resolver: %v", err)
+			return alice.Chain{}, fmt.Errorf("failed to create clortho refresher: %v", err)
 		}
 
-		jwtParseOpts = append(jwtParseOpts, jwt.WithKeySet(ks, jws.WithInferAlgorithmFromKey(true)))
+		// Instantiate a metric listener for refresher and resolver to share
+		cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))
+		if err != nil {
+			return alice.Chain{}, fmt.Errorf("failed to create clortho metrics listener: %v", err)
+		}
+
+		// Instantiate a logging listener for refresher and resolver to share
+		czl, err := clorthozap.NewListener(
+			clorthozap.WithLogger(logger),
+		)
+		if err != nil {
+			return alice.Chain{}, fmt.Errorf("failed to create clortho zap logger listener: %v", err)
+		}
+
+		ref.AddListener(cml)
+		ref.AddListener(czl)
+		ref.AddListener(kr)
+		// context.Background() is for the unused `context.Context` argument in refresher.Start
+		ref.Start(context.Background())
+		// Shutdown refresher's goroutines when SIGTERM
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGTERM)
+		go func() {
+			<-sigs
+			// context.Background() is for the unused `context.Context` argument in refresher.Stop
+			ref.Stop(context.Background())
+		}()
+
+		kp, err := clortho.NewKeyProvider(clortho.WithRingKey(kr))
+		if err != nil {
+			return alice.Chain{}, fmt.Errorf("error setting up clortho KeyProvider: %v", err)
+		}
+
+		jwtParseOpts = append(jwtParseOpts, jwt.WithKeyProvider(kp))
 		jwtp, err := basculejwt.NewTokenParser(jwtParseOpts...)
 		if err != nil {
 			return alice.Chain{}, fmt.Errorf("error setting up JWT parser: %v", err)
@@ -148,8 +189,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, _
 
 		v.UnmarshalKey("capabilityCheck", &capabilityCheck)
 		approver, err := basculecaps.NewApprover(
-			basculecaps.WithPrefixes(capabilityCheck.Capabilities...),
-			basculecaps.WithAllMethod(capabilityCheck.AcceptAllMethod))
+			basculecaps.WithCapabilities(capabilityCheck.Capabilities...))
 		if err != nil {
 			return alice.Chain{}, fmt.Errorf("error setting up JWT capability checks: %v", err)
 		}

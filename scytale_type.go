@@ -3,9 +3,10 @@
 
 package main
 
+import "github.com/xmidt-org/clortho"
+
 // JWTValidator provides a convenient way to define jwt validator through config files
 type JWTValidator struct {
-	// Config contains the KeyResolver configuration for accessing the public keys for JWT
-	// verification.
-	Config KeyResolver
+	// Config is used to create the clortho Resolver & Refresher for JWT verification keys
+	Config clortho.Config
 }

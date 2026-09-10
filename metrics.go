@@ -12,8 +12,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/lestrrat-go/jwx/v2/jws"
-	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/lestrrat-go/jwx/v4/jws"
+	"github.com/lestrrat-go/jwx/v4/jwt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
@@ -165,13 +165,13 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 		}
 	}
 
-	if errors.Is(e.Err, jwt.ErrTokenExpired()) {
+	if errors.Is(e.Err, jwt.TokenExpiredError{}) {
 		reason = AuthUnsatifiedExp
-	} else if errors.Is(e.Err, jwt.ErrInvalidIssuedAt()) {
+	} else if errors.Is(e.Err, jwt.InvalidIssuedAtError{}) {
 		reason = AuthUnsatifiedIAT
-	} else if errors.Is(e.Err, jwt.ErrTokenNotYetValid()) {
+	} else if errors.Is(e.Err, jwt.TokenNotYetValidError{}) {
 		reason = AuthUnsatifiedNBF
-	} else if jws.IsVerificationError(e.Err) {
+	} else if errors.Is(e.Err, jws.VerifyError()) {
 		reason = AuthCannotVerify
 	} else if errors.Is(e.Err, bascule.ErrMissingCredentials) {
 		reason = AuthMissingCreds

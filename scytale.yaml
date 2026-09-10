@@ -277,25 +277,14 @@ authHeader: ["dXNlcjpwYXNz"]
 # (Optional)
 jwtValidator:
   Config:
-    # URL is the URL to get the public keys from.
-    URL: "http://localhost/sign-keys/available"
-
-    # RefreshInterval is the interval to refresh the public keys.
-    RefreshInterval: "15m"
-
-    # FetcherWorkerCount specifies the number of HTTP fetch workers that are spawned in the backend. By default 3 workers are spawned.
-    FetcherWorkerCount: 3
-    #  HTTPClient is the configuration for the http client used to fetch the public keys.
-    HTTPClient:
-      timeout: "15s"
-      transport:
-        TLSHandshakeTimeout: "10s"
-        maxIdleConns: 0
-        maxIdleConnsPerHost: 1000
-        maxConnsPerHost: 0
-        idleConnTimeout: "90s"
-        expectContinueTimeout: "1s"
-        forceAttemptHTTP2: true
+    Refresh:
+      Sources:
+        # URI is the location where keys are served.  By default, clortho supports
+        # file://, http://, and https:// URIs, as well as standard file system paths
+        # such as /etc/foo/bar.jwk.
+        #
+        # This field is required and has no default.
+        - URI: "http://localhost"
 # capabilityCheck provides the details needed for checking an incoming JWT's
 # capabilities.  If the type of check isn't provided, no checking is done.  The
 # type can be "monitor" or "enforce".  If it is empty or a different value, no

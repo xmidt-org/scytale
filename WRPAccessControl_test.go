@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-kit/kit/metrics"
-	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/lestrrat-go/jwx/v4/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/wrp-go/v3"

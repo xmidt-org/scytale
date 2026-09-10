@@ -47,7 +47,6 @@ var (
 
 type CapabilityConfig struct {
 	Capabilities    []string
-	AcceptAllMethod string
 	EndpointBuckets []string
 }
 

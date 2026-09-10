@@ -25,7 +25,7 @@ func (t testJWT) Principal() string {
 }
 
 func (t testJWT) Get(k string) (any, bool) {
-	return t.Token.Field(k)
+	return t.Field(k)
 }
 
 func (t testJWT) Audience() []string {
@@ -71,7 +71,7 @@ func (t testJWT) Subject() string {
 }
 
 func (t testJWT) Capabilities() (caps []string) {
-	if v, ok := t.Token.Field(basculejwt.CapabilitiesKey); ok {
+	if v, ok := t.Field(basculejwt.CapabilitiesKey); ok {
 		caps, _ = bascule.GetCapabilities(v)
 	}
 

@@ -19,6 +19,7 @@ import (
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/bascule/basculejwt"
+	"github.com/xmidt-org/clortho"
 
 	// nolint: staticcheck
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
@@ -89,10 +90,6 @@ const (
 
 var (
 	errEventMetricMetadata = errors.New("could not parse jwt for additional metric metdata")
-)
-
-var (
-	keyProviderFailureRegex = regexp.MustCompile(`.*key provider \d failed:.*failed to find key with key ID.*`)
 )
 
 // Metrics returns the metrics relevant to this package
@@ -168,6 +165,8 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 		reason = AuthUnsatifiedIAT
 	} else if errors.Is(e.Err, jwt.TokenNotYetValidError{}) {
 		reason = AuthUnsatifiedNBF
+	} else if errors.Is(e.Err, clortho.ErrKeyProviderKeyNotFound) {
+		reason = AuthKeyNotFind
 	} else if errors.Is(e.Err, jws.VerifyError()) {
 		reason = AuthCannotVerify
 	} else if errors.Is(e.Err, bascule.ErrMissingCredentials) {
@@ -182,8 +181,6 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 		reason = AuthEmptyPrincipal
 	} else if errors.Is(e.Err, errAuthUnknownScheme) {
 		reason = AuthUnknownScheme
-	} else if keyProviderFailureRegex.MatchString(e.Err.Error()) {
-		reason = AuthKeyNotFind
 	} else {
 		reason = UnknownReason
 	}

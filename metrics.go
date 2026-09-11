@@ -125,10 +125,6 @@ func (ae authenticatorEvent) OnEvent(e bascule.AuthenticateEvent[*http.Request])
 		ae.l.Debug("authenticator event: creds authenticated")
 
 		return
-	}
-
-	if e.Token == nil && e.Err == nil {
-		panic(errors.New("authenticator event handling failure: expected event token to be a non-nil"))
 	} else if e.Source == nil {
 		panic(fmt.Errorf("authenticator event handling failure: expected event source to be a non-nil: %v", e.Err))
 	}
@@ -145,7 +141,8 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 	if e.Token != nil {
 		client = e.Token.Principal()
 		partner = determinePartnerID(e.Token)
-	} else if _, ok := e.Token.(basculejwt.Claims); ok {
+	} else if scheme, _, err := basculehttp.ParseAuthorization(e.Source.Header.Get(basculehttp.DefaultAuthorizationHeader)); err == nil &&
+		scheme == basculehttp.SchemeBearer {
 		reparseFailureMsg := "authenticator event: failed to reparse the request auth"
 		opts := append([]jwt.ParseOption{jwt.WithResetValidators(true),
 			jwt.WithValidator(jwt.IsIssuedAtValid()),
@@ -215,30 +212,31 @@ type authorizerEvent struct {
 }
 
 func (ae authorizerEvent) OnEvent(e bascule.AuthorizeEvent[*http.Request]) {
-	if e.Token == nil {
+	var ls prometheus.Labels
+	if e.Err == nil {
+		ls = prometheus.Labels{
+			ClientIDLabel:  e.Token.Principal(),
+			PartnerIDLabel: determinePartnerID(e.Token),
+			EndpointLabel:  determineEndpoint(ae.endpoints, e.Resource),
+			MethodLabel:    e.Resource.Method,
+			OutcomeLabel:   Accepted,
+			ReasonLabel:    "",
+		}
+	} else if e.Token == nil {
 		panic(fmt.Errorf("authorizer event handling failure: expected event token to be a non-nil since it passed the `authenticator` middleware without issue: %v", e.Err))
 	} else if e.Resource == nil {
 		panic(fmt.Errorf("authorizer event handling failure: expected event resource to be a non-nil: %v", e.Err))
+	} else {
+		ls = ae.getLabels(e)
 	}
 
-	ae.counter.With(ae.getLabels(e)).Add(1)
+	ae.counter.With(ls).Add(1)
 }
 
 func (ae authorizerEvent) getLabels(e bascule.AuthorizeEvent[*http.Request]) prometheus.Labels {
 	client := e.Token.Principal()
 	partner := determinePartnerID(e.Token)
 	fs := []zap.Field{zap.String("sat_client_id", client), zap.String("sat_partner_id", partner)}
-	if e.Err == nil {
-		return prometheus.Labels{
-			ClientIDLabel:  client,
-			PartnerIDLabel: partner,
-			EndpointLabel:  determineEndpoint(ae.endpoints, e.Resource),
-			MethodLabel:    e.Resource.Method,
-			OutcomeLabel:   Accepted,
-			ReasonLabel:    "",
-		}
-	}
-
 	reason := ""
 	if errors.Is(e.Err, bascule.ErrBadCredentials) {
 		reason = AuthBadCreds
@@ -279,10 +277,11 @@ func determineEndpoint(endpoints []*regexp.Regexp, req *http.Request) string {
 		idxs := r.FindStringIndex(url)
 		if len(idxs) == 0 {
 			continue
+		} else if idxs[0] != 0 {
+			continue
 		}
-		if idxs[0] == 0 {
-			return strings.ReplaceAll(r.String(), " ", "_")
-		}
+
+		return strings.ReplaceAll(r.String(), " ", "_")
 	}
 
 	return NotRecognizedEndpoint

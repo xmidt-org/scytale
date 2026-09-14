@@ -235,8 +235,8 @@ github.com/valyala/fastjson v1.6.10 h1:/yjJg8jaVQdYR3arGxPE2X5z89xrlhS0eGXdv+ADT
 github.com/valyala/fastjson v1.6.10/go.mod h1:e6FubmQouUNP73jtMLmcbxS6ydWIpOfhz34TSfO3JaE=
 github.com/xmidt-org/bascule v1.3.1 h1:x7evdlmmboPjNaL0pnBlwSfwbakMG8Y9MO9nZts15oQ=
 github.com/xmidt-org/bascule v1.3.1/go.mod h1:a14ne4b4fY5E84AaXuNTUNcZh5M3P1dZeDAN7V5/VFI=
-github.com/xmidt-org/candlelight v0.2.19 h1:qrWuRcBR34gKHv5fxNVY6MxlSx3OWqgC2o07oBfcADw=
-github.com/xmidt-org/candlelight v0.2.19/go.mod h1:tew+Wlj7voFxr4b9WXjaN2DkdQqnQ3eNnFwAQBcNw9I=
+github.com/xmidt-org/candlelight v0.2.20 h1:0axAtTwyMwJucoCWG4uB+vl2DQDapJFLgCmfX/boZf8=
+github.com/xmidt-org/candlelight v0.2.20/go.mod h1:8Cn+UxIVMwqf7kBF4NbsOPK9hqXsd67CrmVP2FDcvss=
 github.com/xmidt-org/chronon v0.1.15 h1:S+NbNO1WeFy+39T8bTrrX+7p9fKwzenejAvJaqbkOIo=
 github.com/xmidt-org/chronon v0.1.15/go.mod h1:EvhpdKGQtWk1Q4lKy8ymDa0oVoqa931Be7sc7Uf0Jek=
 github.com/xmidt-org/clortho v0.3.1 h1:oN3U4fBKhf0bNzeS4IQoPppNjoqSysOWyAiYCQRP+o8=
@@ -334,8 +334,8 @@ google.golang.org/genproto/googleapis/api v0.0.0-20260819154853-08b0e4226688 h1:
 google.golang.org/genproto/googleapis/api v0.0.0-20260819154853-08b0e4226688/go.mod h1:1RJ9BQGyNdZwkGc1eTqkErfRZ6RJyYPHZo73BZ1vQqI=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 h1:cYNAzI2sUwhmCcoj9TxvihSrqsxt6uIkj3rDRhSDmW4=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688/go.mod h1:DjtHYE8FKJLivXcBEjGwndXfIC23G0VpXiXKqG179uA=
-google.golang.org/grpc v1.83.1 h1:HIO0+BEtBP6soyqvqC8sNUjZ7bTs+0hFQuFF+RAy++Y=
-google.golang.org/grpc v1.83.1/go.mod h1:kDyl6SKsiHKt0uylY5gtn5cEjkrIOhQOGDgIc4JGwzQ=
+google.golang.org/grpc v1.83.2 h1:EManeRomTObA0BU7I8vXgg/78uE5MJ9M8B39EX2WscU=
+google.golang.org/grpc v1.83.2/go.mod h1:YPI1hK3kDked6iHvgX3tR0y+nX/qpMFKhPgFsokw1S8=
 google.golang.org/protobuf v1.36.12 h1:pJOKDDOyeXErUroCihFAd5LQuwXBSpVnKGrj5o/fwxc=
 google.golang.org/protobuf v1.36.12/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=

@@ -233,8 +233,8 @@ github.com/ugorji/go/codec v1.2.14 h1:yOQvXCBc3Ij46LRkRoh4Yd5qK6LVOgi0bYOXfb7ifj
 github.com/ugorji/go/codec v1.2.14/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
 github.com/valyala/fastjson v1.6.10 h1:/yjJg8jaVQdYR3arGxPE2X5z89xrlhS0eGXdv+ADTh4=
 github.com/valyala/fastjson v1.6.10/go.mod h1:e6FubmQouUNP73jtMLmcbxS6ydWIpOfhz34TSfO3JaE=
-github.com/xmidt-org/bascule v1.3.2 h1:2O5Mv6q8AMtW0zLpYgnCZ1mcC6VbvqYHt3mjLm4L6Hk=
-github.com/xmidt-org/bascule v1.3.2/go.mod h1:QpHA8gfntHX7tDLs/4rC1ZnBSHNe2XWrDNadm4bI2vU=
+github.com/xmidt-org/bascule v1.3.3 h1:114GQIZmm3l+izGas3HVypuNXo1fnizGrV3cNWQKX20=
+github.com/xmidt-org/bascule v1.3.3/go.mod h1:QpHA8gfntHX7tDLs/4rC1ZnBSHNe2XWrDNadm4bI2vU=
 github.com/xmidt-org/candlelight v0.2.20 h1:0axAtTwyMwJucoCWG4uB+vl2DQDapJFLgCmfX/boZf8=
 github.com/xmidt-org/candlelight v0.2.20/go.mod h1:8Cn+UxIVMwqf7kBF4NbsOPK9hqXsd67CrmVP2FDcvss=
 github.com/xmidt-org/chronon v0.1.15 h1:S+NbNO1WeFy+39T8bTrrX+7p9fKwzenejAvJaqbkOIo=

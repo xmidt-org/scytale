@@ -46,6 +46,8 @@ var (
 )
 
 type CapabilityConfig struct {
+	AcceptAllMethod string
+	CacheSize       int
 	Capabilities    []string
 	EndpointBuckets []string
 }

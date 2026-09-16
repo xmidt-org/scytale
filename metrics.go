@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
+	"github.com/xmidt-org/bascule/basculejwt"
 	"github.com/xmidt-org/clortho"
 
 	// nolint: staticcheck

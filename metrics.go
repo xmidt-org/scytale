@@ -4,7 +4,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
-	"github.com/xmidt-org/bascule/basculejwt"
 	"github.com/xmidt-org/clortho"
 
 	// nolint: staticcheck
@@ -87,10 +85,6 @@ const (
 	NotRecognizedEndpoint = "not_recognized"
 )
 
-var (
-	errEventMetricMetadata = errors.New("could not parse jwt for additional metric metdata")
-)
-
 // Metrics returns the metrics relevant to this package
 func Metrics() []xmetrics.Metric {
 	return []xmetrics.Metric{
@@ -137,25 +131,6 @@ func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request
 	if e.Token != nil {
 		client = e.Token.Principal()
 		partner = determinePartnerID(e.Token)
-	} else if scheme, _, err := basculehttp.ParseAuthorization(e.Source.Header.Get(basculehttp.DefaultAuthorizationHeader)); err == nil &&
-		scheme == basculehttp.SchemeBearer {
-		reparseFailureMsg := "authenticator event: failed to reparse the request auth"
-		opts := append([]jwt.ParseOption{jwt.WithResetValidators(true),
-			jwt.WithValidator(jwt.IsIssuedAtValid()),
-			jwt.WithValidator(jwt.IsNbfValid())},
-			ae.parserOpts...)
-		if parser, err := basculejwt.NewTokenParser(opts...); err != nil {
-			ae.l.Error(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
-		} else if authValue := e.Source.Header.Get(basculehttp.DefaultAuthorizationHeader); len(authValue) == 0 {
-			ae.l.Error(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, bascule.ErrMissingCredentials)))
-		} else if _, value, err := basculehttp.ParseAuthorization(authValue); err != nil {
-			ae.l.Error(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
-		} else if t, err := parser.Parse(context.Background(), value); err == nil {
-			client = t.Principal()
-			partner = determinePartnerID(t)
-		} else {
-			ae.l.Debug(reparseFailureMsg, zap.Error(errors.Join(errEventMetricMetadata, err)))
-		}
 	}
 
 	if errors.Is(e.Err, basculejwt.ErrExpired) {

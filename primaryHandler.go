@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"regexp"
@@ -77,6 +78,8 @@ const (
 var (
 	errNoDeviceName = errors.New("no device name")
 )
+
+var stripAPIVersionRegex = regexp.MustCompile(`^/api/v[0-9]+`)
 
 func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, tf *touchstone.Factory) (alice.Chain, error) {
 	if registry == nil {
@@ -189,8 +192,9 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 
 		v.UnmarshalKey("capabilityCheck", &capabilityCheck)
 		approver, err := basculecaps.NewApprover(
+			basculecaps.WithURLNormalizeFunc(stripAPIVersion),
 			basculecaps.WithAllMethod(capabilityCheck.AcceptAllMethod),
-			basculecaps.WithPrefixes(capabilityCheck.Capabilities...),
+			basculecaps.WithPrefixes(capabilityCheck.Prefixes...),
 			basculecaps.WithCacheSize(capabilityCheck.CacheSize))
 		if err != nil {
 			return alice.Chain{}, fmt.Errorf("error setting up JWT capability checks: %v", err)
@@ -593,4 +597,13 @@ func validateWRP(v *viper.Viper, logger *zap.Logger, tf *touchstone.Factory) (fu
 			delegate.ServeHTTP(w, r)
 		})
 	}, nil
+}
+
+// stripAPIVersion removes a leading /api/vN from a request's path, so that
+// capabilities may be written without it.
+func stripAPIVersion(u url.URL) url.URL {
+	u.Path = stripAPIVersionRegex.ReplaceAllString(u.Path, "")
+	u.RawPath = ""
+
+	return u
 }

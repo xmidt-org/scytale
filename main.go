@@ -48,7 +48,7 @@ var (
 type CapabilityConfig struct {
 	AcceptAllMethod string
 	CacheSize       int
-	Capabilities    []string
+	Prefixes        []string
 	EndpointBuckets []string
 }
 

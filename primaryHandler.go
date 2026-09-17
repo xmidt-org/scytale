@@ -190,7 +190,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 		v.UnmarshalKey("capabilityCheck", &capabilityCheck)
 		approver, err := basculecaps.NewApprover(
 			basculecaps.WithAllMethod(capabilityCheck.AcceptAllMethod),
-			basculecaps.WithPrefixes(capabilityCheck.Capabilities...),
+			basculecaps.WithPrefixes(capabilityCheck.Prefixes...),
 			basculecaps.WithCacheSize(capabilityCheck.CacheSize))
 		if err != nil {
 			return alice.Chain{}, fmt.Errorf("error setting up JWT capability checks: %v", err)

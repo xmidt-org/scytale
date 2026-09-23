@@ -239,8 +239,8 @@ github.com/xmidt-org/candlelight v0.2.20 h1:0axAtTwyMwJucoCWG4uB+vl2DQDapJFLgCmf
 github.com/xmidt-org/candlelight v0.2.20/go.mod h1:8Cn+UxIVMwqf7kBF4NbsOPK9hqXsd67CrmVP2FDcvss=
 github.com/xmidt-org/chronon v0.1.15 h1:S+NbNO1WeFy+39T8bTrrX+7p9fKwzenejAvJaqbkOIo=
 github.com/xmidt-org/chronon v0.1.15/go.mod h1:EvhpdKGQtWk1Q4lKy8ymDa0oVoqa931Be7sc7Uf0Jek=
-github.com/xmidt-org/clortho v0.3.1 h1:oN3U4fBKhf0bNzeS4IQoPppNjoqSysOWyAiYCQRP+o8=
-github.com/xmidt-org/clortho v0.3.1/go.mod h1:JQgFy7CEONs5LkndehZBCke1bQjji/yICgrYP1/jsr0=
+github.com/xmidt-org/clortho v0.4.0 h1:H2haMa4w40m0RPNnJz2R/WSqZFrNzvLKgUCi5xH5RlA=
+github.com/xmidt-org/clortho v0.4.0/go.mod h1:/50caDRIh3vvz/amnep27r/udflbFh8Xcqi5vgxHl4I=
 github.com/xmidt-org/sallust v0.2.10 h1:q5RR3zZ22+FHIGGLNTlARdSqGKYVIQeWL320NybHhxk=
 github.com/xmidt-org/sallust v0.2.10/go.mod h1:SWs5tDl0oyi1bBgvVU8ucxaR1qjPO66ecyLW8/cAzUk=
 github.com/xmidt-org/touchstone v0.1.8 h1:jpA7j2pPtuP6hFr/LcT25cvfYkztWOp3Tj1ZCvqIvMw=

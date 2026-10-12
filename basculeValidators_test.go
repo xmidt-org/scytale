@@ -5,6 +5,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"net/http"
 	"testing"
 	"time"
 
@@ -12,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/bascule/basculehash"
+	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/bascule/basculejwt"
 )
 
@@ -133,4 +137,80 @@ func TestRequirePartnerIDs(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBasicCredentials(t *testing.T) {
+	const (
+		testUser     = "user"
+		testPassword = "pass"
+	)
+
+	var tests = []struct {
+		name       string
+		user       string
+		password   string
+		shouldPass bool
+	}{
+		{
+			name:       "valid credentials",
+			user:       testUser,
+			password:   testPassword,
+			shouldPass: true,
+		},
+		{
+			name:     "wrong password",
+			user:     testUser,
+			password: "wrong",
+		},
+		{
+			name:     "unknown user",
+			user:     "nobody",
+			password: testPassword,
+		},
+	}
+
+	creds, cmp, err := newBasicCredentials(map[string]string{testUser: testPassword})
+	require.NoError(t, err)
+	v := basculehash.NewValidator[*http.Request](cmp, creds)
+	ctx := context.Background()
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+			token, err := basculehttp.BasicTokenParser{}.Parse(ctx,
+				base64.StdEncoding.EncodeToString([]byte(test.user+":"+test.password)))
+			require.NoError(err)
+
+			_, err = v.Validate(ctx, nil, token)
+			if test.shouldPass {
+				assert.NoError(err)
+			} else {
+				assert.ErrorIs(err, bascule.ErrBadCredentials)
+			}
+		})
+	}
+}
+
+func TestAuthPrincipalValidator(t *testing.T) {
+	ctx := context.Background()
+	assert.NoError(t, authPrincipalValidator(ctx, bascule.StubToken("client0")))
+
+	err := authPrincipalValidator(ctx, bascule.StubToken(""))
+	assert.ErrorIs(t, err, bascule.ErrBadCredentials)
+	assert.ErrorIs(t, err, errAuthEmptyPrincipal)
+	assert.Equal(t, AuthEmptyPrincipal, authenticateReason(err))
+}
+
+func TestValidatorsCanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	assert.ErrorIs(t, jwtClaimPartnerIDsValidator(ctx, nil, bascule.StubToken("client0")), context.Canceled)
+	assert.ErrorIs(t, authPrincipalValidator(ctx, bascule.StubToken("client0")), context.Canceled)
+}
+
+func TestGetPartnerIDsWithoutAttributes(t *testing.T) {
+	_, err := getPartnerIDs(bascule.StubToken("client0"))
+	assert.ErrorIs(t, err, errAuthMissingClaims)
 }

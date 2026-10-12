@@ -11,9 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/lestrrat-go/jwx/v4/jwt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/bascule/basculejwt"
@@ -105,10 +103,9 @@ func Metrics() []xmetrics.Metric {
 }
 
 type authenticatorEvent struct {
-	l          *zap.Logger
-	counter    *prometheus.CounterVec
-	endpoints  []*regexp.Regexp
-	parserOpts []jwt.ParseOption
+	l         *zap.Logger
+	counter   *prometheus.CounterVec
+	endpoints []*regexp.Regexp
 }
 
 func (ae authenticatorEvent) OnEvent(e bascule.AuthenticateEvent[*http.Request]) {
@@ -120,60 +117,37 @@ func (ae authenticatorEvent) OnEvent(e bascule.AuthenticateEvent[*http.Request])
 		panic(fmt.Errorf("authenticator event handling failure: expected event source to be a non-nil: %v", e.Err))
 	}
 
-	ae.counter.With(ae.getLabels(e)).Add(1)
+	ls := newAuthLabels(ae.endpoints, e.Source, e.Token, Rejected, authenticateReason(e.Err))
+	logRejection(ae.l, "authenticator", ls, e.Err)
+	ae.counter.With(ls).Add(1)
 }
 
-func (ae authenticatorEvent) getLabels(e bascule.AuthenticateEvent[*http.Request]) prometheus.Labels {
-	var (
-		client  string
-		partner string
-		reason  string
-	)
-	if e.Token != nil {
-		client = e.Token.Principal()
-		partner = determinePartnerID(e.Token)
-	}
-
-	if errors.Is(e.Err, basculejwt.ErrExpired) {
-		reason = AuthUnsatifiedExp
-	} else if errors.Is(e.Err, basculejwt.ErrInvalidIssuedAt) {
-		reason = AuthUnsatifiedIAT
-	} else if errors.Is(e.Err, basculejwt.ErrNotYetValid) {
-		reason = AuthUnsatifiedNBF
-	} else if errors.Is(e.Err, clortho.ErrKeyProviderKeyNotFound) {
-		reason = AuthKeyNotFind
-	} else if errors.Is(e.Err, basculejwt.ErrInvalidSignature) {
-		reason = AuthCannotVerify
-	} else if errors.Is(e.Err, bascule.ErrMissingCredentials) {
-		reason = AuthMissingCreds
-	} else if errors.Is(e.Err, bascule.ErrInvalidCredentials) {
-		reason = AuthInvalidCreds
-	} else if errors.Is(e.Err, bascule.ErrBadCredentials) {
-		reason = AuthBadCreds
-	} else if _, ok := errors.AsType[*basculehttp.UnsupportedSchemeError](e.Err); ok {
-		reason = AuthInvalidScheme
-	} else if errors.Is(e.Err, errAuthEmptyPrincipal) {
-		reason = AuthEmptyPrincipal
-	} else if errors.Is(e.Err, errAuthUnknownScheme) {
-		reason = AuthUnknownScheme
-	} else {
-		reason = UnknownReason
-	}
-
-	fs := []zap.Field{zap.String("sat_client_id", client), zap.String("sat_partner_id", partner), zap.String("sat_rejection_reason", reason)}
-	if reason == UnknownReason {
-		ae.l.Error("authenticator event failure", append(fs, zap.Error(fmt.Errorf("unexpected event error: %v", e.Err)))...)
-	} else {
-		ae.l.Info("authenticator event: creds rejected", fs...)
-	}
-
-	return prometheus.Labels{
-		ClientIDLabel:  client,
-		PartnerIDLabel: partner,
-		EndpointLabel:  determineEndpoint(ae.endpoints, e.Source),
-		MethodLabel:    e.Source.Method,
-		OutcomeLabel:   Rejected,
-		ReasonLabel:    reason,
+// authenticateReason maps an authentication error to a metric reason.  Errors
+// that wrap bascule.ErrBadCredentials must be matched before it.
+func authenticateReason(err error) string {
+	switch {
+	case errors.Is(err, basculejwt.ErrExpired):
+		return AuthUnsatifiedExp
+	case errors.Is(err, basculejwt.ErrInvalidIssuedAt):
+		return AuthUnsatifiedIAT
+	case errors.Is(err, basculejwt.ErrNotYetValid):
+		return AuthUnsatifiedNBF
+	case errors.Is(err, clortho.ErrKeyNotFound):
+		return AuthKeyNotFind
+	case errors.Is(err, basculejwt.ErrInvalidSignature):
+		return AuthCannotVerify
+	case errors.Is(err, bascule.ErrMissingCredentials):
+		return AuthMissingCreds
+	case errors.Is(err, bascule.ErrInvalidCredentials):
+		return AuthInvalidCreds
+	case errors.Is(err, errAuthEmptyPrincipal):
+		return AuthEmptyPrincipal
+	case errors.Is(err, bascule.ErrBadCredentials):
+		return AuthBadCreds
+	case errors.As(err, new(*basculehttp.UnsupportedSchemeError)):
+		return AuthInvalidScheme
+	default:
+		return UnknownReason
 	}
 }
 
@@ -184,58 +158,66 @@ type authorizerEvent struct {
 }
 
 func (ae authorizerEvent) OnEvent(e bascule.AuthorizeEvent[*http.Request]) {
-	var ls prometheus.Labels
 	if e.Err == nil {
-		ls = prometheus.Labels{
-			ClientIDLabel:  e.Token.Principal(),
-			PartnerIDLabel: determinePartnerID(e.Token),
-			EndpointLabel:  determineEndpoint(ae.endpoints, e.Resource),
-			MethodLabel:    e.Resource.Method,
-			OutcomeLabel:   Accepted,
-			ReasonLabel:    "",
-		}
+		ae.counter.With(newAuthLabels(ae.endpoints, e.Resource, e.Token, Accepted, "")).Add(1)
+
+		return
 	} else if e.Token == nil {
 		panic(fmt.Errorf("authorizer event handling failure: expected event token to be a non-nil since it passed the `authenticator` middleware without issue: %v", e.Err))
 	} else if e.Resource == nil {
 		panic(fmt.Errorf("authorizer event handling failure: expected event resource to be a non-nil: %v", e.Err))
-	} else {
-		ls = ae.getLabels(e)
 	}
 
+	ls := newAuthLabels(ae.endpoints, e.Resource, e.Token, Rejected, authorizeReason(e.Err))
+	logRejection(ae.l, "authorizer", ls, e.Err)
 	ae.counter.With(ls).Add(1)
 }
 
-func (ae authorizerEvent) getLabels(e bascule.AuthorizeEvent[*http.Request]) prometheus.Labels {
-	client := e.Token.Principal()
-	partner := determinePartnerID(e.Token)
-	fs := []zap.Field{zap.String("sat_client_id", client), zap.String("sat_partner_id", partner)}
-	reason := ""
-	if errors.Is(e.Err, bascule.ErrBadCredentials) {
-		reason = AuthBadCreds
-	} else if errors.Is(e.Err, bascule.ErrUnauthorized) {
-		reason = NoCapabilitiesMatch
-	} else if errors.Is(e.Err, errAuthMissingClaims) {
-		reason = AuthMissingClaims
-	} else if errors.Is(e.Err, errAuthInvalidClaims) {
-		reason = AuthInvalidClaims
-	} else {
-		reason = UnknownReason
+// authorizeReason maps an authorization error to a metric reason.  Errors that
+// wrap bascule.ErrBadCredentials must be matched before it.
+func authorizeReason(err error) string {
+	switch {
+	case errors.Is(err, errAuthMissingClaims):
+		return AuthMissingClaims
+	case errors.Is(err, errAuthInvalidClaims):
+		return AuthInvalidClaims
+	case errors.Is(err, bascule.ErrBadCredentials):
+		return AuthBadCreds
+	case errors.Is(err, bascule.ErrUnauthorized):
+		return NoCapabilitiesMatch
+	default:
+		return UnknownReason
 	}
+}
 
-	fs = append(fs, zap.String("sat_rejection_reason", reason))
-	if reason == UnknownReason {
-		ae.l.Error("authorizer event failure", append(fs, zap.Error(fmt.Errorf("unexpected event error: %v", e.Err)))...)
-	} else {
-		ae.l.Info("authorizer event: creds rejected", fs...)
+// newAuthLabels builds the AuthCapabilityCheckCount labels for an auth event.
+func newAuthLabels(endpoints []*regexp.Regexp, req *http.Request, token bascule.Token, outcome, reason string) prometheus.Labels {
+	var client string
+	if token != nil {
+		client = token.Principal()
 	}
 
 	return prometheus.Labels{
 		ClientIDLabel:  client,
-		PartnerIDLabel: partner,
-		EndpointLabel:  determineEndpoint(ae.endpoints, e.Resource),
-		MethodLabel:    e.Resource.Method,
-		OutcomeLabel:   Rejected,
+		PartnerIDLabel: determinePartnerID(token),
+		EndpointLabel:  determineEndpoint(endpoints, req),
+		MethodLabel:    req.Method,
+		OutcomeLabel:   outcome,
 		ReasonLabel:    reason,
+	}
+}
+
+// logRejection logs a rejected auth event, as an error when the reason is unknown.
+func logRejection(l *zap.Logger, stage string, ls prometheus.Labels, err error) {
+	fs := []zap.Field{
+		zap.String("sat_client_id", ls[ClientIDLabel]),
+		zap.String("sat_partner_id", ls[PartnerIDLabel]),
+		zap.String("sat_rejection_reason", ls[ReasonLabel]),
+	}
+	if ls[ReasonLabel] == UnknownReason {
+		l.Error(stage+" event failure", append(fs, zap.Error(fmt.Errorf("unexpected event error: %v", err)))...)
+	} else {
+		l.Info(stage+" event: creds rejected", fs...)
 	}
 }
 
@@ -268,14 +250,11 @@ func determinePartnerID(token bascule.Token) string {
 		return AuthUnknownScheme
 	}
 
-	partnerIDsVal, ok := bascule.GetAttribute[any](token.(bascule.AttributesAccessor), partnerKeys...)
-	if !ok {
-		return AuthMissingClaims
-	}
-
-	ids, err := cast.ToStringSliceE(partnerIDsVal)
-	if err != nil {
+	ids, err := getPartnerIDs(token)
+	if errors.Is(err, errAuthInvalidClaims) {
 		return AuthInvalidClaims
+	} else if err != nil {
+		return AuthMissingClaims
 	}
 
 	if len(ids) == 0 {

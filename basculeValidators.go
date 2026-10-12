@@ -11,9 +11,8 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
-	"github.com/xmidt-org/bascule/basculehttp"
-	"github.com/xmidt-org/bascule/basculejwt"
-	"go.uber.org/multierr"
+	"github.com/xmidt-org/bascule/basculehash"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -24,64 +23,47 @@ const (
 var (
 	errAuthMissingClaims  = fmt.Errorf("%w: missing partner related keys", bascule.ErrBadCredentials)
 	errAuthInvalidClaims  = fmt.Errorf("%w: invalid `%s` claim(s)", bascule.ErrBadCredentials, partnerKeys)
-	errAuthUnknownScheme  = errors.New("unknown auth scheme")
 	errAuthEmptyPrincipal = errors.New("empty principal")
 )
 
 var partnerKeys = []string{allowedResources, allowedPartners}
 
-func basicSchemeValidator(ctx context.Context, req *http.Request, token bascule.Token) error {
-	if err := ctx.Err(); err != nil {
-		return err
+// newBasicCredentials hashes the configured basic auth passwords so they can be
+// checked with a constant time comparison.  The plaintext is already present in
+// the configuration, so a high bcrypt cost would only add per-request latency.
+func newBasicCredentials(allowed map[string]string) (basculehash.Credentials, basculehash.Comparer, error) {
+	hasher := basculehash.Bcrypt{Cost: bcrypt.MinCost}
+	creds := make(basculehash.Principals, len(allowed))
+	for user, password := range allowed {
+		digest, err := hasher.Hash([]byte(password))
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to hash password for basic auth user `%s`: %w", user, err)
+		}
+
+		creds[user] = digest
 	}
 
-	switch t := token.(type) {
-	case basculehttp.BasicToken:
-	default:
-		return fmt.Errorf("%w: %v: `%T`", bascule.ErrBadCredentials, errAuthUnknownScheme, t)
-	}
-
-	return nil
+	return creds, hasher, nil
 }
 
-func bearerSchemeValidator(ctx context.Context, req *http.Request, token bascule.Token) error {
-	if err := ctx.Err(); err != nil {
-		return err
+// getPartnerIDs returns the partner ids claimed by the token.
+func getPartnerIDs(token bascule.Token) ([]string, error) {
+	accessor, ok := token.(bascule.AttributesAccessor)
+	if !ok {
+		return nil, errAuthMissingClaims
 	}
 
-	switch t := token.(type) {
-	case basculejwt.Claims:
-	default:
-		return fmt.Errorf("%w: %v: `%T`", bascule.ErrBadCredentials, errAuthUnknownScheme, t)
+	partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...)
+	if !ok {
+		return nil, errAuthMissingClaims
 	}
 
-	return nil
-}
-
-func basicPasswordValidator(allowed map[string]string) func(context.Context, *http.Request, bascule.Token) error {
-	return func(ctx context.Context, req *http.Request, token bascule.Token) error {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		basic, ok := token.(basculehttp.BasicToken)
-		if !ok {
-			return nil
-		}
-
-		password, ok := allowed[basic.UserName()]
-		// User not found.
-		if !ok {
-			return bascule.ErrBadCredentials
-
-		}
-
-		if basic.Password() != password {
-			return bascule.ErrBadCredentials
-		}
-
-		return nil
+	ids, err := cast.ToStringSliceE(partnerVal)
+	if err != nil {
+		return nil, errors.Join(errAuthInvalidClaims, err)
 	}
+
+	return ids, nil
 }
 
 func jwtClaimPartnerIDsValidator(ctx context.Context, req *http.Request, token bascule.Token) error {
@@ -89,22 +71,12 @@ func jwtClaimPartnerIDsValidator(ctx context.Context, req *http.Request, token b
 		return err
 	}
 
-	accessor, ok := token.(bascule.AttributesAccessor)
-	if !ok {
-		return errAuthMissingClaims
-	}
-
-	partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...)
-	if !ok {
-		return errAuthMissingClaims
-	}
-
-	allowedPartners, err := cast.ToStringSliceE(partnerVal)
+	ids, err := getPartnerIDs(token)
 	if err != nil {
-		return multierr.Append(errAuthInvalidClaims, err)
+		return err
 	}
 
-	if len(allowedPartners) == 0 {
+	if len(ids) == 0 {
 		return fmt.Errorf("%w: should not be empty", errAuthInvalidClaims)
 	}
 
@@ -117,7 +89,7 @@ func authPrincipalValidator(ctx context.Context, token bascule.Token) error {
 	}
 
 	if token.Principal() == "" {
-		return fmt.Errorf("%w: %v", bascule.ErrBadCredentials, errAuthEmptyPrincipal)
+		return fmt.Errorf("%w: %w", bascule.ErrBadCredentials, errAuthEmptyPrincipal)
 	}
 
 	return nil

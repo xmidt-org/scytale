@@ -8,7 +8,6 @@ import (
 	"slices"
 
 	"github.com/go-kit/kit/metrics"
-	"github.com/spf13/cast"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/bascule/basculejwt"
@@ -36,11 +35,6 @@ type wrpAccessAuthority interface {
 	authorizeWRP(context.Context, *wrp.Message) (bool, error)
 }
 
-//authorizeWRP should run the scytale partnerID checks against incoming WRP messages
-//It takes a pointer to the wrp message as it may modify it in some cases. It returns
-//true if such modification was made. An error is returned in cases the validator
-//check failed and they are go-kit HTTP response error encoder friendly
-
 // wrpPartnersAuthority defines the access policy for which WRP messages
 // are authorized against the partners credentials of the message creator
 type wrpPartnersAccess struct {
@@ -48,95 +42,63 @@ type wrpPartnersAccess struct {
 	receivedWRPMessageCount metrics.Counter
 }
 
-func (p *wrpPartnersAccess) withFailure(labelValues ...string) metrics.Counter {
-	if !p.strict {
-		return p.withSuccess(labelValues...)
-	}
-	return p.receivedWRPMessageCount.With(append(labelValues, OutcomeLabel, Rejected)...)
-}
-
 func (p *wrpPartnersAccess) withSuccess(labelValues ...string) metrics.Counter {
 	return p.receivedWRPMessageCount.With(append(labelValues, OutcomeLabel, Accepted)...)
 }
 
+// reject records a failed check and returns err when the policy is strictly
+// enforced, or nil when it is not.
+func (p *wrpPartnersAccess) reject(clientID, reason string, err error) error {
+	if !p.strict {
+		p.withSuccess(ClientIDLabel, clientID, ReasonLabel, reason).Add(1)
+		return nil
+	}
+
+	p.receivedWRPMessageCount.With(ClientIDLabel, clientID, ReasonLabel, reason, OutcomeLabel, Rejected).Add(1)
+	return err
+}
+
+// correct rejects the WRP's partner ids, replacing them with the allowed ones
+// when the policy is not strictly enforced.
+func (p *wrpPartnersAccess) correct(message *wrp.Message, allowedPartners []string, clientID, reason string, err error) (bool, error) {
+	if err := p.reject(clientID, reason, err); err != nil {
+		return false, err
+	}
+
+	message.PartnerIDs = allowedPartners
+	return true, nil
+}
+
 // authorizeWRP runs the partners access policy against the WRP and returns an error if the check fails.
-// When the policy is not strictly enforced,
-// Additionally, when the policy is not a boolean is returned for failure cases where the policy autocorrects the WRP contents
+// When the policy is not strictly enforced, failures are counted but not returned, and true is returned
+// when the WRP's partner ids were corrected to those allowed by the token.
 func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Message) (bool, error) {
-	var (
-		token, ok   = bascule.Get(ctx)
-		satClientID = "none"
-	)
-
+	satClientID := "none"
+	token, ok := bascule.Get(ctx)
 	if !ok {
-		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenMissing).Add(1)
-
-		if p.strict {
-			return false, ErrTokenMissing
-		}
-		return false, nil
+		return false, p.reject(satClientID, TokenMissing, ErrTokenMissing)
 	}
 
 	switch token.(type) {
 	case basculejwt.Claims, basculehttp.BasicToken:
 	default:
-		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, TokenTypeMismatch).Add(1)
-		if p.strict {
-			return false, ErrTokenTypeMismatch
-		}
-
-		return false, nil
+		return false, p.reject(satClientID, TokenTypeMismatch, ErrTokenTypeMismatch)
 	}
 
 	if principal := token.Principal(); len(principal) > 0 {
 		satClientID = principal
 	}
 
-	accessor, ok := token.(bascule.AttributesAccessor)
-	if !ok {
-		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
-
-		if p.strict {
-			return false, ErrInvalidAllowedPartners
-		}
-
-		return false, nil
-	}
-
-	partnerVal, ok := bascule.GetAttribute[any](accessor, partnerKeys...)
-	if !ok {
-		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
-
-		if p.strict {
-			return false, ErrInvalidAllowedPartners
-		}
-
-		return false, nil
-	}
-
-	allowedPartners, err := cast.ToStringSliceE(partnerVal)
+	allowedPartners, err := getPartnerIDs(token)
 	if err != nil || len(allowedPartners) < 1 {
-		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, JWTPIDInvalid).Add(1)
-
-		if p.strict {
-			return false, ErrInvalidAllowedPartners
-		}
-
-		return false, nil
+		return false, p.reject(satClientID, JWTPIDInvalid, ErrInvalidAllowedPartners)
 	}
 
 	if len(message.PartnerIDs) < 1 {
-		p.withFailure(ClientIDLabel, satClientID, ReasonLabel, WRPPIDMissing).Add(1)
-
-		if p.strict {
-			return false, ErrPIDMissing
-		}
-
-		message.PartnerIDs = allowedPartners
-		return true, nil
+		return p.correct(message, allowedPartners, satClientID, WRPPIDMissing, ErrPIDMissing)
 	}
 
-	if contains(allowedPartners, "*") {
+	if slices.Contains(allowedPartners, Wildcard) {
 		p.withSuccess(ClientIDLabel, satClientID, ReasonLabel, JWTPIDWildcard).Add(1)
 		return false, nil
 	}
@@ -146,18 +108,7 @@ func (p *wrpPartnersAccess) authorizeWRP(ctx context.Context, message *wrp.Messa
 		return false, nil
 	}
 
-	p.withFailure(ClientIDLabel, satClientID, ReasonLabel, WRPPIDMismatch).Add(1)
-	if p.strict {
-		return false, ErrPIDMismatch
-	}
-
-	message.PartnerIDs = allowedPartners
-	return true, nil
-}
-
-// returns true if list contains str
-func contains(list []string, str string) bool {
-	return slices.Contains(list, str)
+	return p.correct(message, allowedPartners, satClientID, WRPPIDMismatch, ErrPIDMismatch)
 }
 
 // returns true if a is a subset of b

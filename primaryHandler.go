@@ -25,6 +25,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/bascule"
+	"github.com/xmidt-org/bascule/basculehash"
 	"github.com/xmidt-org/bascule/basculehttp"
 	"github.com/xmidt-org/bascule/basculehttp/basculecaps"
 	"github.com/xmidt-org/bascule/basculejwt"
@@ -121,35 +122,29 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 			return alice.Chain{}, fmt.Errorf("`%s` must contain at least 1 valid basic cred", basicAuthConfigKey)
 		}
 
+		creds, cmp, err := newBasicCredentials(basicAllowed)
+		if err != nil {
+			return alice.Chain{}, err
+		}
+
 		authorizationParserOpts = append(authorizationParserOpts, basculehttp.WithBasic())
-		validatorOpts = append(validatorOpts, basculehttp.AsValidator(basicSchemeValidator))
-		authorizerOpts = append(authorizerOpts,
-			bascule.WithApproverFuncs(basicPasswordValidator(basicAllowed)))
+		validatorOpts = append(validatorOpts, basculehash.NewValidator[*http.Request](cmp, creds))
 	} else if v.IsSet(jwtAuthConfigKey) {
 		var jwtVal JWTValidator
 		if err := v.UnmarshalKey(jwtAuthConfigKey, &jwtVal); err != nil {
 			return alice.Chain{}, fmt.Errorf("failed to parse jwt configuration: %v", err)
 		}
 
-		// Instantiate a keyring for refresher and resolver to share
-		kr := clortho.NewKeyRing()
-		// Instantiate a fetcher for refresher and resolver to share
-		f := clortho.NewFetcher()
-		ref, err := clortho.NewRefresher(
-			clortho.WithConfig(jwtVal.Config),
-			clortho.WithFetcher(f),
-		)
+		kp, err := clortho.NewKeySetProvider(jwtVal.Config.keySetConfig())
 		if err != nil {
-			return alice.Chain{}, fmt.Errorf("failed to create clortho refresher: %v", err)
+			return alice.Chain{}, fmt.Errorf("error setting up clortho KeySetProvider: %v", err)
 		}
 
-		// Instantiate a metric listener for refresher and resolver to share
 		cml, err := clorthometrics.NewListener(clorthometrics.WithFactory(tf))
 		if err != nil {
 			return alice.Chain{}, fmt.Errorf("failed to create clortho metrics listener: %v", err)
 		}
 
-		// Instantiate a logging listener for refresher and resolver to share
 		czl, err := clorthozap.NewListener(
 			clorthozap.WithLogger(logger),
 		)
@@ -157,24 +152,19 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 			return alice.Chain{}, fmt.Errorf("failed to create clortho zap logger listener: %v", err)
 		}
 
-		ref.AddListener(cml)
-		ref.AddListener(czl)
-		ref.AddListener(kr)
-		// context.Background() is for the unused `context.Context` argument in refresher.Start
-		ref.Start(context.Background())
-		// Shutdown refresher's goroutines when SIGTERM
+		kp.AddListener(cml)
+		kp.AddListener(czl)
+		if err := kp.Start(context.Background()); err != nil {
+			return alice.Chain{}, fmt.Errorf("failed to start clortho KeySetProvider: %v", err)
+		}
+
+		// Shutdown the provider's refresh goroutines when SIGTERM
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGTERM)
 		go func() {
 			<-sigs
-			// context.Background() is for the unused `context.Context` argument in refresher.Stop
-			ref.Stop(context.Background())
+			_ = kp.Stop(context.Background())
 		}()
-
-		kp, err := clortho.NewKeyProvider(clortho.WithRingKey(kr))
-		if err != nil {
-			return alice.Chain{}, fmt.Errorf("error setting up clortho KeyProvider: %v", err)
-		}
 
 		jwtParseOpts = append(jwtParseOpts, jwt.WithKeyProvider(kp))
 		jwtp, err := basculejwt.NewTokenParser(jwtParseOpts...)
@@ -183,14 +173,12 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 		}
 
 		authorizationParserOpts = append(authorizationParserOpts, basculehttp.WithScheme(basculehttp.SchemeBearer, jwtp))
-		validatorOpts = append(validatorOpts, basculehttp.AsValidator(bearerSchemeValidator))
 
 		var capabilityCheck CapabilityConfig
 		if err := v.UnmarshalKey(jwtCapabilityCheckKey, &capabilityCheck); err != nil {
 			return alice.Chain{}, fmt.Errorf("failed to parse jwt configuration `%s`: %v", jwtCapabilityCheckKey, err)
 		}
 
-		v.UnmarshalKey("capabilityCheck", &capabilityCheck)
 		approver, err := basculecaps.NewApprover(
 			basculecaps.WithURLNormalizeFunc(stripAPIVersion),
 			basculecaps.WithAllMethod(capabilityCheck.AcceptAllMethod),
@@ -234,10 +222,9 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 			bascule.WithValidators(validatorOpts...),
 			bascule.WithAuthenticateListeners(
 				authenticatorEvent{
-					l:          logger,
-					counter:    registry.NewCounterVec(AuthCapabilityCheckCount),
-					parserOpts: jwtParseOpts,
-					endpoints:  endpointBuckets}),
+					l:         logger,
+					counter:   registry.NewCounterVec(AuthCapabilityCheckCount),
+					endpoints: endpointBuckets}),
 		)),
 		basculehttp.UseAuthorizer(basculehttp.NewAuthorizer(authorizerOpts...)),
 	)

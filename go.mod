@@ -13,7 +13,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
 	github.com/xmidt-org/bascule v1.5.0
-	github.com/xmidt-org/candlelight v0.4.1
+	github.com/xmidt-org/candlelight v0.4.2
 	github.com/xmidt-org/clortho v0.5.1
 	github.com/xmidt-org/sallust v0.2.10
 	github.com/xmidt-org/touchstone v0.1.8
@@ -78,7 +78,7 @@ require (
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/xmidt-org/chronon v0.1.15 // indirect
 	github.com/xmidt-org/eventor v1.0.51 // indirect
-	github.com/xmidt-org/wrp-go/v5 v5.4.6 // indirect
+	github.com/xmidt-org/wrp-go/v5 v5.4.7 // indirect
 	github.com/xmidt-org/wrphttp v0.4.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0 // indirect

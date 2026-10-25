@@ -12,12 +12,12 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
-	github.com/xmidt-org/bascule v1.5.0
+	github.com/xmidt-org/bascule v1.7.0
 	github.com/xmidt-org/candlelight v0.4.2
 	github.com/xmidt-org/clortho v0.5.1
 	github.com/xmidt-org/sallust v0.2.10
 	github.com/xmidt-org/touchstone v0.1.8
-	github.com/xmidt-org/webpa-common/v2 v2.10.16
+	github.com/xmidt-org/webpa-common/v2 v2.10.18
 	github.com/xmidt-org/wrp-go/v3 v3.7.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.72.0
 	go.uber.org/zap v1.28.0

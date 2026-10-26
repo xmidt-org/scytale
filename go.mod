@@ -17,7 +17,7 @@ require (
 	github.com/xmidt-org/clortho v0.5.1
 	github.com/xmidt-org/sallust v0.2.10
 	github.com/xmidt-org/touchstone v0.1.8
-	github.com/xmidt-org/webpa-common/v2 v2.10.18
+	github.com/xmidt-org/webpa-common/v2 v2.10.19
 	github.com/xmidt-org/wrp-go/v3 v3.7.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.72.0
 	go.uber.org/zap v1.28.0
@@ -44,7 +44,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.31.0 // indirect
-	github.com/hashicorp/consul/api v1.34.5 // indirect
+	github.com/hashicorp/consul/api v1.35.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect

@@ -6,7 +6,7 @@ require (
 	github.com/go-kit/kit v0.13.0
 	github.com/gorilla/mux v1.8.1
 	github.com/justinas/alice v1.2.0
-	github.com/lestrrat-go/jwx/v4 v4.5.0
+	github.com/lestrrat-go/jwx/v4 v4.6.0
 	github.com/prometheus/client_golang v1.25.0
 	github.com/spf13/cast v1.10.0
 	github.com/spf13/pflag v1.0.10
@@ -14,7 +14,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/xmidt-org/bascule v1.7.0
 	github.com/xmidt-org/candlelight v0.4.2
-	github.com/xmidt-org/clortho v0.5.1
+	github.com/xmidt-org/clortho v0.5.2
 	github.com/xmidt-org/sallust v0.2.10
 	github.com/xmidt-org/touchstone v0.1.8
 	github.com/xmidt-org/webpa-common/v2 v2.10.18
@@ -75,7 +75,6 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tinylib/msgp v1.6.5 // indirect
 	github.com/ugorji/go/codec v1.2.14 // indirect
-	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/xmidt-org/chronon v0.1.15 // indirect
 	github.com/xmidt-org/eventor v1.0.51 // indirect
 	github.com/xmidt-org/wrp-go/v5 v5.4.7 // indirect

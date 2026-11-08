@@ -2,11 +2,9 @@
 (pronounced "skit-uh-​lee")
 
 [![Build Status](https://github.com/xmidt-org/scytale/actions/workflows/ci.yml/badge.svg)](https://github.com/xmidt-org/scytale/actions/workflows/ci.yml)
-[![codecov.io](http://codecov.io/github/xmidt-org/scytale/coverage.svg?branch=main)](http://codecov.io/github/xmidt-org/scytale?branch=main)
-[![Go Report Card](https://goreportcard.com/badge/github.com/xmidt-org/scytale)](https://goreportcard.com/report/github.com/xmidt-org/scytale)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=xmidt-org_scytale&metric=alert_status)](https://sonarcloud.io/dashboard?id=xmidt-org_scytale)
-[![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/xmidt-org/scytale/blob/main/LICENSE)
-[![GitHub Release](https://img.shields.io/github/release/xmidt-org/scytale.svg)](CHANGELOG.md)
+[![codecov.io](https://codecov.io/github/xmidt-org/scytale/coverage.svg?branch=main)](https://codecov.io/github/xmidt-org/scytale?branch=main)
+[![Apache V2 License](https://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/xmidt-org/scytale/blob/main/LICENSE)
+[![GitHub Release](https://img.shields.io/github/release/xmidt-org/scytale.svg)](https://github.com/xmidt-org/scytale/releases)
 
 ## Summary
 Scytale is the API server of [XMiDT](https://xmidt.io/). Scytale will fanout the

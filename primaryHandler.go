@@ -38,7 +38,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
 
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service"
 	"github.com/xmidt-org/webpa-common/v2/service/monitor"
 	"github.com/xmidt-org/webpa-common/v2/service/multiaccessor"
@@ -46,7 +45,6 @@ import (
 	"github.com/xmidt-org/webpa-common/v2/xhttp"
 	"github.com/xmidt-org/webpa-common/v2/xhttp/fanout"
 
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
 	"github.com/xmidt-org/wrp-go/v3"
 	"github.com/xmidt-org/wrp-go/v3/wrpcontext"
@@ -94,9 +92,10 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 		jwtParseOpts            []jwt.ParseOption
 		endpointBuckets         []*regexp.Regexp
 	)
-	if v.IsSet(basicAuthConfigKey) && v.IsSet(jwtAuthConfigKey) {
+	switch {
+	case v.IsSet(basicAuthConfigKey) && v.IsSet(jwtAuthConfigKey):
 		return alice.Chain{}, fmt.Errorf("`%s` and `%s` can't both be set", basicAuthConfigKey, jwtAuthConfigKey)
-	} else if v.IsSet(basicAuthConfigKey) {
+	case v.IsSet(basicAuthConfigKey):
 		basicAllowed := make(map[string]string)
 		basicAuth := v.GetStringSlice(basicAuthConfigKey)
 		for _, a := range basicAuth {
@@ -129,7 +128,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 
 		authorizationParserOpts = append(authorizationParserOpts, basculehttp.WithBasic())
 		validatorOpts = append(validatorOpts, basculehash.NewValidator[*http.Request](cmp, creds))
-	} else if v.IsSet(jwtAuthConfigKey) {
+	case v.IsSet(jwtAuthConfigKey):
 		var jwtVal JWTValidator
 		if err := v.UnmarshalKey(jwtAuthConfigKey, &jwtVal); err != nil {
 			return alice.Chain{}, fmt.Errorf("failed to parse jwt configuration: %v", err)
@@ -182,7 +181,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 		approver, err := basculecaps.NewApprover(
 			basculecaps.WithURLNormalizeFunc(stripAPIVersion),
 			basculecaps.WithAllMethod(capabilityCheck.AcceptAllMethod),
-			basculecaps.WithPrefixes(capabilityCheck.Prefixes...),
+			basculecaps.WithPrefixLiterals(capabilityCheck.Prefixes...),
 			basculecaps.WithCacheSize(capabilityCheck.CacheSize))
 		if err != nil {
 			return alice.Chain{}, fmt.Errorf("error setting up JWT capability checks: %v", err)
@@ -200,7 +199,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 
 			endpointBuckets = append(endpointBuckets, re)
 		}
-	} else {
+	default:
 		return alice.Chain{}, fmt.Errorf("either `%s` or `%s` must be set, but not both", basicAuthConfigKey, jwtAuthConfigKey)
 	}
 
@@ -237,8 +236,7 @@ func authChain(v *viper.Viper, logger *zap.Logger, registry xmetrics.Registry, t
 
 // createEndpoints examines the configuration and produces an appropriate fanout.Endpoints, either using the configured
 // endpoints or service discovery.
-// nolint:govet
-func createEndpoints(logger *zap.Logger, cfg *fanout.Configuration, registry xmetrics.Registry, e service.Environment, b multiaccessor.Builder, vnodeCount int) (fanout.Endpoints, error) {
+func createEndpoints(logger *zap.Logger, cfg *fanout.Configuration, registry xmetrics.Registry, e service.Environment) (fanout.Endpoints, error) {
 	if len(cfg.Endpoints) > 0 {
 		logger.Info("using configured endpoints for fanout", zap.Any("endpoints", cfg.Endpoints))
 		return fanout.ParseURLs(cfg.Endpoints...)
@@ -281,7 +279,7 @@ func createEndpoints(logger *zap.Logger, cfg *fanout.Configuration, registry xme
 		return endpoints, err
 	}
 
-	return nil, fmt.Errorf("unable to create endpoints")
+	return nil, errors.New("unable to create endpoints")
 }
 
 func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Registry, e service.Environment, tracing candlelight.Tracing) (http.Handler, error) {
@@ -305,7 +303,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		return nil, err
 	}
 
-	endpoints, err := createEndpoints(logger, &cfg, registry, e, b, o.VnodeCount)
+	endpoints, err := createEndpoints(logger, &cfg, registry, e)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +315,9 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 
 	var tsConfig touchstone.Config
 	// Get touchstone & zap configurations
-	v.UnmarshalKey("touchstone", &tsConfig)
+	if err := v.UnmarshalKey("touchstone", &tsConfig); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal touchstone config: %w", err)
+	}
 	tf := touchstone.NewFactory(tsConfig, logger, promReg)
 	authChain, err := authChain(v, logger, registry, tf)
 	if err != nil {
@@ -325,26 +325,22 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 	}
 
 	var (
-		// nolint:govet,bodyclose
-		transactor = fanout.NewTransactor(&cfg)
+		transactor = fanout.NewTransactor(&cfg) //nolint:bodyclose
 		options    = []fanout.Option{
 			fanout.WithTransactor(transactor),
 			fanout.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) {
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				w.Header().Set("X-Xmidt-Error", err.Error())
-				// nolint:errorlint
 				if headerer, ok := err.(gokithttp.Headerer); ok {
 					for k, values := range headerer.Headers() {
-						// nolint: gosec
 						for _, v := range values {
 							w.Header().Add(k, v)
 						}
 					}
 				}
 				code := http.StatusInternalServerError
-				// nolint:errorlint
 				switch err {
-				case device.ErrorInvalidDeviceName:
+				case device.ErrorInvalidDeviceName: //nolint:errorlint
 					code = http.StatusBadRequest
 				case device.ErrorDeviceNotFound:
 					code = http.StatusNotFound
@@ -364,7 +360,6 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 					code = http.StatusBadRequest
 				}
 
-				// nolint:errorlint
 				if sc, ok := err.(gokithttp.StatusCoder); ok {
 					code = sc.StatusCode()
 				}
@@ -385,28 +380,24 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 	router := mux.NewRouter()
 	// if we want to support the previous API version, then include it in the
 	// api base.
-	urlPrefix := fmt.Sprintf("/%s", apiBase)
+	urlPrefix := "/" + apiBase
 	if v.GetBool("previousVersionSupport") {
-		urlPrefix = fmt.Sprintf("/%s", apiBaseDualVersion)
+		urlPrefix = "/" + apiBaseDualVersion
 	}
-	sendSubrouter := router.Path(fmt.Sprintf("%s/device", urlPrefix)).Methods("POST", "PUT").Subrouter()
+	sendSubrouter := router.Path(urlPrefix+"/device").Methods("POST", "PUT").Subrouter()
 
 	otelMuxOptions := []otelmux.Option{
 		otelmux.WithPropagators(tracing.Propagator()),
 		otelmux.WithTracerProvider(tracing.TracerProvider()),
 	}
 
-	valWRP, err := validateWRP(v, logger, tf)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get wrp validators: %w", err)
-	}
+	valWRP := validateWRP(v, logger)
 
 	router.Use(otelmux.Middleware("mainSpan", otelMuxOptions...), candlelight.EchoFirstTraceNodeInfo(tracing, true), valWRP)
 
 	router.NotFoundHandler = http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
-		xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
+		_, _ = xhttp.WriteError(response, http.StatusBadRequest, "Invalid endpoint")
 	})
-	// nolint:govet
 	fanoutChain := fanout.NewChain(&cfg)
 
 	HTTPFanoutHandler := fanoutChain.Then(
@@ -434,7 +425,7 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 						return context.WithValue(ctx, ContextKeyWRP, m), nil
 					},
 					fanout.ForwardHeaders("Content-Type", "X-Webpa-Device-Name"),
-					fanout.UsePath(fmt.Sprintf("%s/device/send", fanoutPrefix)),
+					fanout.UsePath(fanoutPrefix+"/device/send"),
 					func(ctx context.Context, _, fanout *http.Request, body []byte) (context.Context, error) {
 						fanout.Body, fanout.GetBody = xhttp.NewRewindBytes(body)
 						fanout.ContentLength = int64(len(body))
@@ -489,7 +480,9 @@ func NewPrimaryHandler(logger *zap.Logger, v *viper.Viper, registry xmetrics.Reg
 		}
 	}
 
-	v.UnmarshalKey(wrpCheckConfigKey, &wrpCheckConfig)
+	if err := v.UnmarshalKey(wrpCheckConfigKey, &wrpCheckConfig); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal wrp check config: %w", err)
+	}
 
 	if wrpCheckConfig.Type == enforceCheck || wrpCheckConfig.Type == "monitor" {
 		WRPFanoutHandler = newWRPFanoutHandlerWithPIDCheck(
@@ -572,9 +565,7 @@ func validateDeviceID() alice.Chain {
 	})
 }
 
-func validateWRP(v *viper.Viper, logger *zap.Logger, tf *touchstone.Factory) (func(http.Handler) http.Handler, error) {
-	_ = tf
-
+func validateWRP(v *viper.Viper, logger *zap.Logger) func(http.Handler) http.Handler {
 	if v.Get(wrpValidatorConfigKey) != nil {
 		logger.Warn("wrpValidators are configured but ignored because the current wrp-go dependency does not provide validator middleware")
 	}
@@ -583,7 +574,7 @@ func validateWRP(v *viper.Viper, logger *zap.Logger, tf *touchstone.Factory) (fu
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			delegate.ServeHTTP(w, r)
 		})
-	}, nil
+	}
 }
 
 // stripAPIVersion removes a leading /api/vN from a request's path, so that

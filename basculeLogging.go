@@ -12,7 +12,6 @@ import (
 	"github.com/xmidt-org/candlelight"
 	"github.com/xmidt-org/sallust"
 	"go.uber.org/zap"
-	// nolint:staticcheck
 )
 
 // LoggerFunc is a strategy for adding key/value pairs (possibly) based on an HTTP request.

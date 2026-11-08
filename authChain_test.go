@@ -28,7 +28,6 @@ import (
 	"github.com/xmidt-org/touchstone"
 	"go.uber.org/zap"
 
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
 )
 
@@ -75,7 +74,7 @@ func newAuthChainFixture(t *testing.T, config string) (authChainFixture, error) 
 
 // serve sends a request with the given Authorization header through the chain,
 // returning the status and the auth metric series that the request added.
-func (f authChainFixture) serve(t *testing.T, method, authorization string) (int, []string) {
+func (f authChainFixture) serve(t *testing.T, authorization string) (int, []string) {
 	t.Helper()
 
 	before := f.authSeries(t)
@@ -84,7 +83,7 @@ func (f authChainFixture) serve(t *testing.T, method, authorization string) (int
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(method, authTestPath, nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, authTestPath, nil)
 	if authorization != "" {
 		req.Header.Set("Authorization", authorization)
 	}
@@ -107,7 +106,7 @@ func (f authChainFixture) serve(t *testing.T, method, authorization string) (int
 func (f authChainFixture) serveLabels(t *testing.T, authorization string) (int, map[string]string) {
 	t.Helper()
 
-	status, added := f.serve(t, http.MethodPost, authorization)
+	status, added := f.serve(t, authorization)
 	require.Len(t, added, 1)
 
 	families, err := f.registry.Gather()
@@ -175,15 +174,15 @@ func basicConfig(creds ...string) string {
 	return "authHeader: [" + strings.Join(encoded, ", ") + "]"
 }
 
-// jwtConfig returns a jwtValidator config with a single key source, followed by
+// jwtConfig returns a jwtValidator config with a single localhost key source, followed by
 // any extra configuration.
-func jwtConfig(source, extra string) string {
+func jwtConfig(extra string) string {
 	return `
 jwtValidator:
   Config:
     Refresh:
       Sources:
-        - URI: "` + source + `"
+        - URI: "http://localhost"
 ` + extra
 }
 
@@ -207,7 +206,7 @@ func TestAuthChainConfig(t *testing.T) {
 		},
 		{
 			name:   "both basic and jwt",
-			config: basicConfig("user:pass") + jwtConfig("http://localhost", validCapabilityCheck),
+			config: basicConfig("user:pass") + jwtConfig(validCapabilityCheck),
 			errMsg: "can't both be set",
 		},
 		{
@@ -244,12 +243,12 @@ jwtValidator:
 		},
 		{
 			name:   "invalid capability check",
-			config: jwtConfig("http://localhost", "capabilityCheck:\n  cacheSize: \"not a number\"\n"),
+			config: jwtConfig("capabilityCheck:\n  cacheSize: \"not a number\"\n"),
 			errMsg: "failed to parse jwt configuration `capabilityCheck`",
 		},
 		{
 			name:   "missing capability cache size",
-			config: jwtConfig("http://localhost", "capabilityCheck:\n  prefixes: [\""+authTestPrefix+"\"]\n"),
+			config: jwtConfig("capabilityCheck:\n  prefixes: [\"" + authTestPrefix + "\"]\n"),
 			errMsg: "error setting up JWT capability checks",
 		},
 	}
@@ -271,13 +270,13 @@ func TestAuthChainSkipsEmptyBasicCredential(t *testing.T) {
 	f, err := newAuthChainFixture(t, `authHeader: ["", "`+base64.StdEncoding.EncodeToString([]byte("user:pass"))+`"]`)
 	require.NoError(t, err)
 
-	status, _ := f.serve(t, http.MethodPost, basicAuthorization("user", "pass"))
+	status, _ := f.serve(t, basicAuthorization("user", "pass"))
 	assert.Equal(t, http.StatusOK, status)
 }
 
 func TestAuthChainClorthoMetricsRegisteredTwice(t *testing.T) {
 	registry, tf := newAuthChainMetrics(t)
-	config := jwtConfig("http://localhost", validCapabilityCheck)
+	config := jwtConfig(validCapabilityCheck)
 
 	_, err := authChain(newAuthChainViper(t, config), zap.NewNop(), registry, tf)
 	require.NoError(t, err)
@@ -287,7 +286,7 @@ func TestAuthChainClorthoMetricsRegisteredTwice(t *testing.T) {
 }
 
 func TestAuthChainEndpointBuckets(t *testing.T) {
-	f, err := newAuthChainFixture(t, jwtConfig("http://localhost", validCapabilityCheck+`  endpointBuckets: ["(unclosed", "/api/v3/device/send"]
+	f, err := newAuthChainFixture(t, jwtConfig(validCapabilityCheck+`  endpointBuckets: ["(unclosed", "/api/v3/device/send"]
 `))
 	require.NoError(t, err)
 
@@ -340,7 +339,7 @@ func TestAuthChainBasic(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			status, series := f.serve(t, http.MethodPost, test.authorization)
+			status, series := f.serve(t, test.authorization)
 			assert.Equal(t, test.status, status)
 			assert.ElementsMatch(t, test.series, series)
 		})
@@ -409,7 +408,7 @@ capabilityCheck:
 	// The keys are loaded in the background.
 	valid := token(signer, same)
 	require.Eventually(t, func() bool {
-		status, _ := f.serve(t, http.MethodPost, valid)
+		status, _ := f.serve(t, valid)
 		return status == http.StatusOK
 	}, 5*time.Second, 10*time.Millisecond)
 
@@ -483,7 +482,7 @@ capabilityCheck:
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			status, series := f.serve(t, http.MethodPost, test.authorization)
+			status, series := f.serve(t, test.authorization)
 			assert.Equal(t, test.status, status)
 			assert.ElementsMatch(t, test.series, series)
 		})

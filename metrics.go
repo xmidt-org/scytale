@@ -17,7 +17,6 @@ import (
 	"github.com/xmidt-org/bascule/basculejwt"
 	"github.com/xmidt-org/clortho"
 
-	// nolint: staticcheck
 	"github.com/xmidt-org/webpa-common/v2/xmetrics"
 	"go.uber.org/zap"
 )
@@ -46,7 +45,7 @@ const (
 	Rejected = "rejected"
 
 	TokenMissing = "token_not_found"
-	// nolint: gosec
+	//nolint:gosec
 	TokenTypeMismatch = "token_type_mismatch"
 
 	WRPPIDMissing  = "wrp_pid_missing"
@@ -158,13 +157,14 @@ type authorizerEvent struct {
 }
 
 func (ae authorizerEvent) OnEvent(e bascule.AuthorizeEvent[*http.Request]) {
-	if e.Err == nil {
+	switch {
+	case e.Err == nil:
 		ae.counter.With(newAuthLabels(ae.endpoints, e.Resource, e.Token, Accepted, "")).Add(1)
 
 		return
-	} else if e.Token == nil {
+	case e.Token == nil:
 		panic(fmt.Errorf("authorizer event handling failure: expected event token to be a non-nil since it passed the `authenticator` middleware without issue: %v", e.Err))
-	} else if e.Resource == nil {
+	case e.Resource == nil:
 		panic(fmt.Errorf("authorizer event handling failure: expected event resource to be a non-nil: %v", e.Err))
 	}
 

@@ -37,6 +37,8 @@ const (
 // newPartnerToken returns a JWT for client0 whose allowedResources claim holds
 // the given value, or no allowedResources claim when resources is nil.
 func newPartnerToken(t *testing.T, resources map[string]any) bascule.Token {
+	t.Helper()
+
 	b := jwt.NewBuilder().Subject(testClient)
 	if resources != nil {
 		b = b.Claim(allowedResources, resources)
@@ -49,6 +51,8 @@ func newPartnerToken(t *testing.T, resources map[string]any) bascule.Token {
 }
 
 func newBasicToken(t *testing.T) bascule.Token {
+	t.Helper()
+
 	token, err := basculehttp.BasicTokenParser{}.Parse(context.Background(),
 		base64.StdEncoding.EncodeToString([]byte(testClient+":secret")))
 	require.NoError(t, err)
@@ -85,13 +89,19 @@ func TestDeterminePartnerID(t *testing.T) {
 			expected: AuthUnknownScheme,
 		},
 		{
-			name:     "missing claim",
-			token:    func(t *testing.T) bascule.Token { return newPartnerToken(t, nil) },
+			name: "missing claim",
+			token: func(t *testing.T) bascule.Token {
+				t.Helper()
+
+				return newPartnerToken(t, nil)
+			},
 			expected: AuthMissingClaims,
 		},
 		{
 			name: "invalid claim",
 			token: func(t *testing.T) bascule.Token {
+				t.Helper()
+
 				return newPartnerToken(t, map[string]any{allowedPartners: map[string]any{testPartner: true}})
 			},
 			expected: AuthInvalidClaims,
@@ -99,6 +109,8 @@ func TestDeterminePartnerID(t *testing.T) {
 		{
 			name: "no partners",
 			token: func(t *testing.T) bascule.Token {
+				t.Helper()
+
 				return newPartnerToken(t, map[string]any{allowedPartners: []string{}})
 			},
 			expected: NonePartner,
@@ -106,6 +118,8 @@ func TestDeterminePartnerID(t *testing.T) {
 		{
 			name: "one partner",
 			token: func(t *testing.T) bascule.Token {
+				t.Helper()
+
 				return newPartnerToken(t, map[string]any{allowedPartners: []string{testPartner}})
 			},
 			expected: testPartner,
@@ -113,6 +127,8 @@ func TestDeterminePartnerID(t *testing.T) {
 		{
 			name: "wildcard partner",
 			token: func(t *testing.T) bascule.Token {
+				t.Helper()
+
 				return newPartnerToken(t, map[string]any{allowedPartners: []string{Wildcard}})
 			},
 			expected: WildcardPartner,
@@ -120,6 +136,8 @@ func TestDeterminePartnerID(t *testing.T) {
 		{
 			name: "many partners",
 			token: func(t *testing.T) bascule.Token {
+				t.Helper()
+
 				return newPartnerToken(t, map[string]any{allowedPartners: []string{testPartner, "partner1"}})
 			},
 			expected: ManyPartner,
@@ -127,6 +145,8 @@ func TestDeterminePartnerID(t *testing.T) {
 		{
 			name: "many partners with wildcard",
 			token: func(t *testing.T) bascule.Token {
+				t.Helper()
+
 				return newPartnerToken(t, map[string]any{allowedPartners: []string{testPartner, Wildcard}})
 			},
 			expected: WildcardPartner,
@@ -171,7 +191,7 @@ func TestDetermineEndpoint(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var req *http.Request
 			if !test.nilReq {
-				req = httptest.NewRequest(http.MethodGet, test.path, nil)
+				req = httptest.NewRequestWithContext(t.Context(), http.MethodGet, test.path, nil)
 			}
 
 			assert.Equal(t, test.expected, determineEndpoint(test.endpoints, req))
@@ -182,6 +202,8 @@ func TestDetermineEndpoint(t *testing.T) {
 func TestAuthenticatorEvent(t *testing.T) {
 	endpoints := []*regexp.Regexp{regexp.MustCompile(`/api/v3/device`)}
 	partnerToken := func(t *testing.T) bascule.Token {
+		t.Helper()
+
 		return newPartnerToken(t, map[string]any{allowedPartners: []string{testPartner}})
 	}
 
@@ -253,14 +275,14 @@ func TestAuthenticatorEvent(t *testing.T) {
 			ae := authenticatorEvent{l: zap.New(core), counter: counter, endpoints: endpoints}
 
 			ae.OnEvent(bascule.AuthenticateEvent[*http.Request]{
-				Source: httptest.NewRequest(http.MethodPost, testEndpoint, nil),
+				Source: httptest.NewRequestWithContext(context.Background(), http.MethodPost, testEndpoint, nil),
 				Token:  test.token(t),
 				Err:    test.err,
 			})
 
 			if test.expectCount {
 				assert.Equal(1, testutil.CollectAndCount(counter))
-				assert.Equal(float64(1), testutil.ToFloat64(counter.With(test.expectedLabel)))
+				assert.InDelta(1.0, testutil.ToFloat64(counter.With(test.expectedLabel)), 0)
 			} else {
 				assert.Zero(testutil.CollectAndCount(counter))
 			}
@@ -339,13 +361,13 @@ func TestAuthorizerEvent(t *testing.T) {
 			ae := authorizerEvent{l: zap.New(core), counter: counter, endpoints: endpoints}
 
 			ae.OnEvent(bascule.AuthorizeEvent[*http.Request]{
-				Resource: httptest.NewRequest(http.MethodPost, testEndpoint, nil),
+				Resource: httptest.NewRequestWithContext(context.Background(), http.MethodPost, testEndpoint, nil),
 				Token:    newPartnerToken(t, map[string]any{allowedPartners: []string{testPartner}}),
 				Err:      test.err,
 			})
 
 			assert.Equal(1, testutil.CollectAndCount(counter))
-			assert.Equal(float64(1), testutil.ToFloat64(counter.With(test.expectedLabel)))
+			assert.InDelta(1.0, testutil.ToFloat64(counter.With(test.expectedLabel)), 0)
 
 			entries := logs.All()
 			if !test.expectLog {
@@ -359,7 +381,7 @@ func TestAuthorizerEvent(t *testing.T) {
 
 func TestAuthorizerEventPanics(t *testing.T) {
 	ae := authorizerEvent{l: zap.NewNop(), counter: newAuthCounter()}
-	req := httptest.NewRequest(http.MethodPost, testEndpoint, nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, testEndpoint, nil)
 
 	assert.Panics(t, func() {
 		ae.OnEvent(bascule.AuthorizeEvent[*http.Request]{Resource: req, Err: bascule.ErrUnauthorized})

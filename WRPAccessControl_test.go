@@ -11,6 +11,7 @@ import (
 	"github.com/go-kit/kit/metrics"
 	"github.com/lestrrat-go/jwx/v4/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xmidt-org/bascule"
 	"github.com/xmidt-org/wrp-go/v3"
 )
@@ -42,8 +43,7 @@ func TestAuthorizeWRP(t *testing.T) {
 			Name:                "Bad bascule token type",
 			Error:               ErrTokenTypeMismatch,
 			InjectSecurityToken: true,
-			// nolint: goconst
-			AllowedPartners: []string{"partner0"},
+			AllowedPartners:     []string{"partner0"},
 			BaseLabelPairs: map[string]string{
 				ReasonLabel:   TokenTypeMismatch,
 				ClientIDLabel: "none",
@@ -57,8 +57,7 @@ func TestAuthorizeWRP(t *testing.T) {
 			IsBearer:            true,
 			AllowedPartners:     []string{},
 			BaseLabelPairs: map[string]string{
-				ReasonLabel: JWTPIDInvalid,
-				// nolint: goconst
+				ReasonLabel:   JWTPIDInvalid,
 				ClientIDLabel: "tester",
 			},
 		},
@@ -134,6 +133,7 @@ func TestAuthorizeWRP(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			assert := assert.New(t)
+			require := require.New(t)
 
 			ctx := context.Background()
 			if testCase.InjectSecurityToken {
@@ -151,7 +151,7 @@ func TestAuthorizeWRP(t *testing.T) {
 
 			expectedStrictLabels, expectedLenientLabels := createLabelMaps(testCase.Error != nil, testCase.BaseLabelPairs)
 
-			//strict mode
+			// strict mode
 			wrpAccessAuthority = &wrpPartnersAccess{
 				strict:                  true,
 				receivedWRPMessageCount: counter,
@@ -159,10 +159,10 @@ func TestAuthorizeWRP(t *testing.T) {
 			modified, err := wrpAccessAuthority.authorizeWRP(ctx, wrpMsg)
 			assert.False(modified)
 			assert.Equal(testCase.Error, err)
-			assert.Equal(float64(1), counter.count)
+			assert.InDelta(1.0, counter.count, 0)
 			assert.Equal(expectedStrictLabels, counter.labelPairs)
 
-			//lenient mode
+			// lenient mode
 			counter = newTestCounter()
 			wrpAccessAuthority = &wrpPartnersAccess{
 				strict:                  false,
@@ -171,8 +171,8 @@ func TestAuthorizeWRP(t *testing.T) {
 
 			modified, err = wrpAccessAuthority.authorizeWRP(ctx, wrpMsg)
 			assert.Equal(testCase.ExpectAutocorrect, modified)
-			assert.Nil(err)
-			assert.Equal(float64(1), counter.count)
+			require.NoError(err)
+			assert.InDelta(1.0, counter.count, 0)
 			assert.Equal(expectedLenientLabels, counter.labelPairs)
 		})
 	}

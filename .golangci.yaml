@@ -3,17 +3,43 @@
 version: "2"
 linters:
   enable:
+    - asciicheck
+    - bidichk
     - bodyclose
+    - canonicalheader
+    - copyloopvar
     - dupl
+    - durationcheck
+    - errname
     - errorlint
+    - exptostd
+    - fatcontext
+    - gocheckcompilerdirectives
     - goconst
+    - gocritic
     - gosec
+    - intrange
+    - makezero
+    - mirror
     - misspell
+    - modernize
+    - nilerr
+    - nilnesserr
+    - noctx
+    - nolintlint
+    - perfsprint
     - prealloc
+    - predeclared
+    - reassign
+    - recvcheck
+    - testifylint
+    - thelper
+    - tparallel
     - unconvert
-  disable:
-    - errcheck
-    - ineffassign
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - wastedassign
   settings:
     errorlint:
       # Check whether fmt.Errorf uses the %w verb for formatting errors.
@@ -30,14 +56,23 @@ linters:
       - legacy
       - std-error-handling
     rules:
+      # webpa-common is deprecated but is still how this service is built.
+      - linters:
+          - staticcheck
+        text: SA1019.*webpa-common
+      # Readability of tests matters more than deduplication.
       - linters:
           - dupl
+          - goconst
         path: _test.go
     paths:
       - third_party$
       - builtin$
       - examples$
 formatters:
+  enable:
+    - gofmt
+    - goimports
   exclusions:
     generated: lax
     paths:

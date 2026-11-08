@@ -17,22 +17,16 @@ import (
 	"github.com/spf13/viper"
 	"github.com/xmidt-org/candlelight"
 
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/adapter"
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/concurrent"
 
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/server"
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service"
-	// nolint:staticcheck
 	"github.com/xmidt-org/webpa-common/v2/service/servicecfg"
-	// nolint:staticcheck
 )
 
 const (
-	//DefaultKeyID is used to build JWT validators
+	// DefaultKeyID is used to build JWT validators
 	DefaultKeyID = "current"
 
 	applicationName  = "scytale"

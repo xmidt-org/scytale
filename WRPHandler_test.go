@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -71,13 +72,14 @@ func TestFanoutRequest(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
 			assert := assert.New(t)
+			require := require.New(t)
 			mockWRPAccessAuthority := new(mockWRPAccessAuthority)
 			wrpFanoutHandler := newWRPFanoutHandlerWithPIDCheck(
 				http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}), mockWRPAccessAuthority)
 
 			wrpResponseWriter := newTestWRPResponseWriter(testCase.Recorder)
 
-			r := httptest.NewRequest(http.MethodGet, "http://localhost", nil)
+			r := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "http://localhost", nil)
 
 			wrpRequest := &wrphttp.Request{
 				Original: r,
@@ -93,7 +95,7 @@ func TestFanoutRequest(t *testing.T) {
 				assert.Equal(testCase.ExpectedCode, testCase.Recorder.Code)
 			} else {
 				outgoingBody, err := io.ReadAll(r.Body)
-				assert.Nil(err)
+				require.NoError(err)
 				assert.Equal(int64(len(outgoingBody)), r.ContentLength)
 				assert.Equal(testCase.Entity.Format.ContentType(), r.Header.Get("Content-Type"))
 				assert.Equal(testCase.Entity.Message.Destination, r.Header.Get("X-Webpa-Device-Name"))
@@ -103,15 +105,16 @@ func TestFanoutRequest(t *testing.T) {
 }
 
 func TestNonWRPResponseWriterFactory(t *testing.T) {
+	require := require.New(t)
 	assert := assert.New(t)
 	w, err := nonWRPResponseWriterFactory(nil, nil)
-	assert.NoError(err)
+	require.NoError(err)
 	require.NotNil(t, w)
 	a, err := w.WriteWRP(nil)
-	assert.NoError(err)
+	require.NoError(err)
 	assert.Zero(a)
 	b, err := w.WriteWRPBytes(wrp.Msgpack, nil)
-	assert.NoError(err)
+	require.NoError(err)
 	assert.Zero(b)
 	c := w.WRPFormat()
 	assert.Equal(wrp.Msgpack, c)

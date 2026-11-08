@@ -91,7 +91,6 @@ func TestRequirePartnerIDs(t *testing.T) {
 		{
 			name: "partnerIDs",
 			attrMap: map[string]any{
-				// nolint: goconst
 				allowedPartners: []string{"partner0", "partner1"},
 			},
 			shouldPass: true,
@@ -194,11 +193,11 @@ func TestBasicCredentials(t *testing.T) {
 
 func TestAuthPrincipalValidator(t *testing.T) {
 	ctx := context.Background()
-	assert.NoError(t, authPrincipalValidator(ctx, bascule.StubToken("client0")))
+	require.NoError(t, authPrincipalValidator(ctx, bascule.StubToken("client0")))
 
 	err := authPrincipalValidator(ctx, bascule.StubToken(""))
-	assert.ErrorIs(t, err, bascule.ErrBadCredentials)
-	assert.ErrorIs(t, err, errAuthEmptyPrincipal)
+	require.ErrorIs(t, err, bascule.ErrBadCredentials)
+	require.ErrorIs(t, err, errAuthEmptyPrincipal)
 	assert.Equal(t, AuthEmptyPrincipal, authenticateReason(err))
 }
 
@@ -206,8 +205,8 @@ func TestValidatorsCanceledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	assert.ErrorIs(t, jwtClaimPartnerIDsValidator(ctx, nil, bascule.StubToken("client0")), context.Canceled)
-	assert.ErrorIs(t, authPrincipalValidator(ctx, bascule.StubToken("client0")), context.Canceled)
+	require.ErrorIs(t, jwtClaimPartnerIDsValidator(ctx, nil, bascule.StubToken("client0")), context.Canceled)
+	require.ErrorIs(t, authPrincipalValidator(ctx, bascule.StubToken("client0")), context.Canceled)
 }
 
 func TestGetPartnerIDsWithoutAttributes(t *testing.T) {

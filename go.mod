@@ -1,6 +1,6 @@
 module github.com/xmidt-org/scytale
 
-go 1.27.1
+go 1.27.3
 
 require (
 	github.com/go-kit/kit v0.13.0

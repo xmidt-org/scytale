@@ -16,7 +16,7 @@ require (
 	github.com/xmidt-org/candlelight v0.4.2
 	github.com/xmidt-org/clortho v0.5.2
 	github.com/xmidt-org/sallust v0.2.10
-	github.com/xmidt-org/touchstone v0.1.8
+	github.com/xmidt-org/touchstone v0.1.9
 	github.com/xmidt-org/webpa-common/v2 v2.10.20
 	github.com/xmidt-org/wrp-go/v3 v3.7.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.72.0
@@ -65,8 +65,8 @@ require (
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect
-	github.com/prometheus/common v0.72.0 // indirect
-	github.com/prometheus/procfs v0.22.0 // indirect
+	github.com/prometheus/common v0.72.1 // indirect
+	github.com/prometheus/procfs v0.23.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -96,7 +96,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
-	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20261005182115-fad411399dd8 // indirect
